@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light only" />
+  <title>future-transportation-crm</title>
+</head>
+
+<body>
+  <script>
+    // Force light mode aggressively
+    const forceLightMode = () => {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+    };
+
+    // Run immediately
+    forceLightMode();
+
+    // Watch for any attempts to add dark mode back
+    const observer = new MutationObserver(forceLightMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  </script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>
