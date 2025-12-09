@@ -6,10 +6,11 @@ import { DashboardPage } from './components/dashboard-page'
 import { Dashboard } from './components/dashboard'
 import { PatientsPage } from './components/patients-page'
 import { DriversPage } from './components/drivers-page'
+import { EmployeesPage } from './components/employees-page'
 import { UploadPage } from './components/upload-page'
 
 // Define valid page values for type safety
-const pages = ['dashboard', 'patients', 'drivers', 'upload'] as const
+const pages = ['dashboard', 'patients', 'drivers', 'employees', 'upload'] as const
 type Page = typeof pages[number]
 
 function App() {
@@ -44,6 +45,12 @@ function App() {
         return (
           <DashboardPage title="Drivers">
             <DriversPage />
+          </DashboardPage>
+        )
+      case 'employees':
+        return (
+          <DashboardPage title="Employees">
+            <EmployeesPage />
           </DashboardPage>
         )
       case 'upload':

@@ -7,6 +7,7 @@ import {
   CarProfile,
   UploadSimple,
   ChartLine,
+  UserList,
 } from "@phosphor-icons/react"
 
 import { NavUser } from "@/components/nav-user"
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/sidebar"
 
 // Page type must match the pages defined in App.tsx
-type Page = 'dashboard' | 'patients' | 'drivers' | 'upload'
+type Page = 'dashboard' | 'patients' | 'drivers' | 'employees' | 'upload'
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   currentPage: Page
@@ -49,6 +50,11 @@ const data = {
       title: "Drivers",
       url: "drivers" as Page,
       icon: CarProfile,
+    },
+    {
+      title: "Employees",
+      url: "employees" as Page,
+      icon: UserList,
     },
     {
       title: "Upload",
