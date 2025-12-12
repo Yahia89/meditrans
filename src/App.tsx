@@ -10,6 +10,8 @@ import { EmployeesPage } from './components/employees-page'
 import { UploadPage } from './components/upload-page'
 import { LoginForm } from './components/login-form'
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
+import loginbgimg from './assets/loginbgimg.jpg'
+import logo from './assets/logo.png'
 
 // Define valid page values for type safety
 const pages = ['dashboard', 'patients', 'drivers', 'employees', 'upload'] as const
@@ -58,20 +60,20 @@ function AppContent() {
           {/* Glass card container */}
           <div className="relative w-full max-w-md z-10">
             <div className="backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 rounded-3xl shadow-2xl shadow-slate-900/10 dark:shadow-black/30 p-8 md:p-10 border border-white/20 dark:border-slate-700/50">
-              {/* Logo/Brand placeholder */}
-              <div className="mb-8 flex justify-center">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
+              {/* Logo/Brand */}
+              <div className="mb-8 flex justify-center rounded-full">
+                <img
+                  src={logo}
+                  alt="MediTrans Logo"
+                  className="h-24 w-auto object-contain rounded-3xl"
+                />
               </div>
 
               <LoginForm />
 
               {/* Footer text */}
               <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
-                © 2024 MediTrans. All rights reserved.
+                © 2025 Medical Transportation CRM. All rights reserved.
               </div>
             </div>
           </div>
@@ -83,7 +85,7 @@ function AppContent() {
           <div
             className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700"
             style={{
-              // Replace this with your image: backgroundImage: 'url(/your-image.jpg)'
+              backgroundImage: `url(${loginbgimg})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }}
@@ -103,13 +105,8 @@ function AppContent() {
           <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-white">
             {/* Image placeholder indicator */}
             <div className="text-center max-w-md">
-              <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                <svg className="w-12 h-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
               <h2 className="text-3xl font-bold mb-4">Welcome to MediTrans</h2>
-              <p className="text-white/80 text-lg leading-relaxed">
+              <p className="text-white/100 font-bold text-lg leading-relaxed">
                 Your trusted partner in medical transportation management. Streamline operations, track patients, and manage your fleet with ease.
               </p>
             </div>
