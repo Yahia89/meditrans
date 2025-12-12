@@ -30,11 +30,6 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 const data = {
-  user: {
-    name: "Admin User",
-    email: "admin@meditrans.com",
-    avatar: "/avatars/user.jpg",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -104,7 +99,7 @@ export function AppSidebar({ currentPage, onNavigate, ...props }: AppSidebarProp
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   )
