@@ -66,9 +66,9 @@ export function AppSidebar({ currentPage, onNavigate, ...props }: AppSidebarProp
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+              {/* <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
                 <Heartbeat weight="duotone" className="size-5" />
-              </div>
+              </div> */}
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">Future Transportation</span>
                 <span className="truncate text-xs">CRM System</span>
