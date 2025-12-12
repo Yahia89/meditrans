@@ -10,7 +10,7 @@ import { EmployeesPage } from './components/employees-page'
 import { UploadPage } from './components/upload-page'
 import { LoginForm } from './components/login-form'
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
-import loginbgimg from './assets/loginbgimg.jpg'
+import loginbgimg from './assets/loginbgimg.png'
 import logo from './assets/logo.png'
 
 // Define valid page values for type safety
@@ -104,12 +104,7 @@ function AppContent() {
           {/* Content overlay */}
           <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-white">
             {/* Image placeholder indicator */}
-            <div className="text-center max-w-md">
-              <h2 className="text-3xl font-bold mb-4">Welcome to MediTrans</h2>
-              <p className="text-white/100 font-bold text-lg leading-relaxed">
-                Your trusted partner in medical transportation management. Streamline operations, track patients, and manage your fleet with ease.
-              </p>
-            </div>
+
 
             {/* Decorative elements */}
             <div className="absolute bottom-12 left-12 right-12">
