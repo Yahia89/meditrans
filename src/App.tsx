@@ -10,6 +10,7 @@ import { EmployeesPage } from './components/employees-page'
 import { UploadPage } from './components/upload-page'
 import { LoginForm } from './components/login-form'
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
+import { OrganizationProvider } from '@/contexts/OrganizationContext'
 import loginbgimg from './assets/loginbgimg.png'
 import logo from './assets/logo.png'
 
@@ -175,7 +176,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <OrganizationProvider>
+        <AppContent />
+      </OrganizationProvider>
     </AuthProvider>
   )
 }
