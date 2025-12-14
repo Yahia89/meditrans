@@ -205,7 +205,7 @@ export function UploadPage() {
 
     return (
         <div className={cn(
-            "relative w-full min-h-[calc(100vh-4rem)] p-8 overflow-hidden transition-opacity duration-700",
+            "relative w-full h-[calc(100vh-4rem)] p-8 overflow-hidden transition-opacity duration-700 flex flex-col",
             mounted ? "opacity-100" : "opacity-0"
         )}>
             {/* Ambient Aurora Gradient Background */}
@@ -239,17 +239,17 @@ export function UploadPage() {
                 </div>
             </div>
 
-            <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+            <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10 flex-1 min-h-0">
 
                 {/* LEFT: The "Glass Folder" Drop Zone */}
-                <div className="lg:col-span-8 flex flex-col h-full">
+                <div className="lg:col-span-8 flex flex-col min-h-0">
                     <div
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                         onClick={() => currentOrganization && fileInputRef.current?.click()}
                         className={cn(
-                            "relative group flex-1 min-h-[500px] rounded-[2rem] border transition-all duration-500 cursor-pointer overflow-hidden",
+                            "relative group flex-1 rounded-[2rem] border transition-all duration-500 cursor-pointer flex flex-col min-h-0",
                             isDragging
                                 ? "border-indigo-400/50 bg-indigo-50/20 scale-[1.01]"
                                 : "border-white/40 bg-white/20 hover:bg-white/30 hover:shadow-2xl hover:-translate-y-1",
@@ -277,55 +277,61 @@ export function UploadPage() {
                         />
 
                         {/* Content Container */}
-                        <div className="relative z-10 h-full flex flex-col items-center justify-center p-10">
+                        <div className="relative z-10 flex flex-col flex-1 min-h-0">
+                            {/* Fixed Header Section */}
+                            <div className="flex-shrink-0 flex flex-col items-center justify-center p-10 pb-4">
+                                {/* Animated Icon */}
+                                <div className={cn(
+                                    "w-24 h-24 mb-6 rounded-[2rem] flex items-center justify-center transition-all duration-500",
+                                    "bg-gradient-to-br from-white/80 to-white/20 shadow-lg border border-white/60",
+                                    isDragging ? "scale-110 rotate-3" : "group-hover:scale-105"
+                                )}>
+                                    {isDragging ? (
+                                        <FolderOpen size={48} weight="duotone" className="text-indigo-600 animate-bounce" />
+                                    ) : (
+                                        <Folder size={48} weight="duotone" className="text-indigo-500" />
+                                    )}
+                                </div>
 
-                            {/* Animated Icon */}
-                            <div className={cn(
-                                "w-24 h-24 mb-6 rounded-[2rem] flex items-center justify-center transition-all duration-500",
-                                "bg-gradient-to-br from-white/80 to-white/20 shadow-lg border border-white/60",
-                                isDragging ? "scale-110 rotate-3" : "group-hover:scale-105"
-                            )}>
-                                {isDragging ? (
-                                    <FolderOpen size={48} weight="duotone" className="text-indigo-600 animate-bounce" />
-                                ) : (
-                                    <Folder size={48} weight="duotone" className="text-indigo-500" />
-                                )}
+                                <h3 className="text-2xl font-bold text-slate-700 tracking-tight text-center">
+                                    {isDragging ? "Drop it like it's hot" : "Drop files to upload"}
+                                </h3>
+                                <p className="text-slate-500 mt-2 text-center max-w-sm font-medium">
+                                    Drag files here or click to browse through your computer
+                                </p>
                             </div>
 
-                            <h3 className="text-2xl font-bold text-slate-700 tracking-tight text-center">
-                                {isDragging ? "Drop it like it's hot" : "Drop files to upload"}
-                            </h3>
-                            <p className="text-slate-500 mt-2 text-center max-w-sm font-medium">
-                                Drag files here or click to browse through your computer
-                            </p>
-
-                            {/* Floating File Preview (Decoration) */}
+                            {/* Floating File Preview (Decoration) - Centered when no files */}
                             {!hasFiles && (
-                                <div className="mt-12 flex items-center gap-3 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-500">
-                                    <div className="w-12 h-16 bg-white/60 rounded-lg shadow-sm rotate-6 transform translate-y-2 border border-white" />
-                                    <div className="w-12 h-16 bg-white/80 rounded-lg shadow-md -rotate-3 z-10 border border-white" />
-                                    <div className="w-12 h-16 bg-white/60 rounded-lg shadow-sm -rotate-12 transform translate-y-3 border border-white" />
+                                <div className="flex-1 flex items-center justify-center">
+                                    <div className="flex items-center gap-3 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-500">
+                                        <div className="w-12 h-16 bg-white/60 rounded-lg shadow-sm rotate-6 transform translate-y-2 border border-white" />
+                                        <div className="w-12 h-16 bg-white/80 rounded-lg shadow-md -rotate-3 z-10 border border-white" />
+                                        <div className="w-12 h-16 bg-white/60 rounded-lg shadow-sm -rotate-12 transform translate-y-3 border border-white" />
+                                    </div>
                                 </div>
                             )}
 
-                            {/* Files "Inside" Folder Visualization */}
+                            {/* Files "Inside" Folder Visualization - Scrollable Area */}
                             {hasFiles && (
-                                <div className="w-full mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 px-4 overflow-y-auto max-h-[220px] scrollbar-hide">
-                                    {files.map((file) => (
-                                        <div key={file.id} className="relative group/card aspect-[3/4] bg-white/40 backdrop-blur-md rounded-xl border border-white/50 shadow-sm flex flex-col items-center justify-center p-3 transition-all  hover:bg-white/60">
-                                            <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
-                                                <button onClick={(e) => { e.stopPropagation(); removeFile(file.id); }} className="text-slate-400 hover:text-red-500">
-                                                    <X size={14} weight="bold" />
-                                                </button>
+                                <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 custom-scrollbar">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                        {files.map((file) => (
+                                            <div key={file.id} className="relative group/card aspect-[3/4] bg-white/40 backdrop-blur-md rounded-xl border border-white/50 shadow-sm flex flex-col items-center justify-center p-3 transition-all hover:bg-white/60">
+                                                <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                                    <button onClick={(e) => { e.stopPropagation(); removeFile(file.id); }} className="text-slate-400 hover:text-red-500">
+                                                        <X size={14} weight="bold" />
+                                                    </button>
+                                                </div>
+                                                {getFileIcon(file.name)}
+                                                <p className="text-[10px] font-medium text-slate-700 mt-2 text-center break-all line-clamp-2 leading-tight">
+                                                    {file.name}
+                                                </p>
+                                                <span className="text-[9px] text-slate-500 mt-1">{formatFileSize(file.size)}</span>
+                                                {file.status === 'success' && <div className="absolute bottom-2 right-2 w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)]" />}
                                             </div>
-                                            {getFileIcon(file.name)}
-                                            <p className="text-[10px] font-medium text-slate-700 mt-2 text-center break-all line-clamp-2 leading-tight">
-                                                {file.name}
-                                            </p>
-                                            <span className="text-[9px] text-slate-500 mt-1">{formatFileSize(file.size)}</span>
-                                            {file.status === 'success' && <div className="absolute bottom-2 right-2 w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)]" />}
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 
@@ -334,8 +340,8 @@ export function UploadPage() {
                 </div>
 
                 {/* RIGHT: Frosted Side Panel (Queue & Actions) */}
-                <div className="lg:col-span-4 flex flex-col h-full space-y-4">
-                    <div className="flex-1 bg-white/30 backdrop-blur-2xl rounded-[2rem] border border-white/40 shadow-xl overflow-hidden flex flex-col">
+                <div className="lg:col-span-4 flex flex-col min-h-0">
+                    <div className="flex-1 min-h-0 bg-white/30 backdrop-blur-2xl rounded-[2rem] border border-white/40 shadow-xl overflow-hidden flex flex-col">
                         <div className="p-6 border-b border-white/20 flex items-center justify-between pb-4">
                             <div>
                                 <h3 className="font-bold text-slate-800 text-lg">Queue</h3>
@@ -428,6 +434,19 @@ export function UploadPage() {
 }
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
+}
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
 }
 `}</style>
         </div>
