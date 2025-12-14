@@ -10,9 +10,12 @@ import {
     DownloadSimple,
     Calendar,
     MapPin,
+    CloudArrowUp,
 } from "@phosphor-icons/react"
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useOnboarding } from '@/contexts/OnboardingContext'
+import { EmployeesEmptyState } from '@/components/ui/empty-state'
 
 interface Employee {
     id: string
@@ -26,7 +29,8 @@ interface Employee {
     status: 'active' | 'on-leave' | 'inactive'
 }
 
-const mockEmployees: Employee[] = [
+// Demo data for preview mode
+const demoEmployees: Employee[] = [
     {
         id: '1',
         name: 'Sarah Johnson',
@@ -113,9 +117,35 @@ function InlineStat({ label, value, valueColor = "text-slate-900" }: {
     );
 }
 
+// Zero stat for empty state
+function ZeroStat({ label }: { label: string }) {
+    return (
+        <div className="flex flex-col gap-1">
+            <span className="text-sm text-slate-500">{label}</span>
+            <span className="text-2xl font-semibold tracking-tight text-slate-300">
+                0
+            </span>
+        </div>
+    );
+}
+
+// Demo mode indicator badge
+function DemoIndicator() {
+    return (
+        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+            Demo Data
+        </span>
+    );
+}
+
 export function EmployeesPage() {
     const [searchQuery, setSearchQuery] = useState('')
-    const [employees] = useState<Employee[]>(mockEmployees)
+    const { dataCounts, isDemoMode, navigateTo } = useOnboarding()
+
+    // Use demo data if in demo mode, otherwise empty
+    const hasRealData = dataCounts.employees > 0
+    const showData = hasRealData || isDemoMode
+    const employees = showData ? demoEmployees : []
 
     const filteredEmployees = employees.filter(employee =>
         employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -137,12 +167,61 @@ export function EmployeesPage() {
         })
     }
 
+    // Show empty state if no real data and not in demo mode
+    if (!showData) {
+        return (
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl font-semibold text-slate-900">Employees</h1>
+                        <p className="text-sm text-slate-500">
+                            Manage staff members and departments
+                        </p>
+                    </div>
+                </div>
+
+                {/* Stats Row with zeros */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
+                        <div className="pl-0">
+                            <ZeroStat label="Total Employees" />
+                        </div>
+                        <div className="pl-8">
+                            <ZeroStat label="Active" />
+                        </div>
+                        <div className="pl-8">
+                            <ZeroStat label="On Leave" />
+                        </div>
+                        <div className="pl-8">
+                            <ZeroStat label="Departments" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Empty State */}
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <EmployeesEmptyState
+                        onAddEmployee={() => {
+                            // TODO: Open add employee modal
+                            console.log('Add employee clicked')
+                        }}
+                        onUpload={() => navigateTo('upload')}
+                    />
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
-                    <h1 className="text-2xl font-semibold text-slate-900">Employees</h1>
+                    <div className="flex items-center">
+                        <h1 className="text-2xl font-semibold text-slate-900">Employees</h1>
+                        {isDemoMode && <DemoIndicator />}
+                    </div>
                     <p className="text-sm text-slate-500">
                         Manage staff members and departments
                     </p>
@@ -152,6 +231,33 @@ export function EmployeesPage() {
                     Add Employee
                 </Button>
             </div>
+
+            {/* Demo Mode Banner */}
+            {isDemoMode && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+                            <CloudArrowUp size={20} weight="duotone" className="text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-amber-900">
+                                Viewing demo employee data
+                            </p>
+                            <p className="text-xs text-amber-700">
+                                Upload your own data or add team members to see real records
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigateTo('upload')}
+                            className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                        >
+                            Upload Data
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* Stats Row - Inline like reference */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

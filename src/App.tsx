@@ -11,6 +11,7 @@ import { UploadPage } from './components/upload-page'
 import { LoginForm } from './components/login-form'
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
 import { OrganizationProvider } from '@/contexts/OrganizationContext'
+import { OnboardingProvider } from '@/contexts/OnboardingContext'
 import loginbgimg from './assets/loginbgimg.png'
 import logo from './assets/logo.png'
 
@@ -166,10 +167,12 @@ function AppContent() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar currentPage={currentPage} onNavigate={setCurrentPage} />
-      {renderPage()}
-    </SidebarProvider>
+    <OnboardingProvider onNavigate={(page) => setCurrentPage(page as Page)}>
+      <SidebarProvider>
+        <AppSidebar currentPage={currentPage} onNavigate={setCurrentPage} />
+        {renderPage()}
+      </SidebarProvider>
+    </OnboardingProvider>
   )
 }
 

@@ -10,9 +10,12 @@ import {
     DownloadSimple,
     NavigationArrow,
     Car,
+    CloudArrowUp,
 } from "@phosphor-icons/react"
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useOnboarding } from '@/contexts/OnboardingContext'
+import { DriversEmptyState } from '@/components/ui/empty-state'
 
 interface Driver {
     id: string
@@ -27,7 +30,8 @@ interface Driver {
     currentLocation?: string
 }
 
-const mockDrivers: Driver[] = [
+// Demo data for preview mode
+const demoDrivers: Driver[] = [
     {
         id: '1',
         name: 'Michael Chen',
@@ -109,9 +113,35 @@ function InlineStat({ label, value, valueColor = "text-slate-900", suffix }: {
     );
 }
 
+// Zero stat for empty state
+function ZeroStat({ label }: { label: string }) {
+    return (
+        <div className="flex flex-col gap-1">
+            <span className="text-sm text-slate-500">{label}</span>
+            <span className="text-2xl font-semibold tracking-tight text-slate-300">
+                0
+            </span>
+        </div>
+    );
+}
+
+// Demo mode indicator badge
+function DemoIndicator() {
+    return (
+        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+            Demo Data
+        </span>
+    );
+}
+
 export function DriversPage() {
     const [searchQuery, setSearchQuery] = useState('')
-    const [drivers] = useState<Driver[]>(mockDrivers)
+    const { dataCounts, isDemoMode, navigateTo } = useOnboarding()
+
+    // Use demo data if in demo mode, otherwise empty
+    const hasRealData = dataCounts.drivers > 0
+    const showData = hasRealData || isDemoMode
+    const drivers = showData ? demoDrivers : []
 
     const filteredDrivers = drivers.filter(driver =>
         driver.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -122,14 +152,65 @@ export function DriversPage() {
 
     const availableCount = drivers.filter(d => d.status === 'available').length
     const onTripCount = drivers.filter(d => d.status === 'on-trip').length
-    const avgRating = (drivers.reduce((sum, d) => sum + d.rating, 0) / drivers.length).toFixed(1)
+    const avgRating = drivers.length > 0
+        ? (drivers.reduce((sum, d) => sum + d.rating, 0) / drivers.length).toFixed(1)
+        : '0.0'
+
+    // Show empty state if no real data and not in demo mode
+    if (!showData) {
+        return (
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl font-semibold text-slate-900">Drivers</h1>
+                        <p className="text-sm text-slate-500">
+                            Manage driver fleet and availability
+                        </p>
+                    </div>
+                </div>
+
+                {/* Stats Row with zeros */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
+                        <div className="pl-0">
+                            <ZeroStat label="Total Drivers" />
+                        </div>
+                        <div className="pl-8">
+                            <ZeroStat label="Available Now" />
+                        </div>
+                        <div className="pl-8">
+                            <ZeroStat label="On Trip" />
+                        </div>
+                        <div className="pl-8">
+                            <ZeroStat label="Avg Rating" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Empty State */}
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <DriversEmptyState
+                        onAddDriver={() => {
+                            // TODO: Open add driver modal
+                            console.log('Add driver clicked')
+                        }}
+                        onUpload={() => navigateTo('upload')}
+                    />
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
-                    <h1 className="text-2xl font-semibold text-slate-900">Drivers</h1>
+                    <div className="flex items-center">
+                        <h1 className="text-2xl font-semibold text-slate-900">Drivers</h1>
+                        {isDemoMode && <DemoIndicator />}
+                    </div>
                     <p className="text-sm text-slate-500">
                         Manage driver fleet and availability
                     </p>
@@ -139,6 +220,33 @@ export function DriversPage() {
                     Add Driver
                 </Button>
             </div>
+
+            {/* Demo Mode Banner */}
+            {isDemoMode && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+                            <CloudArrowUp size={20} weight="duotone" className="text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-amber-900">
+                                Viewing demo driver data
+                            </p>
+                            <p className="text-xs text-amber-700">
+                                Upload your own data or add drivers to see real records
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigateTo('upload')}
+                            className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                        >
+                            Upload Data
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* Stats Row - Inline like reference */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
