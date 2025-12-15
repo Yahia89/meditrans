@@ -9,10 +9,19 @@ import {
     FileDoc,
     Image,
     Folder,
-    FolderOpen
+    FolderOpen,
+    CircleNotch,
+    Warning
 } from "@phosphor-icons/react"
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/contexts/OrganizationContext'
 
@@ -20,12 +29,14 @@ interface UploadedFile {
     id: string
     name: string
     size: number
-    status: 'pending' | 'uploading' | 'success' | 'error'
+    status: 'pending' | 'uploading' | 'processing' | 'success' | 'error'
     progress: number
     type: string
     file: File
+    source: 'patients' | 'drivers' | 'employees' | 'unknown'
     errorMessage?: string
     storagePath?: string
+    dbId?: string
 }
 
 // Allowed MIME types
@@ -50,6 +61,8 @@ export function UploadPage() {
     const [files, setFiles] = useState<UploadedFile[]>([])
     const [isDragging, setIsDragging] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
+    const [importType, setImportType] = useState<'patients' | 'drivers' | 'employees' | 'unknown'>('drivers')
+
     const fileInputRef = useRef<HTMLInputElement>(null)
     const { currentOrganization } = useOrganization()
 
@@ -83,6 +96,7 @@ export function UploadPage() {
                 progress: 0,
                 type: file.type,
                 file: file,
+                source: importType,
                 errorMessage: validation.error
             }
 
@@ -111,22 +125,62 @@ export function UploadPage() {
             const orgId = currentOrganization?.id || 'default'
             const filePath = `${orgId}/uploads/${timestamp}_${sanitizedFileName}`
 
-            // Upload to Supabase
-            const { data, error } = await supabase.storage
+            // 1. Upload to Supabase Storage (Raw File)
+            const { data: storageData, error: storageError } = await supabase.storage
                 .from('documents')
                 .upload(filePath, file, {
                     cacheControl: '3600',
                     upsert: false
                 })
 
-            if (error) throw error
+            if (storageError) throw storageError
 
-            // Success
+            // Update progress (simulated for now as XHR progress isn't exposed easily in v2 JS client helper)
+            setFiles(prev => prev.map(f =>
+                f.id === uploadedFile.id ? { ...f, progress: 90 } : f
+            ))
+
+            // 2. Create Upload Record in Database
+            const { data: dbData, error: dbError } = await supabase
+                .from('org_uploads')
+                .insert({
+                    org_id: orgId,
+                    uploaded_by: (await supabase.auth.getUser()).data.user?.id,
+                    file_path: filePath,
+                    original_filename: file.name,
+                    file_size: file.size,
+                    mime_type: file.type,
+                    source: uploadedFile.source,
+                    status: 'pending', // Will be picked up by Edge Function
+                })
+                .select()
+                .single()
+
+            if (dbError) throw dbError
+
+            // Success (Upload Phase Complete)
             setFiles(prev => prev.map(f =>
                 f.id === uploadedFile.id
-                    ? { ...f, status: 'success', progress: 100, storagePath: data.path }
+                    ? {
+                        ...f,
+                        status: 'success',
+                        progress: 100,
+                        storagePath: storageData.path,
+                        dbId: dbData.id
+                    }
                     : f
             ))
+
+            // 3. Trigger Edge Function (Async) - Fire and forget from UI perspective, or poll
+            // In a real scenario, we might call the function explicitly to start processing immediately
+            try {
+                // Using a hypothetical function name. If it fails, the trigger might pick it up later.
+                await supabase.functions.invoke('process-upload', {
+                    body: { upload_id: dbData.id }
+                })
+            } catch (e) {
+                console.warn('Failed to trigger immediate processing, relying on background jobs', e)
+            }
 
         } catch (error: any) {
             console.error('Upload error:', error)
@@ -243,6 +297,27 @@ export function UploadPage() {
 
                 {/* LEFT: The "Glass Folder" Drop Zone */}
                 <div className="lg:col-span-8 flex flex-col min-h-0">
+                    {/* Source Selector */}
+                    <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <label className="text-sm font-medium text-slate-600">Importing Data For:</label>
+                            <Select value={importType} onValueChange={(v: any) => setImportType(v)}>
+                                <SelectTrigger className="w-[180px] bg-white/60 border-white/40 backdrop-blur-sm">
+                                    <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="drivers">Drivers</SelectItem>
+                                    <SelectItem value="patients">Patients</SelectItem>
+                                    <SelectItem value="employees">Employees</SelectItem>
+                                    <SelectItem value="unknown">General Files</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="text-xs text-slate-400 italic">
+                            Each file will be tagged as <strong>{importType}</strong> data.
+                        </div>
+                    </div>
+
                     <div
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
@@ -318,7 +393,7 @@ export function UploadPage() {
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                         {files.map((file) => (
                                             <div key={file.id} className="relative group/card aspect-[3/4] bg-white/40 backdrop-blur-md rounded-xl border border-white/50 shadow-sm flex flex-col items-center justify-center p-3 transition-all hover:bg-white/60">
-                                                <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                                <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity z-10">
                                                     <button onClick={(e) => { e.stopPropagation(); removeFile(file.id); }} className="text-slate-400 hover:text-red-500">
                                                         <X size={14} weight="bold" />
                                                     </button>
@@ -328,7 +403,10 @@ export function UploadPage() {
                                                     {file.name}
                                                 </p>
                                                 <span className="text-[9px] text-slate-500 mt-1">{formatFileSize(file.size)}</span>
+                                                <span className="text-[9px] text-indigo-500 font-semibold mt-0.5 uppercase tracking-tighter">{file.source}</span>
+
                                                 {file.status === 'success' && <div className="absolute bottom-2 right-2 w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)]" />}
+                                                {file.status === 'processing' && <div className="absolute bottom-2 right-2 w-2 h-2 bg-amber-400 rounded-full animate-pulse" />}
                                             </div>
                                         ))}
                                     </div>
@@ -371,10 +449,14 @@ export function UploadPage() {
                                             {file.status === 'success' ? <Check size={18} className="text-emerald-500" weight="bold" /> : getFileIcon(file.name)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold text-slate-700 truncate">{file.name}</p>
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-sm font-semibold text-slate-700 truncate">{file.name}</p>
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase">{file.source}</span>
+                                            </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-[10px] text-slate-500 font-medium">{formatFileSize(file.size)}</span>
                                                 {file.status === 'error' && <span className="text-[10px] text-red-500 font-bold">• Failed</span>}
+                                                {file.status === 'processing' && <span className="text-[10px] text-amber-500 font-bold">• Processing</span>}
                                             </div>
                                             {/* Progress Bar */}
                                             {file.status === 'uploading' && (
@@ -383,8 +465,9 @@ export function UploadPage() {
                                                 </div>
                                             )}
                                         </div>
+                                        {/* Status / Action */}
                                         <button onClick={() => removeFile(file.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                                            <X size={14} weight="bold" />
+                                            {file.status === 'success' ? <Check size={14} className="text-emerald-500" /> : <X size={14} weight="bold" />}
                                         </button>
                                     </div>
                                 ))
@@ -403,11 +486,11 @@ export function UploadPage() {
                             >
                                 {isUploading ? (
                                     <span className="flex items-center gap-2">
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        Uploading...
+                                        <CircleNotch size={18} className="animate-spin text-white" />
+                                        Uploading & Processing...
                                     </span>
                                 ) : (
-                                    `Upload ${pendingCount > 0 ? pendingCount : ''} Files`
+                                    `Start Import Pipeline (${pendingCount})`
                                 )}
                             </Button>
                         </div>

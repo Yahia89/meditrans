@@ -64,6 +64,121 @@ export interface Database {
           updated_at?: string
         }
       }
+      org_uploads: {
+        Row: {
+          id: string
+          org_id: string
+          uploaded_by: string | null
+          file_path: string
+          file_type: string | null
+          original_filename: string | null
+          file_size: number | null
+          mime_type: string | null
+          source: 'patients' | 'drivers' | 'employees' | 'unknown'
+          status: 'pending' | 'processing' | 'ready_for_review' | 'committed' | 'error'
+          error_message: string | null
+          purpose: string | null
+          notes: string | null
+          created_at: string
+          processed_at: string | null
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          uploaded_by?: string | null
+          file_path: string
+          file_type?: string | null
+          original_filename?: string | null
+          file_size?: number | null
+          mime_type?: string | null
+          source?: 'patients' | 'drivers' | 'employees' | 'unknown'
+          status?: 'pending' | 'processing' | 'ready_for_review' | 'committed' | 'error'
+          error_message?: string | null
+          purpose?: string | null
+          notes?: string | null
+          created_at?: string
+          processed_at?: string | null
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          uploaded_by?: string | null
+          file_path?: string
+          file_type?: string | null
+          original_filename?: string | null
+          file_size?: number | null
+          mime_type?: string | null
+          source?: 'patients' | 'drivers' | 'employees' | 'unknown'
+          status?: 'pending' | 'processing' | 'ready_for_review' | 'committed' | 'error'
+          error_message?: string | null
+          purpose?: string | null
+          notes?: string | null
+          created_at?: string
+          processed_at?: string | null
+        }
+      }
+      staging_drivers: {
+        Row: {
+          id: string
+          upload_id: string
+          org_id: string
+          row_index: number | null
+          status: 'pending' | 'valid' | 'error' | 'committed'
+          validation_errors: Json | null
+          full_name: string | null
+          phone: string | null
+          email: string | null
+          license_number: string | null
+          vehicle_info: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          upload_id: string
+          org_id: string
+          row_index?: number | null
+          status?: 'pending' | 'valid' | 'error' | 'committed'
+          validation_errors?: Json | null
+          full_name?: string | null
+          phone?: string | null
+          email?: string | null
+          license_number?: string | null
+          vehicle_info?: string | null
+          created_at?: string
+        }
+      }
+      staging_patients: {
+        Row: {
+          id: string
+          upload_id: string
+          org_id: string
+          row_index: number | null
+          status: 'pending' | 'valid' | 'error' | 'committed'
+          validation_errors: Json | null
+          full_name: string | null
+          date_of_birth: string | null
+          phone: string | null
+          email: string | null
+          primary_address: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          upload_id: string
+          org_id: string
+          row_index?: number | null
+          status?: 'pending' | 'valid' | 'error' | 'committed'
+          validation_errors?: Json | null
+          full_name?: string | null
+          date_of_birth?: string | null
+          phone?: string | null
+          email?: string | null
+          primary_address?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+      }
       organization_memberships: {
         Row: {
           id: string
