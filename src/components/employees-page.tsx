@@ -12,10 +12,14 @@ import {
     MapPin,
     CloudArrowUp,
 } from "@phosphor-icons/react"
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useOnboarding } from '@/contexts/OnboardingContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { EmployeesEmptyState } from '@/components/ui/empty-state'
+import { Loader2 } from 'lucide-react'
 
 interface Employee {
     id: string
@@ -140,12 +144,40 @@ function DemoIndicator() {
 
 export function EmployeesPage() {
     const [searchQuery, setSearchQuery] = useState('')
-    const { dataCounts, isDemoMode, navigateTo } = useOnboarding()
+    const { isDemoMode, navigateTo } = useOnboarding()
+    const { currentOrganization } = useOrganization()
 
-    // Use demo data if in demo mode, otherwise empty
-    const hasRealData = dataCounts.employees > 0
+    const { data: realEmployees, isLoading } = useQuery({
+        queryKey: ['employees', currentOrganization?.id],
+        queryFn: async () => {
+            if (!currentOrganization) return []
+
+            const { data, error } = await supabase
+                .from('employees')
+                .select('*')
+                .eq('org_id', currentOrganization.id)
+                .order('created_at', { ascending: false })
+
+            if (error) throw error
+
+            return data.map(e => ({
+                id: e.id,
+                name: e.full_name,
+                phone: e.phone || '',
+                email: e.email || '',
+                department: e.department || 'Unassigned',
+                position: e.role || 'Staff',
+                hireDate: e.hire_date || e.created_at,
+                location: 'Main Office', // Mock for now
+                status: (e.status || 'active').toLowerCase() as 'active' | 'on-leave' | 'inactive',
+            } as Employee))
+        },
+        enabled: !!currentOrganization
+    })
+
+    const hasRealData = realEmployees && realEmployees.length > 0
     const showData = hasRealData || isDemoMode
-    const employees = showData ? demoEmployees : []
+    const employees = hasRealData ? realEmployees : (isDemoMode ? demoEmployees : [])
 
     const filteredEmployees = employees.filter(employee =>
         employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -165,6 +197,14 @@ export function EmployeesPage() {
             month: 'short',
             day: 'numeric'
         })
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex h-96 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+            </div>
+        )
     }
 
     // Show empty state if no real data and not in demo mode

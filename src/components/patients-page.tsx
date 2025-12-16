@@ -11,10 +11,14 @@ import {
     DownloadSimple,
     CloudArrowUp,
 } from "@phosphor-icons/react"
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useOnboarding } from '@/contexts/OnboardingContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { PatientsEmptyState } from '@/components/ui/empty-state'
+import { Loader2 } from 'lucide-react'
 
 interface Patient {
     id: string
@@ -126,12 +130,50 @@ function DemoIndicator() {
 
 export function PatientsPage() {
     const [searchQuery, setSearchQuery] = useState('')
-    const { dataCounts, isDemoMode, navigateTo } = useOnboarding()
+    const { isDemoMode, navigateTo } = useOnboarding()
+    const { currentOrganization } = useOrganization()
 
-    // Use demo data if in demo mode, otherwise empty (real data would come from API)
-    const hasRealData = dataCounts.patients > 0
+    const { data: realPatients, isLoading } = useQuery({
+        queryKey: ['patients', currentOrganization?.id],
+        queryFn: async () => {
+            if (!currentOrganization) return []
+
+            const { data, error } = await supabase
+                .from('patients')
+                .select('*')
+                .eq('org_id', currentOrganization.id)
+                .order('created_at', { ascending: false })
+
+            if (error) throw error
+
+            return data.map(p => {
+                // Calculate age from DOB
+                let age = 0
+                if (p.date_of_birth) {
+                    const dob = new Date(p.date_of_birth)
+                    const diff = Date.now() - dob.getTime()
+                    age = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
+                }
+
+                return {
+                    id: p.id,
+                    name: p.full_name,
+                    age: age,
+                    phone: p.phone || '',
+                    email: p.email || '',
+                    address: p.primary_address || '',
+                    lastVisit: p.created_at, // Using created_at as proxy for now
+                    status: (p.status || 'active').toLowerCase() as 'active' | 'inactive',
+                    totalTrips: 0// Placeholder
+                } as Patient
+            })
+        },
+        enabled: !!currentOrganization
+    })
+
+    const hasRealData = realPatients && realPatients.length > 0
     const showData = hasRealData || isDemoMode
-    const patients = showData ? demoPatients : []
+    const patients = hasRealData ? realPatients : (isDemoMode ? demoPatients : [])
 
     const filteredPatients = patients.filter(patient =>
         patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -141,6 +183,21 @@ export function PatientsPage() {
 
     const activeCount = patients.filter(p => p.status === 'active').length
     const totalTrips = patients.reduce((sum, p) => sum + p.totalTrips, 0)
+
+    // Calculate new this month (mock logic for demo, real check for data)
+    const newThisMonth = patients.filter(p => {
+        const d = new Date(p.lastVisit)
+        const now = new Date()
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    }).length
+
+    if (isLoading) {
+        return (
+            <div className="flex h-96 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+            </div>
+        )
+    }
 
     // Show empty state if no real data and not in demo mode
     if (!showData) {

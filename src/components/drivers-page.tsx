@@ -12,10 +12,14 @@ import {
     Car,
     CloudArrowUp,
 } from "@phosphor-icons/react"
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useOnboarding } from '@/contexts/OnboardingContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { DriversEmptyState } from '@/components/ui/empty-state'
+import { Loader2 } from 'lucide-react'
 
 interface Driver {
     id: string
@@ -136,12 +140,41 @@ function DemoIndicator() {
 
 export function DriversPage() {
     const [searchQuery, setSearchQuery] = useState('')
-    const { dataCounts, isDemoMode, navigateTo } = useOnboarding()
+    const { isDemoMode, navigateTo } = useOnboarding()
+    const { currentOrganization } = useOrganization()
 
-    // Use demo data if in demo mode, otherwise empty
-    const hasRealData = dataCounts.drivers > 0
+    const { data: realDrivers, isLoading } = useQuery({
+        queryKey: ['drivers', currentOrganization?.id],
+        queryFn: async () => {
+            if (!currentOrganization) return []
+
+            const { data, error } = await supabase
+                .from('drivers')
+                .select('*')
+                .eq('org_id', currentOrganization.id)
+                .order('created_at', { ascending: false })
+
+            if (error) throw error
+
+            return data.map(d => ({
+                id: d.id,
+                name: d.full_name,
+                phone: d.phone || '',
+                email: d.email || '',
+                vehicleType: d.vehicle_info || 'Unknown',
+                licensePlate: d.license_number || 'Unknown',
+                rating: 5.0, // Mock for now
+                totalTrips: 0, // Mock for now
+                status: (d.status || 'available').toLowerCase() as 'available' | 'on-trip' | 'offline',
+                currentLocation: undefined // Mock for now
+            } as Driver))
+        },
+        enabled: !!currentOrganization
+    })
+
+    const hasRealData = realDrivers && realDrivers.length > 0
     const showData = hasRealData || isDemoMode
-    const drivers = showData ? demoDrivers : []
+    const drivers = hasRealData ? realDrivers : (isDemoMode ? demoDrivers : [])
 
     const filteredDrivers = drivers.filter(driver =>
         driver.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -155,6 +188,14 @@ export function DriversPage() {
     const avgRating = drivers.length > 0
         ? (drivers.reduce((sum, d) => sum + d.rating, 0) / drivers.length).toFixed(1)
         : '0.0'
+
+    if (isLoading) {
+        return (
+            <div className="flex h-96 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+            </div>
+        )
+    }
 
     // Show empty state if no real data and not in demo mode
     if (!showData) {
