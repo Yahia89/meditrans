@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sidebar"
 
 // Page type must match the pages defined in App.tsx
-type Page = 'dashboard' | 'patients' | 'drivers' | 'employees' | 'upload'
+type Page = 'dashboard' | 'patients' | 'drivers' | 'employees' | 'upload' | 'review_import'
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   currentPage: Page

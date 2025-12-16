@@ -16,8 +16,10 @@ import loginbgimg from './assets/loginbgimg.png'
 import logo from './assets/logo.png'
 
 // Define valid page values for type safety
-const pages = ['dashboard', 'patients', 'drivers', 'employees', 'upload'] as const
+const pages = ['dashboard', 'patients', 'drivers', 'employees', 'upload', 'review_import'] as const
 type Page = typeof pages[number]
+
+import { UploadReviewPage } from './components/upload-review-page'
 
 function AppContent() {
   const { user, loading } = useAuth()
@@ -107,7 +109,6 @@ function AppContent() {
           <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-white">
             {/* Image placeholder indicator */}
 
-
             {/* Decorative elements */}
             <div className="absolute bottom-12 left-12 right-12">
               <div className="flex items-center gap-4 text-white/60 text-sm">
@@ -157,6 +158,12 @@ function AppContent() {
             <UploadPage />
           </DashboardPage>
         )
+      case 'review_import':
+        return (
+          <DashboardPage title="Review Import">
+            <UploadReviewPage onBack={() => setCurrentPage('upload')} />
+          </DashboardPage>
+        )
       default:
         return (
           <DashboardPage title="Dashboard">
@@ -169,7 +176,7 @@ function AppContent() {
   return (
     <OnboardingProvider onNavigate={(page) => setCurrentPage(page as Page)}>
       <SidebarProvider>
-        <AppSidebar currentPage={currentPage} onNavigate={setCurrentPage} />
+        <AppSidebar currentPage={currentPage as Page} onNavigate={(p) => setCurrentPage(p as Page)} />
         {renderPage()}
       </SidebarProvider>
     </OnboardingProvider>

@@ -117,6 +117,138 @@ export interface Database {
           processed_at?: string | null
         }
       }
+      drivers: {
+        Row: {
+          id: string
+          org_id: string
+          full_name: string
+          email: string | null
+          phone: string | null
+          license_number: string | null
+          vehicle_info: string | null
+          status: string
+          custom_fields: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          full_name: string
+          email?: string | null
+          phone?: string | null
+          license_number?: string | null
+          vehicle_info?: string | null
+          status?: string
+          custom_fields?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          full_name?: string
+          email?: string | null
+          phone?: string | null
+          license_number?: string | null
+          vehicle_info?: string | null
+          status?: string
+          custom_fields?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      employees: {
+        Row: {
+          id: string
+          org_id: string
+          full_name: string
+          email: string | null
+          phone: string | null
+          role: string | null
+          department: string | null
+          hire_date: string | null
+          status: string
+          notes: string | null
+          custom_fields: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          full_name: string
+          email?: string | null
+          phone?: string | null
+          role?: string | null
+          department?: string | null
+          hire_date?: string | null
+          status?: string
+          notes?: string | null
+          custom_fields?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          full_name?: string
+          email?: string | null
+          phone?: string | null
+          role?: string | null
+          department?: string | null
+          hire_date?: string | null
+          status?: string
+          notes?: string | null
+          custom_fields?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      patients: {
+        Row: {
+          id: string
+          org_id: string
+          full_name: string
+          date_of_birth: string | null
+          phone: string | null
+          email: string | null
+          primary_address: string | null
+          notes: string | null
+          status: string
+          custom_fields: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          full_name: string
+          date_of_birth?: string | null
+          phone?: string | null
+          email?: string | null
+          primary_address?: string | null
+          notes?: string | null
+          status?: string
+          custom_fields?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          full_name?: string
+          date_of_birth?: string | null
+          phone?: string | null
+          email?: string | null
+          primary_address?: string | null
+          notes?: string | null
+          status?: string
+          custom_fields?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
       staging_drivers: {
         Row: {
           id: string
@@ -125,6 +257,7 @@ export interface Database {
           row_index: number | null
           status: 'pending' | 'valid' | 'error' | 'committed'
           validation_errors: Json | null
+          raw_data: Json | null
           full_name: string | null
           phone: string | null
           email: string | null
@@ -139,6 +272,7 @@ export interface Database {
           row_index?: number | null
           status?: 'pending' | 'valid' | 'error' | 'committed'
           validation_errors?: Json | null
+          raw_data?: Json | null
           full_name?: string | null
           phone?: string | null
           email?: string | null
@@ -155,6 +289,7 @@ export interface Database {
           row_index: number | null
           status: 'pending' | 'valid' | 'error' | 'committed'
           validation_errors: Json | null
+          raw_data: Json | null
           full_name: string | null
           date_of_birth: string | null
           phone: string | null
@@ -170,11 +305,65 @@ export interface Database {
           row_index?: number | null
           status?: 'pending' | 'valid' | 'error' | 'committed'
           validation_errors?: Json | null
+          raw_data?: Json | null
           full_name?: string | null
           date_of_birth?: string | null
           phone?: string | null
           email?: string | null
           primary_address?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+      }
+      staging_employees: {
+        Row: {
+          id: string
+          upload_id: string
+          org_id: string
+          row_index: number | null
+          status: 'pending' | 'valid' | 'error' | 'committed'
+          validation_errors: Json | null
+          raw_data: Json | null
+          full_name: string | null
+          email: string | null
+          phone: string | null
+          role: string | null
+          department: string | null
+          hire_date: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          upload_id: string
+          org_id: string
+          row_index?: number | null
+          status?: 'pending' | 'valid' | 'error' | 'committed'
+          validation_errors?: Json | null
+          raw_data?: Json | null
+          full_name?: string | null
+          email?: string | null
+          phone?: string | null
+          role?: string | null
+          department?: string | null
+          hire_date?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          upload_id?: string
+          org_id?: string
+          row_index?: number | null
+          status?: 'pending' | 'valid' | 'error' | 'committed'
+          validation_errors?: Json | null
+          raw_data?: Json | null
+          full_name?: string | null
+          email?: string | null
+          phone?: string | null
+          role?: string | null
+          department?: string | null
+          hire_date?: string | null
           notes?: string | null
           created_at?: string
         }

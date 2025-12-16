@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Papa from 'https://esm.sh/papaparse@5.4.1'
+import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,24 +43,134 @@ Deno.serve(async (req) => {
 
     if (downloadError) throw downloadError
 
-    // 3. Parse File
-    const text = await fileData.text()
+    // 3. Determine File Type & Parse
+    let rawRows: any[][] = []
+    const fileExt = upload.original_filename?.split('.').pop()?.toLowerCase()
     
-    // Check file type for parsing strategy (simplified to CSV for now, extendable for Excel)
-    // Note: real implementation would check mime_type
+    // Helper to normalize keys (strips special chars, lowercases)
+    const normalizeKey = (key: string) => (key || '').toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '_')
     
-    const parseResult = Papa.parse(text, {
-      header: true,
-      skipEmptyLines: true,
-    })
+    // Known columns to look for when detecting header row
+    const KNOWN_HEADERS = [
+        'name', 'fullname', 'full_name', 'first_name', 'last_name',
+        'email', 'email_address',
+        'phone', 'mobile', 'cell', 'contact', 'phone_number',
+        'address', 'street', 'city', 'state', 'zip',
+        'license', 'license_number', 'dl',
+        'dob', 'date_of_birth', 'birth_date',
+        'vehicle', 'make', 'model', 'notes', 'note'
+    ]
 
-    if (parseResult.errors.length > 0) {
-      console.error('CSV Parse Errors', parseResult.errors)
-      // We might want to continue if some rows are valid, or fail hard.
-      // For now, let's proceed with valid rows but log warning
+    if (['xlsx', 'xls'].includes(fileExt)) {
+        // Handle Excel
+        const arrayBuffer = await fileData.arrayBuffer()
+        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' })
+        
+        let sheetName = ''
+        const sourceName = upload.source?.toLowerCase()
+        
+        // Try to find sheet by name
+        const matchingSheet = workbook.SheetNames.find(n => n.toLowerCase().includes(sourceName))
+        sheetName = matchingSheet || workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        
+        // Get as array of arrays (header: 1)
+        rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
+        
+    } else if (fileExt === 'pdf') {
+        // ... (PDF Logic)
+        console.warn('PDF parsing not yet implemented on Edge. Skipping auto-extraction.')
+        await supabase.from('org_uploads').update({ 
+            status: 'ready_for_review',
+            notes: 'PDF uploaded. Automatic parsing is currently limited. Please review manually.'
+        }).eq('id', upload_id)
+        
+        return new Response(
+            JSON.stringify({ success: true, rows_processed: 0, message: 'PDF stored (parsing skipped)' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+
+    } else {
+        // Default to CSV / Text
+        const text = await fileData.text()
+        const parseResult = Papa.parse(text, {
+            header: false, // Read as arrays to find header manually
+            skipEmptyLines: true,
+        })
+        if (parseResult.errors.length > 0) {
+            console.error('CSV Parse Errors', parseResult.errors)
+        }
+        rawRows = parseResult.data as any[][]
+    }
+    
+    // 3b. Smart Header Detection
+    // Scan first 10 rows to find the one with the most matches to KNOWN_HEADERS
+    let headerRowIndex = 0
+    let maxMatches = 0
+    let detectedHeaders: string[] = []
+
+    // Look at first 10 rows (or fewer if file is small)
+    const scanLimit = Math.min(rawRows.length, 10)
+    
+    for (let i = 0; i < scanLimit; i++) {
+        const row = rawRows[i]
+        if (!Array.isArray(row)) continue
+        
+        let matches = 0
+        const currentHeaders = row.map(cell => normalizeKey(cell))
+        
+        // Count matches
+        currentHeaders.forEach(h => {
+            if (KNOWN_HEADERS.some(kh => h.includes(kh))) {
+                matches++
+            }
+        })
+
+        // Heuristic: If we find a row with more known headers, or equal matches but earlier in file (if 0 matches, stick to 0)
+        // Actually, we want the *best* match.
+        if (matches > maxMatches) {
+            maxMatches = matches
+            headerRowIndex = i
+            detectedHeaders = currentHeaders
+        }
     }
 
-    const rows = parseResult.data
+    // Determine effective headers. If no good match found, default to first row or generic keys if empty
+    if (maxMatches === 0 && rawRows.length > 0) {
+        // Fallback: Use first row as header if it looks like strings, otherwise generate keys
+        headerRowIndex = 0
+        detectedHeaders = rawRows[0].map((c: any) => normalizeKey(c))
+    }
+
+    // 3c. Convert to Objects using Detected Headers
+    let rows: any[] = []
+    
+    // Start reading *after* the header row
+    for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
+        const rowArray = rawRows[i]
+        if (!Array.isArray(rowArray) || rowArray.length === 0) continue;
+
+        const rowObj: any = {}
+        // Map values to keys. 
+        // Note: rowArray length might be different from detectedHeaders length
+        detectedHeaders.forEach((key, index) => {
+            if (key && index < rowArray.length) {
+                rowObj[key] = rowArray[index]
+            }
+        })
+        
+        // Keep any extra columns as _extra_1, etc if needed? 
+        // For now, let's stick to mapped headers. 
+        // If the row has MORE columns than headers, we might miss data, 
+        // but usually headers cover the data.
+        
+        rows.push(rowObj)
+    }
+
+    // Helper to normalize keys for mapping logic below (re-used but logic is same)
+    // The keys in 'rows' are already normalized by normalizeKey above.
+    const normalizeRow = (row: any) => row // Already normalized keys
+    
     const totalRows = rows.length
     const source = upload.source
 
@@ -71,47 +182,55 @@ Deno.serve(async (req) => {
     
     for (let i = 0; i < totalRows; i += BATCH_SIZE) {
       const batch = rows.slice(i, i + BATCH_SIZE)
-      const stagingRecords = batch.map((row: any, index: number) => {
+      const stagingRecords = batch.map((rawRow: any, index: number) => {
         const rowIndex = i + index
-        
-        // Basic mapping logic - normalize keys to lowercase/snake_case for matching
-        const normalizedRow: any = {}
-        Object.keys(row).forEach(key => {
-            const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '_')
-            normalizedRow[cleanKey] = row[key]
-        })
+        const normalizedRow = normalizeRow(rawRow)
 
         // Determine target table and schema based on Source
         if (source === 'drivers') {
+           // Skip only if the row is entirely empty
+           if (Object.keys(normalizedRow).length === 0) {
+               return null 
+           }
+
+           const fullName = normalizedRow['full_name'] || normalizedRow['name'] || normalizedRow['driver_name'] || normalizedRow['driver']
+           const license = normalizedRow['license'] || normalizedRow['license_number'] || normalizedRow['dl'] || normalizedRow['license_no']
+
            return {
              upload_id: upload.id,
              org_id: upload.org_id,
              row_index: rowIndex,
-             status: 'pending',
-             // Smart mapping attempts
-             full_name: normalizedRow['full_name'] || normalizedRow['name'] || normalizedRow['driver_name'],
+             status: fullName ? 'pending' : 'error', // Mark as error if minimal ID is missing, but still save it
+             raw_data: rawRow, // Persist original unadulterated data!
+             full_name: fullName,
              email: normalizedRow['email'] || normalizedRow['email_address'],
-             phone: normalizedRow['phone'] || normalizedRow['mobile'] || normalizedRow['cell'],
-             license_number: normalizedRow['license'] || normalizedRow['license_number'] || normalizedRow['dl'],
-             vehicle_info: normalizedRow['vehicle'] || normalizedRow['car'] || normalizedRow['vehicle_info'],
-             validation_errors: null
+             phone: normalizedRow['phone'] || normalizedRow['mobile'] || normalizedRow['cell'] || normalizedRow['contact'],
+             license_number: license,
+             vehicle_info: normalizedRow['vehicle'] || normalizedRow['car'] || normalizedRow['vehicle_info'] || normalizedRow['make_model'],
+             validation_errors: !fullName ? { error: 'Missing full name', missing_fields: ['full_name'] } : null
            }
         } else if (source === 'patients') {
+            if (Object.keys(normalizedRow).length === 0) {
+               return null 
+            }
+
+            const fullName = normalizedRow['full_name'] || normalizedRow['name'] || normalizedRow['patient_name'] || normalizedRow['patient']
+
             return {
              upload_id: upload.id,
              org_id: upload.org_id,
              row_index: rowIndex,
-             status: 'pending',
-             full_name: normalizedRow['full_name'] || normalizedRow['name'] || normalizedRow['patient_name'],
+             status: fullName ? 'pending' : 'error',
+             raw_data: rawRow,
+             full_name: fullName,
              email: normalizedRow['email'],
-             phone: normalizedRow['phone'],
+             phone: normalizedRow['phone'] || normalizedRow['contact'],
              date_of_birth: normalizedRow['dob'] || normalizedRow['date_of_birth'] || normalizedRow['birth_date'],
-             primary_address: normalizedRow['address'] || normalizedRow['primary_address'],
+             primary_address: normalizedRow['address'] || normalizedRow['primary_address'] || normalizedRow['street_address'],
              notes: normalizedRow['notes'] || normalizedRow['comments'],
-             validation_errors: null
+             validation_errors: !fullName ? { error: 'Missing full name', missing_fields: ['full_name'] } : null
            }
         } else {
-            // Unknown or Employees - handle generic or skip for now
             return null
         }
       }).filter(r => r !== null)
@@ -122,7 +241,6 @@ Deno.serve(async (req) => {
           
           if (insertError) {
              console.error('Batch insert error', insertError)
-             // In production, we might mark this batch as error in a logs table
           } else {
              successCount += stagingRecords.length
           }
@@ -130,15 +248,24 @@ Deno.serve(async (req) => {
       processedRows += batch.length
     }
 
+    // Capture "success but 0 rows" case
+    let finalStatus = 'ready_for_review'
+    let finalNotes = `Processed ${successCount}/${totalRows} rows successfully.`
+    
+    if (totalRows > 0 && successCount === 0) {
+        finalStatus = 'error'
+        finalNotes = 'Failed to map any rows. Please check column headers.'
+    }
+
     // 5. Completion
     await supabase.from('org_uploads').update({ 
-        status: 'ready_for_review',
+        status: finalStatus,
         processed_at: new Date().toISOString(),
-        notes: `Processed ${successCount}/${totalRows} rows successfully.`
+        notes: finalNotes
     }).eq('id', upload_id)
 
     return new Response(
-      JSON.stringify({ success: true, rows_processed: successCount }),
+      JSON.stringify({ success: successCount > 0, rows_processed: successCount }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
