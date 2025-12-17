@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { DriversEmptyState } from '@/components/ui/empty-state'
+import { AddDriverForm } from '@/components/forms/add-driver-form'
 import { Loader2 } from 'lucide-react'
 
 interface Driver {
@@ -140,6 +141,7 @@ function DemoIndicator() {
 
 export function DriversPage() {
     const [searchQuery, setSearchQuery] = useState('')
+    const [showAddForm, setShowAddForm] = useState(false)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
 
@@ -256,13 +258,17 @@ export function DriversPage() {
                         Manage driver fleet and availability
                     </p>
                 </div>
-                <Button className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]">
+                <Button
+                    onClick={() => setShowAddForm(true)}
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
+                >
                     <Plus size={18} weight="bold" />
                     Add Driver
                 </Button>
             </div>
 
-            {/* Demo Mode Banner */}
+            {/* Add Driver Form */}
+            <AddDriverForm open={showAddForm} onOpenChange={setShowAddForm} />
             {isDemoMode && (
                 <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
                     <div className="flex items-center gap-3">

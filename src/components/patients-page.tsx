@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { PatientsEmptyState } from '@/components/ui/empty-state'
+import { AddPatientForm } from '@/components/forms/add-patient-form'
 import { Loader2 } from 'lucide-react'
 
 interface Patient {
@@ -130,6 +131,7 @@ function DemoIndicator() {
 
 export function PatientsPage() {
     const [searchQuery, setSearchQuery] = useState('')
+    const [showAddForm, setShowAddForm] = useState(false)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
 
@@ -258,11 +260,17 @@ export function PatientsPage() {
                         Manage and view all patient records
                     </p>
                 </div>
-                <Button className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]">
+                <Button
+                    onClick={() => setShowAddForm(true)}
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
+                >
                     <Plus size={18} weight="bold" />
                     Add Patient
                 </Button>
             </div>
+
+            {/* Add Patient Form */}
+            <AddPatientForm open={showAddForm} onOpenChange={setShowAddForm} />
 
             {/* Demo Mode Banner */}
             {isDemoMode && (

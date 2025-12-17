@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { EmployeesEmptyState } from '@/components/ui/empty-state'
+import { AddEmployeeForm } from '@/components/forms/add-employee-form'
 import { Loader2 } from 'lucide-react'
 
 interface Employee {
@@ -144,6 +145,7 @@ function DemoIndicator() {
 
 export function EmployeesPage() {
     const [searchQuery, setSearchQuery] = useState('')
+    const [showAddForm, setShowAddForm] = useState(false)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
 
@@ -266,11 +268,17 @@ export function EmployeesPage() {
                         Manage staff members and departments
                     </p>
                 </div>
-                <Button className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]">
+                <Button
+                    onClick={() => setShowAddForm(true)}
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
+                >
                     <Plus size={18} weight="bold" />
                     Add Employee
                 </Button>
             </div>
+
+            {/* Add Employee Form */}
+            <AddEmployeeForm open={showAddForm} onOpenChange={setShowAddForm} />
 
             {/* Demo Mode Banner */}
             {isDemoMode && (
