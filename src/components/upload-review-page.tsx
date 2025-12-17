@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useOnboarding } from '@/contexts/OnboardingContext'
 import {
     Loader2, Check, AlertTriangle, ArrowLeft, FileText, Database,
     CheckCircle, XCircle, Eye, Trash2
@@ -33,6 +34,7 @@ type StagingRow = {
 
 export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
     const { currentOrganization } = useOrganization()
+    const { refreshUploadHistory, refreshDataCounts } = useOnboarding()
     const [uploadId, setUploadId] = useState<string | null>(null)
     const [uploadRec, setUploadRec] = useState<any>(null)
     const [stagingRows, setStagingRows] = useState<StagingRow[]>([])
@@ -233,7 +235,11 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
 
             setCommitResult({ success: successCount, errors: errorCount })
 
-            // Reload data
+            // Refresh contexts and reload data
+            await Promise.all([
+                refreshUploadHistory(),
+                refreshDataCounts(),
+            ])
             if (uploadId) await loadData(uploadId)
 
         } catch (err) {

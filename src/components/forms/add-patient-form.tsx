@@ -99,7 +99,6 @@ export function AddPatientForm({ open, onOpenChange }: AddPatientFormProps) {
                 date_of_birth: data.date_of_birth || null,
                 primary_address: data.primary_address || null,
                 notes: data.notes || null,
-                status: 'active',
                 custom_fields: Object.keys(custom_fields).length > 0 ? custom_fields : null,
             }
 

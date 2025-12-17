@@ -213,6 +213,9 @@ export function EmployeesPage() {
     if (!showData) {
         return (
             <div className="space-y-6">
+                {/* Add Employee Form - must be rendered for dialog to work */}
+                <AddEmployeeForm open={showAddForm} onOpenChange={setShowAddForm} />
+
                 {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
@@ -244,10 +247,7 @@ export function EmployeesPage() {
                 {/* Empty State */}
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <EmployeesEmptyState
-                        onAddEmployee={() => {
-                            // TODO: Open add employee modal
-                            console.log('Add employee clicked')
-                        }}
+                        onAddEmployee={() => setShowAddForm(true)}
                         onUpload={() => navigateTo('upload')}
                     />
                 </div>

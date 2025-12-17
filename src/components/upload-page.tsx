@@ -10,6 +10,10 @@ import {
     Table,
     Warning,
     Eye,
+    CheckCircle,
+    Clock,
+    Files,
+    CaretRight,
 } from "@phosphor-icons/react"
 import { useQueryState } from 'nuqs'
 import { cn } from '@/lib/utils'
@@ -23,6 +27,7 @@ import {
 } from "@/components/ui/select"
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { useOnboarding } from '@/contexts/OnboardingContext'
 
 type ImportSource = 'drivers' | 'patients' | 'employees'
 
@@ -85,6 +90,7 @@ export function UploadPage() {
     const [, setUploadIdParam] = useQueryState('upload_id')
     const fileInputRef = useRef<HTMLInputElement>(null)
     const { currentOrganization } = useOrganization()
+    const { recentUploads, refreshUploadHistory, hasUploadedDrivers, hasUploadedPatients, hasUploadedEmployees, navigateTo } = useOnboarding()
 
     // Parse XLSX file on client side
     const parseFile = useCallback(async (file: File) => {
@@ -297,7 +303,8 @@ export function UploadPage() {
                 })
                 .eq('id', uploadRecord.id)
 
-            // 6. Navigate to review page
+            // 6. Refresh upload history and navigate to review page
+            await refreshUploadHistory()
             setUploadIdParam(uploadRecord.id)
             setPage('review_import')
 
@@ -380,6 +387,157 @@ export function UploadPage() {
                 {/* Step 1: Select File */}
                 {state.step === 'select' && (
                     <div className="space-y-6">
+                        {/* Upload Progress Overview - Shows what's already been uploaded */}
+                        {(hasUploadedDrivers || hasUploadedPatients || hasUploadedEmployees) && (
+                            <div className="p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                                        <CheckCircle className="w-5 h-5 text-green-600" weight="fill" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-green-900">Data Import Progress</h3>
+                                        <p className="text-sm text-green-700">You've started importing your data</p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-3">
+                                    <div className={cn(
+                                        "flex items-center gap-2 px-4 py-2 rounded-xl border",
+                                        hasUploadedDrivers
+                                            ? "bg-white border-green-300 text-green-700"
+                                            : "bg-green-100/50 border-dashed border-green-300 text-green-600/70"
+                                    )}>
+                                        {hasUploadedDrivers ? (
+                                            <CheckCircle className="w-4 h-4" weight="fill" />
+                                        ) : (
+                                            <Clock className="w-4 h-4" />
+                                        )}
+                                        <span className="font-medium">Drivers</span>
+                                        {hasUploadedDrivers && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-2 text-green-600 hover:text-green-800 hover:bg-green-100"
+                                                onClick={() => navigateTo('drivers')}
+                                            >
+                                                View <CaretRight className="w-3 h-3 ml-1" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <div className={cn(
+                                        "flex items-center gap-2 px-4 py-2 rounded-xl border",
+                                        hasUploadedPatients
+                                            ? "bg-white border-green-300 text-green-700"
+                                            : "bg-green-100/50 border-dashed border-green-300 text-green-600/70"
+                                    )}>
+                                        {hasUploadedPatients ? (
+                                            <CheckCircle className="w-4 h-4" weight="fill" />
+                                        ) : (
+                                            <Clock className="w-4 h-4" />
+                                        )}
+                                        <span className="font-medium">Patients</span>
+                                        {hasUploadedPatients && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-2 text-green-600 hover:text-green-800 hover:bg-green-100"
+                                                onClick={() => navigateTo('patients')}
+                                            >
+                                                View <CaretRight className="w-3 h-3 ml-1" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <div className={cn(
+                                        "flex items-center gap-2 px-4 py-2 rounded-xl border",
+                                        hasUploadedEmployees
+                                            ? "bg-white border-green-300 text-green-700"
+                                            : "bg-green-100/50 border-dashed border-green-300 text-green-600/70"
+                                    )}>
+                                        {hasUploadedEmployees ? (
+                                            <CheckCircle className="w-4 h-4" weight="fill" />
+                                        ) : (
+                                            <Clock className="w-4 h-4" />
+                                        )}
+                                        <span className="font-medium">Employees</span>
+                                        {hasUploadedEmployees && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-2 text-green-600 hover:text-green-800 hover:bg-green-100"
+                                                onClick={() => navigateTo('employees')}
+                                            >
+                                                View <CaretRight className="w-3 h-3 ml-1" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Recent Uploads History */}
+                        {recentUploads.length > 0 && (
+                            <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                                            <Files className="w-5 h-5 text-indigo-600" weight="duotone" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-slate-900">Recent Uploads</h3>
+                                            <p className="text-sm text-slate-500">Your upload history</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    {recentUploads.slice(0, 5).map((upload) => (
+                                        <div
+                                            key={upload.id}
+                                            className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <FileXls className="w-8 h-8 text-green-600" weight="duotone" />
+                                                <div>
+                                                    <p className="font-medium text-slate-800 text-sm">{upload.original_filename}</p>
+                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                        <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium uppercase">
+                                                            {upload.source}
+                                                        </span>
+                                                        <span>{new Date(upload.created_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className={cn(
+                                                    "px-2.5 py-1 rounded-full text-xs font-semibold",
+                                                    upload.status === 'committed' && "bg-green-100 text-green-700",
+                                                    upload.status === 'ready_for_review' && "bg-amber-100 text-amber-700",
+                                                    upload.status === 'processing' && "bg-blue-100 text-blue-700",
+                                                    upload.status === 'failed' && "bg-red-100 text-red-700",
+                                                )}>
+                                                    {upload.status === 'committed' && 'Imported'}
+                                                    {upload.status === 'ready_for_review' && 'Pending Review'}
+                                                    {upload.status === 'processing' && 'Processing'}
+                                                    {upload.status === 'failed' && 'Failed'}
+                                                </span>
+                                                {upload.status === 'ready_for_review' && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-7 text-xs"
+                                                        onClick={() => {
+                                                            setUploadIdParam(upload.id)
+                                                            setPage('review_import')
+                                                        }}
+                                                    >
+                                                        Review
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Source Selection */}
                         <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
                             <label className="block text-sm font-semibold text-slate-700 mb-3">
@@ -393,9 +551,24 @@ export function UploadPage() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="drivers">Drivers</SelectItem>
-                                    <SelectItem value="patients">Patients</SelectItem>
-                                    <SelectItem value="employees">Employees</SelectItem>
+                                    <SelectItem value="drivers">
+                                        <span className="flex items-center gap-2">
+                                            Drivers
+                                            {hasUploadedDrivers && <CheckCircle className="w-4 h-4 text-green-500" weight="fill" />}
+                                        </span>
+                                    </SelectItem>
+                                    <SelectItem value="patients">
+                                        <span className="flex items-center gap-2">
+                                            Patients
+                                            {hasUploadedPatients && <CheckCircle className="w-4 h-4 text-green-500" weight="fill" />}
+                                        </span>
+                                    </SelectItem>
+                                    <SelectItem value="employees">
+                                        <span className="flex items-center gap-2">
+                                            Employees
+                                            {hasUploadedEmployees && <CheckCircle className="w-4 h-4 text-green-500" weight="fill" />}
+                                        </span>
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

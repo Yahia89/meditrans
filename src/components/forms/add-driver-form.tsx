@@ -96,7 +96,6 @@ export function AddDriverForm({ open, onOpenChange }: AddDriverFormProps) {
                 phone: data.phone || null,
                 license_number: data.license_number || null,
                 vehicle_info: data.vehicle_info || null,
-                status: 'available',
                 custom_fields: Object.keys(custom_fields).length > 0 ? custom_fields : null,
             }
 

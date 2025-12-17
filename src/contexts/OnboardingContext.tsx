@@ -12,6 +12,16 @@ export interface DataCounts {
     trips: number
 }
 
+export interface UploadRecord {
+    id: string
+    source: 'drivers' | 'patients' | 'employees'
+    original_filename: string
+    status: string
+    created_at: string
+    processed_at: string | null
+    notes: string | null
+}
+
 export interface SetupChecklistItem {
     id: string
     label: string
@@ -38,8 +48,16 @@ interface OnboardingContextType {
     totalSteps: number
     completionPercentage: number
 
+    // Upload history
+    recentUploads: UploadRecord[]
+    uploadedTypes: Set<string>
+    hasUploadedDrivers: boolean
+    hasUploadedPatients: boolean
+    hasUploadedEmployees: boolean
+
     // Actions
     refreshDataCounts: () => Promise<void>
+    refreshUploadHistory: () => Promise<void>
     navigateTo: (page: string) => void
 }
 
@@ -68,6 +86,17 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
         employees: 0,
         trips: 0,
     })
+    const [recentUploads, setRecentUploads] = useState<UploadRecord[]>([])
+
+    // Compute uploaded types from recent uploads
+    const uploadedTypes = new Set(
+        recentUploads
+            .filter(u => u.status === 'committed' || u.status === 'ready_for_review')
+            .map(u => u.source)
+    )
+    const hasUploadedDrivers = uploadedTypes.has('drivers')
+    const hasUploadedPatients = uploadedTypes.has('patients')
+    const hasUploadedEmployees = uploadedTypes.has('employees')
 
     // Determine data state based on counts
     const getDataState = useCallback((counts: DataCounts): DataState => {
@@ -93,6 +122,29 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
         }
     }, [onNavigate])
 
+    // Fetch recent uploads from Supabase
+    const refreshUploadHistory = useCallback(async () => {
+        if (!currentOrganization) {
+            setRecentUploads([])
+            return
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from('org_uploads')
+                .select('id, source, original_filename, status, created_at, processed_at, notes')
+                .eq('org_id', currentOrganization.id)
+                .order('created_at', { ascending: false })
+                .limit(10)
+
+            if (error) throw error
+            setRecentUploads(data || [])
+        } catch (error) {
+            console.error('Error fetching upload history:', error)
+            setRecentUploads([])
+        }
+    }, [currentOrganization])
+
     // Fetch data counts from Supabase
     const refreshDataCounts = useCallback(async () => {
         if (!currentOrganization) {
@@ -104,7 +156,6 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
         setIsLoading(true)
         try {
             // Fetch counts for each table
-            // Note: Adjust table names based on your actual schema
             const [patientsRes, driversRes, employeesRes, tripsRes] = await Promise.all([
                 supabase
                     .from('patients')
@@ -132,17 +183,17 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
             })
         } catch (error) {
             console.error('Error fetching data counts:', error)
-            // On error, assume empty state to show onboarding
             setDataCounts({ patients: 0, drivers: 0, employees: 0, trips: 0 })
         } finally {
             setIsLoading(false)
         }
     }, [currentOrganization])
 
-    // Fetch counts when organization changes
+    // Fetch counts and upload history when organization changes
     useEffect(() => {
         refreshDataCounts()
-    }, [refreshDataCounts])
+        refreshUploadHistory()
+    }, [refreshDataCounts, refreshUploadHistory])
 
     // Generate setup checklist based on current data state
     const setupChecklist: SetupChecklistItem[] = [
@@ -177,8 +228,8 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
             id: 'upload-data',
             label: 'Bulk upload data',
             description: 'Import existing data from spreadsheets or other systems',
-            completed: dataCounts.patients >= 5 || dataCounts.drivers >= 5,
-            ctaLabel: 'Upload Data',
+            completed: dataCounts.patients >= 5 || dataCounts.drivers >= 5 || recentUploads.some(u => u.status === 'committed'),
+            ctaLabel: recentUploads.length > 0 ? 'View Uploads' : 'Upload Data',
             ctaAction: () => navigateTo('upload'),
             priority: 4,
         },
@@ -207,7 +258,13 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
         completedSteps,
         totalSteps,
         completionPercentage,
+        recentUploads,
+        uploadedTypes,
+        hasUploadedDrivers,
+        hasUploadedPatients,
+        hasUploadedEmployees,
         refreshDataCounts,
+        refreshUploadHistory,
         navigateTo,
     }
 

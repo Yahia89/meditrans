@@ -102,7 +102,6 @@ export function AddEmployeeForm({ open, onOpenChange }: AddEmployeeFormProps) {
                 department: data.department || null,
                 hire_date: data.hire_date || null,
                 notes: data.notes || null,
-                status: 'active',
                 custom_fields: Object.keys(custom_fields).length > 0 ? custom_fields : null,
             }
 
