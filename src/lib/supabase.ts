@@ -249,11 +249,12 @@ export interface Database {
           updated_at?: string
         }
       }
-      staging_drivers: {
+      staging_records: {
         Row: {
           id: string
           upload_id: string
           org_id: string
+          record_type: 'driver' | 'patient' | 'employee'
           row_index: number | null
           status: 'pending' | 'valid' | 'error' | 'committed'
           validation_errors: Json | null
@@ -261,14 +262,14 @@ export interface Database {
           full_name: string | null
           phone: string | null
           email: string | null
-          license_number: string | null
-          vehicle_info: string | null
+          metadata: Json | null
           created_at: string
         }
         Insert: {
           id?: string
           upload_id: string
           org_id: string
+          record_type: 'driver' | 'patient' | 'employee'
           row_index?: number | null
           status?: 'pending' | 'valid' | 'error' | 'committed'
           validation_errors?: Json | null
@@ -276,42 +277,22 @@ export interface Database {
           full_name?: string | null
           phone?: string | null
           email?: string | null
-          license_number?: string | null
-          vehicle_info?: string | null
+          metadata?: Json | null
           created_at?: string
         }
-      }
-      staging_patients: {
-        Row: {
-          id: string
-          upload_id: string
-          org_id: string
-          row_index: number | null
-          status: 'pending' | 'valid' | 'error' | 'committed'
-          validation_errors: Json | null
-          raw_data: Json | null
-          full_name: string | null
-          date_of_birth: string | null
-          phone: string | null
-          email: string | null
-          primary_address: string | null
-          notes: string | null
-          created_at: string
-        }
-        Insert: {
+        Update: {
           id?: string
-          upload_id: string
-          org_id: string
+          upload_id?: string
+          org_id?: string
+          record_type?: 'driver' | 'patient' | 'employee'
           row_index?: number | null
           status?: 'pending' | 'valid' | 'error' | 'committed'
           validation_errors?: Json | null
           raw_data?: Json | null
           full_name?: string | null
-          date_of_birth?: string | null
           phone?: string | null
           email?: string | null
-          primary_address?: string | null
-          notes?: string | null
+          metadata?: Json | null
           created_at?: string
         }
       }

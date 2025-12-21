@@ -19,8 +19,16 @@ import { Button } from '@/components/ui/button'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { EmployeesEmptyState } from '@/components/ui/empty-state'
-import { AddEmployeeForm } from '@/components/forms/add-employee-form'
-import { Loader2 } from 'lucide-react'
+import { EmployeeForm } from '@/components/forms/employee-form'
+import { Loader2, Pencil, Trash } from 'lucide-react'
+import { exportToExcel } from '@/lib/export'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useQueryClient } from '@tanstack/react-query'
 
 interface Employee {
     id: string
@@ -32,6 +40,8 @@ interface Employee {
     hireDate: string
     location: string
     status: 'active' | 'on-leave' | 'inactive'
+    notes?: string | null
+    custom_fields?: Record<string, string> | null
 }
 
 // Demo data for preview mode
@@ -146,8 +156,10 @@ function DemoIndicator() {
 export function EmployeesPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
+    const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
+    const queryClient = useQueryClient()
 
     const { data: realEmployees, isLoading } = useQuery({
         queryKey: ['employees', currentOrganization?.id],
@@ -172,10 +184,39 @@ export function EmployeesPage() {
                 hireDate: e.hire_date || e.created_at,
                 location: 'Main Office', // Mock for now
                 status: (e.status || 'active').toLowerCase() as 'active' | 'on-leave' | 'inactive',
+                notes: e.notes,
+                custom_fields: e.custom_fields
             } as Employee))
         },
         enabled: !!currentOrganization
     })
+
+    const handleExport = () => {
+        if (!employees.length) return
+        const exportData = employees.map(e => ({
+            Name: e.name,
+            Email: e.email,
+            Phone: e.phone,
+            Department: e.department,
+            Position: e.position,
+            'Hire Date': e.hireDate,
+            Status: e.status
+        }))
+        exportToExcel(exportData, `employees_${new Date().toISOString().split('T')[0]}`)
+    }
+
+    const handleDeleteEmployee = async (id: string) => {
+        if (isDemoMode) return
+        if (!window.confirm('Are you sure you want to delete this employee?')) return
+
+        try {
+            const { error } = await supabase.from('employees').delete().eq('id', id)
+            if (error) throw error
+            queryClient.invalidateQueries({ queryKey: ['employees', currentOrganization?.id] })
+        } catch (err) {
+            console.error('Failed to delete employee:', err)
+        }
+    }
 
     const hasRealData = realEmployees && realEmployees.length > 0
     const showData = hasRealData || isDemoMode
@@ -214,7 +255,27 @@ export function EmployeesPage() {
         return (
             <div className="space-y-6">
                 {/* Add Employee Form - must be rendered for dialog to work */}
-                <AddEmployeeForm open={showAddForm} onOpenChange={setShowAddForm} />
+                {/* Employee Form (Add/Edit) */}
+                <EmployeeForm
+                    open={showAddForm || !!editingEmployee}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setShowAddForm(false)
+                            setEditingEmployee(null)
+                        }
+                    }}
+                    initialData={editingEmployee ? {
+                        id: editingEmployee.id,
+                        full_name: editingEmployee.name,
+                        email: editingEmployee.email,
+                        phone: editingEmployee.phone,
+                        role: editingEmployee.position,
+                        department: editingEmployee.department,
+                        hire_date: editingEmployee.hireDate,
+                        notes: editingEmployee.notes || '',
+                        custom_fields: editingEmployee.custom_fields
+                    } : undefined}
+                />
 
                 {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -277,8 +338,27 @@ export function EmployeesPage() {
                 </Button>
             </div>
 
-            {/* Add Employee Form */}
-            <AddEmployeeForm open={showAddForm} onOpenChange={setShowAddForm} />
+            {/* Employee Form (Add/Edit) */}
+            <EmployeeForm
+                open={showAddForm || !!editingEmployee}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setShowAddForm(false)
+                        setEditingEmployee(null)
+                    }
+                }}
+                initialData={editingEmployee ? {
+                    id: editingEmployee.id,
+                    full_name: editingEmployee.name,
+                    email: editingEmployee.email,
+                    phone: editingEmployee.phone,
+                    role: editingEmployee.position,
+                    department: editingEmployee.department,
+                    hire_date: editingEmployee.hireDate,
+                    notes: editingEmployee.notes || '',
+                    custom_fields: editingEmployee.custom_fields
+                } : undefined}
+            />
 
             {/* Demo Mode Banner */}
             {isDemoMode && (
@@ -344,7 +424,11 @@ export function EmployeesPage() {
                     <Funnel size={16} />
                     Filters
                 </Button>
-                <Button variant="outline" className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50">
+                <Button
+                    variant="outline"
+                    onClick={handleExport}
+                    className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
+                >
                     <DownloadSimple size={16} />
                     Export
                 </Button>
@@ -424,13 +508,31 @@ export function EmployeesPage() {
                             >
                                 View Details
                             </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-lg border-slate-200 hover:bg-slate-50"
-                            >
-                                <DotsThreeVertical size={16} weight="bold" />
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={isDemoMode}
+                                        className="rounded-lg border-slate-200 hover:bg-slate-50"
+                                    >
+                                        <DotsThreeVertical size={16} weight="bold" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-40">
+                                    <DropdownMenuItem onClick={() => setEditingEmployee(employee)} className="gap-2">
+                                        <Pencil className="h-4 w-4" />
+                                        Edit Employee
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() => handleDeleteEmployee(employee.id)}
+                                        className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                                    >
+                                        <Trash className="h-4 w-4" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
                 ))}

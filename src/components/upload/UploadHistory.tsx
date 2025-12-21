@@ -4,15 +4,13 @@ import {
     FileXls,
     FilePdf,
     FileText,
-    CaretRight,
     CircleNotch,
     Trash,
     CaretLeft,
-    Eye,
+    CaretRight,
 } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 import { useUploadHistory } from "@/hooks/use-upload-history"
-import { useQueryState } from "nuqs"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -100,9 +98,6 @@ function sourceLabel(source?: UploadSource | null) {
 export function UploadHistory() {
     const { recentUploads, isLoading, deleteUpload, isDeleting } = useUploadHistory()
 
-    // URL state (nuqs)
-    const [, setPage] = useQueryState("page")
-    const [, setUploadIdParam] = useQueryState("upload_id")
 
     // Local state
     const [currentPage, setCurrentPage] = React.useState(0)
@@ -126,14 +121,6 @@ export function UploadHistory() {
         return uploads.slice(start, start + ITEMS_PER_PAGE)
     }, [uploads, currentPage])
 
-    const handleOpenReview = React.useCallback(
-        (uploadId: string) => {
-            // Match your flow: /dashboard?page=review_import&upload_id=...
-            setUploadIdParam(uploadId)
-            setPage("review_import")
-        },
-        [setPage, setUploadIdParam]
-    )
 
     const handleConfirmDelete = React.useCallback(() => {
         if (!uploadToDelete) return
@@ -191,7 +178,6 @@ export function UploadHistory() {
                             .filter(Boolean)
                             .join(" • ")
 
-                        const canNavigate = true
 
                         return (
                             <div
@@ -224,18 +210,7 @@ export function UploadHistory() {
                                     </div>
                                 </div>
 
-                                <div className="flex shrink-0 items-center gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-8 w-8 rounded-xl border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-                                        onClick={() => canNavigate && handleOpenReview(upload.id)}
-                                        aria-label={`Open review for ${name}`}
-                                        title="Open review"
-                                    >
-                                        <Eye weight="duotone" className="h-4 w-4" />
-                                    </Button>
-
+                                <div className="flex shrink-0 items-center">
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -246,17 +221,6 @@ export function UploadHistory() {
                                         title="Delete"
                                     >
                                         <Trash weight="bold" className="h-4 w-4" />
-                                    </Button>
-
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 rounded-xl text-slate-300 transition-colors hover:bg-slate-50 hover:text-slate-700"
-                                        onClick={() => canNavigate && handleOpenReview(upload.id)}
-                                        aria-label={`Go to review ${name}`}
-                                        title="Go"
-                                    >
-                                        <CaretRight weight="bold" className="h-4 w-4" />
                                     </Button>
                                 </div>
                             </div>

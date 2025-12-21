@@ -88,34 +88,19 @@ export function useUploadHistory() {
 
     const deleteMutation = useMutation({
         mutationFn: async (upload: UploadRecord) => {
-            // Comprehensive Delete
-            if (upload.id) {
-                // Determine file path
-                let pathToDelete = (upload as any).file_path
+            if (!upload.id) return
 
-                if (!pathToDelete && !upload.id.startsWith('storage-')) {
-                    const { data } = await supabase
-                        .from('org_uploads')
-                        .select('file_path')
-                        .eq('id', upload.id)
-                        .single()
-                    pathToDelete = data?.file_path
+            const { data, error } = await supabase.functions.invoke('delete-upload', {
+                body: { 
+                    upload_id: upload.id,
+                    file_path: (upload as any).file_path 
                 }
+            })
 
-                // 1. Storage wipe
-                if (pathToDelete) {
-                    await supabase.storage.from('documents').remove([pathToDelete])
-                }
-
-                // 2. DB wipe (if not just a storage-only artifact)
-                if (!upload.id.startsWith('storage-')) {
-                    const { error } = await supabase
-                        .from('org_uploads')
-                        .delete()
-                        .eq('id', upload.id)
-                    if (error) throw error
-                }
-            }
+            if (error) throw error
+            if (data?.error) throw new Error(data.error)
+            
+            return data
         },
         onSuccess: () => {
             refresh()

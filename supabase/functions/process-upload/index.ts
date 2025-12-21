@@ -186,58 +186,41 @@ Deno.serve(async (req) => {
         const rowIndex = i + index
         const normalizedRow = normalizeRow(rawRow)
 
-        // Determine target table and schema based on Source
+        if (Object.keys(normalizedRow).length === 0) return null
+
+        const fullName = normalizedRow['full_name'] || normalizedRow['name'] || normalizedRow['driver_name'] || normalizedRow['patient_name'] || normalizedRow['driver'] || normalizedRow['patient']
+        const email = normalizedRow['email'] || normalizedRow['email_address']
+        const phone = normalizedRow['phone'] || normalizedRow['mobile'] || normalizedRow['cell'] || normalizedRow['contact']
+        
+        const metadata: any = {}
+        const recordType = (source === 'drivers' ? 'driver' : source === 'patients' ? 'patient' : 'employee')
+
         if (source === 'drivers') {
-           // Skip only if the row is entirely empty
-           if (Object.keys(normalizedRow).length === 0) {
-               return null 
-           }
-
-           const fullName = normalizedRow['full_name'] || normalizedRow['name'] || normalizedRow['driver_name'] || normalizedRow['driver']
-           const license = normalizedRow['license'] || normalizedRow['license_number'] || normalizedRow['dl'] || normalizedRow['license_no']
-
-           return {
-             upload_id: upload.id,
-             org_id: upload.org_id,
-             row_index: rowIndex,
-             status: fullName ? 'pending' : 'error', // Mark as error if minimal ID is missing, but still save it
-             raw_data: rawRow, // Persist original unadulterated data!
-             full_name: fullName,
-             email: normalizedRow['email'] || normalizedRow['email_address'],
-             phone: normalizedRow['phone'] || normalizedRow['mobile'] || normalizedRow['cell'] || normalizedRow['contact'],
-             license_number: license,
-             vehicle_info: normalizedRow['vehicle'] || normalizedRow['car'] || normalizedRow['vehicle_info'] || normalizedRow['make_model'],
-             validation_errors: !fullName ? { error: 'Missing full name', missing_fields: ['full_name'] } : null
-           }
+            metadata.license_number = normalizedRow['license'] || normalizedRow['license_number'] || normalizedRow['dl'] || normalizedRow['license_no']
+            metadata.vehicle_info = normalizedRow['vehicle'] || normalizedRow['car'] || normalizedRow['vehicle_info'] || normalizedRow['make_model']
         } else if (source === 'patients') {
-            if (Object.keys(normalizedRow).length === 0) {
-               return null 
-            }
-
-            const fullName = normalizedRow['full_name'] || normalizedRow['name'] || normalizedRow['patient_name'] || normalizedRow['patient']
-
-            return {
-             upload_id: upload.id,
-             org_id: upload.org_id,
-             row_index: rowIndex,
-             status: fullName ? 'pending' : 'error',
-             raw_data: rawRow,
-             full_name: fullName,
-             email: normalizedRow['email'],
-             phone: normalizedRow['phone'] || normalizedRow['contact'],
-             date_of_birth: normalizedRow['dob'] || normalizedRow['date_of_birth'] || normalizedRow['birth_date'],
-             primary_address: normalizedRow['address'] || normalizedRow['primary_address'] || normalizedRow['street_address'],
-             notes: normalizedRow['notes'] || normalizedRow['comments'],
-             validation_errors: !fullName ? { error: 'Missing full name', missing_fields: ['full_name'] } : null
-           }
-        } else {
-            return null
+            metadata.date_of_birth = normalizedRow['dob'] || normalizedRow['date_of_birth'] || normalizedRow['birth_date']
+            metadata.primary_address = normalizedRow['address'] || normalizedRow['primary_address'] || normalizedRow['street_address']
+            metadata.notes = normalizedRow['notes'] || normalizedRow['comments']
         }
-      }).filter(r => r !== null)
+
+        return {
+          upload_id: upload.id,
+          org_id: upload.org_id,
+          record_type: recordType,
+          row_index: rowIndex,
+          status: fullName ? 'pending' : 'error',
+          raw_data: rawRow,
+          full_name: fullName,
+          email: email,
+          phone: phone,
+          metadata: metadata,
+          validation_errors: !fullName ? { error: 'Missing full name', missing_fields: ['full_name'] } : {}
+        }
+      }).filter(r => r !== null) as any[]
 
       if (stagingRecords.length > 0) {
-          const tableName = source === 'drivers' ? 'staging_drivers' : 'staging_patients'
-          const { error: insertError } = await supabase.from(tableName).insert(stagingRecords)
+          const { error: insertError } = await supabase.from('staging_records').insert(stagingRecords)
           
           if (insertError) {
              console.error('Batch insert error', insertError)

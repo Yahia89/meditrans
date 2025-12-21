@@ -28,23 +28,31 @@ const patientSchema = z.object({
     notes: z.string().optional(),
 })
 
-type PatientFormData = z.infer<typeof patientSchema>
+interface PatientFormData extends z.infer<typeof patientSchema> {
+    id?: string
+}
 
 interface CustomField {
     key: string
     value: string
 }
 
-interface AddPatientFormProps {
+interface PatientFormProps {
     open: boolean
     onOpenChange: (open: boolean) => void
+    initialData?: PatientFormData & { custom_fields?: Record<string, string> | null }
 }
 
-export function AddPatientForm({ open, onOpenChange }: AddPatientFormProps) {
+export function PatientForm({ open, onOpenChange, initialData }: PatientFormProps) {
     const { currentOrganization } = useOrganization()
     const queryClient = useQueryClient()
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [customFields, setCustomFields] = useState<CustomField[]>([])
+    const [customFields, setCustomFields] = useState<CustomField[]>(() => {
+        if (initialData?.custom_fields) {
+            return Object.entries(initialData.custom_fields).map(([key, value]) => ({ key, value }))
+        }
+        return []
+    })
 
     const {
         register,
@@ -53,7 +61,14 @@ export function AddPatientForm({ open, onOpenChange }: AddPatientFormProps) {
         formState: { errors },
     } = useForm<PatientFormData>({
         resolver: zodResolver(patientSchema),
-        defaultValues: {
+        values: initialData ? {
+            full_name: initialData.full_name,
+            email: initialData.email || '',
+            phone: initialData.phone || '',
+            date_of_birth: initialData.date_of_birth || '',
+            primary_address: initialData.primary_address || '',
+            notes: initialData.notes || '',
+        } : {
             full_name: '',
             email: '',
             phone: '',
@@ -83,15 +98,14 @@ export function AddPatientForm({ open, onOpenChange }: AddPatientFormProps) {
         setIsSubmitting(true)
 
         try {
-            // Build custom_fields object from the custom fields array
-            const custom_fields: Record<string, string> = {}
+            const fieldsObj: Record<string, string> = {}
             customFields.forEach(cf => {
                 if (cf.key.trim()) {
-                    custom_fields[cf.key.trim()] = cf.value
+                    fieldsObj[cf.key.trim()] = cf.value
                 }
             })
 
-            const insertData = {
+            const patientData = {
                 org_id: currentOrganization.id,
                 full_name: data.full_name,
                 email: data.email || null,
@@ -99,22 +113,29 @@ export function AddPatientForm({ open, onOpenChange }: AddPatientFormProps) {
                 date_of_birth: data.date_of_birth || null,
                 primary_address: data.primary_address || null,
                 notes: data.notes || null,
-                custom_fields: Object.keys(custom_fields).length > 0 ? custom_fields : null,
+                custom_fields: Object.keys(fieldsObj).length > 0 ? fieldsObj : null,
             }
 
-            const { error } = await supabase.from('patients').insert(insertData)
-
-            if (error) throw error
+            if (initialData?.id) {
+                const { error } = await supabase
+                    .from('patients')
+                    .update(patientData)
+                    .eq('id', initialData.id)
+                if (error) throw error
+            } else {
+                const { error } = await supabase
+                    .from('patients')
+                    .insert(patientData)
+                if (error) throw error
+            }
 
             // Invalidate and refetch patients
             await queryClient.invalidateQueries({ queryKey: ['patients', currentOrganization.id] })
 
             // Reset form and close
-            reset()
-            setCustomFields([])
-            onOpenChange(false)
+            handleClose()
         } catch (err) {
-            console.error('Failed to add patient:', err)
+            console.error('Failed to save patient:', err)
         } finally {
             setIsSubmitting(false)
         }
@@ -131,10 +152,12 @@ export function AddPatientForm({ open, onOpenChange }: AddPatientFormProps) {
             <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold text-slate-900">
-                        Add New Patient
+                        {initialData ? 'Edit Patient' : 'Add New Patient'}
                     </DialogTitle>
                     <DialogDescription>
-                        Enter the patient's information below. Custom fields can be added for organization-specific data.
+                        {initialData
+                            ? 'Update the patient\'s information below.'
+                            : 'Enter the patient\'s information below. Custom fields can be added for organization-specific data.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -273,10 +296,10 @@ export function AddPatientForm({ open, onOpenChange }: AddPatientFormProps) {
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                    Adding...
+                                    {initialData ? 'Saving...' : 'Adding...'}
                                 </>
                             ) : (
-                                'Add Patient'
+                                initialData ? 'Save Changes' : 'Add Patient'
                             )}
                         </Button>
                     </DialogFooter>

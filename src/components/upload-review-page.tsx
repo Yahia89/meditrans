@@ -7,7 +7,7 @@ import { useOrganization } from '@/contexts/OrganizationContext'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import {
     Loader2, Check, AlertTriangle, ArrowLeft, FileText, Database,
-    CheckCircle, XCircle, Eye, Trash2
+    CheckCircle, XCircle, Eye
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -22,12 +22,7 @@ type StagingRow = {
     full_name: string | null
     email: string | null
     phone: string | null
-    license_number?: string | null
-    vehicle_info?: string | null
-    date_of_birth?: string | null
-    primary_address?: string | null
-    role?: string | null
-    department?: string | null
+    metadata: Record<string, any>
     raw_data: Record<string, any> | null
     validation_errors: any
 }
@@ -68,15 +63,14 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
             setUploadRec(upload)
 
             // 2. Fetch Staging Data
-            const tableName = `staging_${upload.source}` as 'staging_drivers' | 'staging_patients' | 'staging_employees'
             const { data: rows, error: rowsError } = await supabase
-                .from(tableName)
+                .from('staging_records')
                 .select('*')
                 .eq('upload_id', id)
                 .order('row_index', { ascending: true })
 
             if (rowsError) throw rowsError
-            setStagingRows(rows || [])
+            setStagingRows((rows || []) as StagingRow[])
 
             // Pre-select valid rows
             const validIds = (rows || []).filter(r => r.status === 'pending' && r.full_name).map(r => r.id)
@@ -169,17 +163,18 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
                         phone: row.phone,
                     }
 
-                    // Type-specific fields
+                    // Type-specific fields from metadata
                     if (targetTable === 'drivers') {
-                        baseData.license_number = row.license_number
-                        baseData.vehicle_info = row.vehicle_info
+                        baseData.license_number = row.metadata?.license_number
+                        baseData.vehicle_info = row.metadata?.vehicle_info
                     } else if (targetTable === 'patients') {
-                        baseData.date_of_birth = normalizeDate(row.date_of_birth)
-                        baseData.primary_address = row.primary_address
+                        baseData.date_of_birth = normalizeDate(row.metadata?.date_of_birth)
+                        baseData.primary_address = row.metadata?.primary_address
+                        baseData.notes = row.metadata?.notes
                     } else if (targetTable === 'employees') {
-                        baseData.role = row.role
-                        baseData.department = row.department
-                        baseData.hire_date = normalizeDate(row.hire_date)
+                        baseData.role = row.metadata?.role
+                        baseData.department = row.metadata?.department
+                        baseData.hire_date = normalizeDate(row.metadata?.hire_date)
                     }
 
                     // Preserve unmapped data in custom_fields
@@ -207,9 +202,8 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
                     if (insertError) throw insertError
 
                     // Update staging row status
-                    const stagingTable = `staging_${targetTable}` as any
                     await supabase
-                        .from(stagingTable)
+                        .from('staging_records')
                         .update({ status: 'committed' })
                         .eq('id', row.id)
 
@@ -430,20 +424,20 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
                                                 <TableCell>{row.phone || '—'}</TableCell>
                                                 {uploadRec.source === 'drivers' && (
                                                     <>
-                                                        <TableCell>{row.license_number || '—'}</TableCell>
-                                                        <TableCell>{row.vehicle_info || '—'}</TableCell>
+                                                        <TableCell>{row.metadata?.license_number || '—'}</TableCell>
+                                                        <TableCell>{row.metadata?.vehicle_info || '—'}</TableCell>
                                                     </>
                                                 )}
                                                 {uploadRec.source === 'patients' && (
                                                     <>
-                                                        <TableCell>{row.date_of_birth || '—'}</TableCell>
-                                                        <TableCell className="max-w-[200px] truncate">{row.primary_address || '—'}</TableCell>
+                                                        <TableCell>{row.metadata?.date_of_birth || '—'}</TableCell>
+                                                        <TableCell className="max-w-[200px] truncate">{row.metadata?.primary_address || '—'}</TableCell>
                                                     </>
                                                 )}
                                                 {uploadRec.source === 'employees' && (
                                                     <>
-                                                        <TableCell>{row.role || '—'}</TableCell>
-                                                        <TableCell>{row.department || '—'}</TableCell>
+                                                        <TableCell>{row.metadata?.role || '—'}</TableCell>
+                                                        <TableCell>{row.metadata?.department || '—'}</TableCell>
                                                     </>
                                                 )}
                                                 <TableCell>

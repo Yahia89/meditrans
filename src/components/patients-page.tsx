@@ -18,8 +18,16 @@ import { Button } from '@/components/ui/button'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { PatientsEmptyState } from '@/components/ui/empty-state'
-import { AddPatientForm } from '@/components/forms/add-patient-form'
-import { Loader2 } from 'lucide-react'
+import { PatientForm } from '@/components/forms/patient-form'
+import { Loader2, Pencil, Trash } from 'lucide-react'
+import { exportToExcel } from '@/lib/export'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useQueryClient } from '@tanstack/react-query'
 
 interface Patient {
     id: string
@@ -31,6 +39,9 @@ interface Patient {
     lastVisit: string
     status: 'active' | 'inactive'
     totalTrips: number
+    date_of_birth?: string | null
+    notes?: string | null
+    custom_fields?: Record<string, string> | null
 }
 
 // Demo data for preview mode
@@ -132,8 +143,10 @@ function DemoIndicator() {
 export function PatientsPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
+    const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
+    const queryClient = useQueryClient()
 
     const { data: realPatients, isLoading } = useQuery({
         queryKey: ['patients', currentOrganization?.id],
@@ -166,12 +179,42 @@ export function PatientsPage() {
                     address: p.primary_address || '',
                     lastVisit: p.created_at, // Using created_at as proxy for now
                     status: (p.status || 'active').toLowerCase() as 'active' | 'inactive',
-                    totalTrips: 0// Placeholder
+                    totalTrips: 0, // Placeholder
+                    date_of_birth: p.date_of_birth,
+                    notes: p.notes,
+                    custom_fields: p.custom_fields
                 } as Patient
             })
         },
         enabled: !!currentOrganization
     })
+
+    const handleExport = () => {
+        if (!patients.length) return
+        const exportData = patients.map(p => ({
+            Name: p.name,
+            Email: p.email,
+            Phone: p.phone,
+            Address: p.address,
+            'Last Visit': p.lastVisit,
+            Status: p.status,
+            'Total Trips': p.totalTrips
+        }))
+        exportToExcel(exportData, `patients_${new Date().toISOString().split('T')[0]}`)
+    }
+
+    const handleDeletePatient = async (id: string) => {
+        if (isDemoMode) return
+        if (!window.confirm('Are you sure you want to delete this patient?')) return
+
+        try {
+            const { error } = await supabase.from('patients').delete().eq('id', id)
+            if (error) throw error
+            queryClient.invalidateQueries({ queryKey: ['patients', currentOrganization?.id] })
+        } catch (err) {
+            console.error('Failed to delete patient:', err)
+        }
+    }
 
     const hasRealData = realPatients && realPatients.length > 0
     const showData = hasRealData || isDemoMode
@@ -186,13 +229,6 @@ export function PatientsPage() {
     const activeCount = patients.filter(p => p.status === 'active').length
     const totalTrips = patients.reduce((sum, p) => sum + p.totalTrips, 0)
 
-    // Calculate new this month (mock logic for demo, real check for data)
-    const newThisMonth = patients.filter(p => {
-        const d = new Date(p.lastVisit)
-        const now = new Date()
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    }).length
-
     if (isLoading) {
         return (
             <div className="flex h-96 items-center justify-center">
@@ -205,6 +241,27 @@ export function PatientsPage() {
     if (!showData) {
         return (
             <div className="space-y-6">
+                {/* Patient Form (Add/Edit) */}
+                <PatientForm
+                    open={showAddForm || !!editingPatient}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setShowAddForm(false)
+                            setEditingPatient(null)
+                        }
+                    }}
+                    initialData={editingPatient ? {
+                        id: editingPatient.id,
+                        full_name: editingPatient.name,
+                        email: editingPatient.email,
+                        phone: editingPatient.phone,
+                        primary_address: editingPatient.address,
+                        date_of_birth: editingPatient.date_of_birth || '',
+                        notes: editingPatient.notes || '',
+                        custom_fields: editingPatient.custom_fields
+                    } : undefined}
+                />
+
                 {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
@@ -236,10 +293,7 @@ export function PatientsPage() {
                 {/* Empty State */}
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <PatientsEmptyState
-                        onAddPatient={() => {
-                            // TODO: Open add patient modal
-                            console.log('Add patient clicked')
-                        }}
+                        onAddPatient={() => setShowAddForm(true)}
                         onUpload={() => navigateTo('upload')}
                     />
                 </div>
@@ -269,8 +323,26 @@ export function PatientsPage() {
                 </Button>
             </div>
 
-            {/* Add Patient Form */}
-            <AddPatientForm open={showAddForm} onOpenChange={setShowAddForm} />
+            {/* Patient Form (Add/Edit) */}
+            <PatientForm
+                open={showAddForm || !!editingPatient}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setShowAddForm(false)
+                        setEditingPatient(null)
+                    }
+                }}
+                initialData={editingPatient ? {
+                    id: editingPatient.id,
+                    full_name: editingPatient.name,
+                    email: editingPatient.email,
+                    phone: editingPatient.phone,
+                    primary_address: editingPatient.address,
+                    date_of_birth: editingPatient.date_of_birth || '',
+                    notes: editingPatient.notes || '',
+                    custom_fields: editingPatient.custom_fields
+                } : undefined}
+            />
 
             {/* Demo Mode Banner */}
             {isDemoMode && (
@@ -336,7 +408,11 @@ export function PatientsPage() {
                     <Funnel size={16} />
                     Filters
                 </Button>
-                <Button variant="outline" className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50">
+                <Button
+                    variant="outline"
+                    onClick={handleExport}
+                    className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
+                >
                     <DownloadSimple size={16} />
                     Export
                 </Button>
@@ -428,9 +504,29 @@ export function PatientsPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <button className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
-                                            <DotsThreeVertical size={18} weight="bold" className="text-slate-500" />
-                                        </button>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <button
+                                                    disabled={isDemoMode}
+                                                    className="p-2 rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50"
+                                                >
+                                                    <DotsThreeVertical size={18} weight="bold" className="text-slate-500" />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-40">
+                                                <DropdownMenuItem onClick={() => setEditingPatient(patient)} className="gap-2">
+                                                    <Pencil className="h-4 w-4" />
+                                                    Edit Patient
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => handleDeletePatient(patient.id)}
+                                                    className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                                                >
+                                                    <Trash className="h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </td>
                                 </tr>
                             ))}

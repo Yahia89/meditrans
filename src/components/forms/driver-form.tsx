@@ -18,50 +18,60 @@ import { Input } from '@/components/ui/input'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// Schema for employee form
-const employeeSchema = z.object({
+// Schema for driver form
+const driverSchema = z.object({
     full_name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email').optional().or(z.literal('')),
     phone: z.string().optional(),
-    role: z.string().optional(),
-    department: z.string().optional(),
-    hire_date: z.string().optional(),
-    notes: z.string().optional(),
+    license_number: z.string().optional(),
+    vehicle_info: z.string().optional(),
 })
 
-type EmployeeFormData = z.infer<typeof employeeSchema>
+interface DriverFormData extends z.infer<typeof driverSchema> {
+    id?: string
+}
 
 interface CustomField {
     key: string
     value: string
 }
 
-interface AddEmployeeFormProps {
+interface DriverFormProps {
     open: boolean
     onOpenChange: (open: boolean) => void
+    initialData?: DriverFormData & { custom_fields?: Record<string, string> | null }
 }
 
-export function AddEmployeeForm({ open, onOpenChange }: AddEmployeeFormProps) {
+export function DriverForm({ open, onOpenChange, initialData }: DriverFormProps) {
     const { currentOrganization } = useOrganization()
     const queryClient = useQueryClient()
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [customFields, setCustomFields] = useState<CustomField[]>([])
+    const [customFields, setCustomFields] = useState<CustomField[]>(() => {
+        if (initialData?.custom_fields) {
+            return Object.entries(initialData.custom_fields).map(([key, value]) => ({ key, value }))
+        }
+        return []
+    })
 
     const {
         register,
         handleSubmit,
         reset,
         formState: { errors },
-    } = useForm<EmployeeFormData>({
-        resolver: zodResolver(employeeSchema),
-        defaultValues: {
+    } = useForm<DriverFormData>({
+        resolver: zodResolver(driverSchema),
+        values: initialData ? {
+            full_name: initialData.full_name,
+            email: initialData.email || '',
+            phone: initialData.phone || '',
+            license_number: initialData.license_number || '',
+            vehicle_info: initialData.vehicle_info || '',
+        } : {
             full_name: '',
             email: '',
             phone: '',
-            role: '',
-            department: '',
-            hire_date: '',
-            notes: '',
+            license_number: '',
+            vehicle_info: '',
         },
     })
 
@@ -79,45 +89,49 @@ export function AddEmployeeForm({ open, onOpenChange }: AddEmployeeFormProps) {
         setCustomFields(updated)
     }
 
-    const onSubmit = async (data: EmployeeFormData) => {
+    const onSubmit = async (data: DriverFormData) => {
         if (!currentOrganization) return
 
         setIsSubmitting(true)
 
         try {
-            // Build custom_fields object from the custom fields array
-            const custom_fields: Record<string, string> = {}
+            const fieldsObj: Record<string, string> = {}
             customFields.forEach(cf => {
                 if (cf.key.trim()) {
-                    custom_fields[cf.key.trim()] = cf.value
+                    fieldsObj[cf.key.trim()] = cf.value
                 }
             })
 
-            const insertData = {
+            const driverData = {
                 org_id: currentOrganization.id,
                 full_name: data.full_name,
                 email: data.email || null,
                 phone: data.phone || null,
-                role: data.role || null,
-                department: data.department || null,
-                hire_date: data.hire_date || null,
-                notes: data.notes || null,
-                custom_fields: Object.keys(custom_fields).length > 0 ? custom_fields : null,
+                license_number: data.license_number || null,
+                vehicle_info: data.vehicle_info || null,
+                custom_fields: Object.keys(fieldsObj).length > 0 ? fieldsObj : null,
             }
 
-            const { error } = await supabase.from('employees').insert(insertData)
+            if (initialData?.id) {
+                const { error } = await supabase
+                    .from('drivers')
+                    .update(driverData)
+                    .eq('id', initialData.id)
+                if (error) throw error
+            } else {
+                const { error } = await supabase
+                    .from('drivers')
+                    .insert(driverData)
+                if (error) throw error
+            }
 
-            if (error) throw error
-
-            // Invalidate and refetch employees
-            await queryClient.invalidateQueries({ queryKey: ['employees', currentOrganization.id] })
+            // Invalidate and refetch drivers
+            await queryClient.invalidateQueries({ queryKey: ['drivers', currentOrganization.id] })
 
             // Reset form and close
-            reset()
-            setCustomFields([])
-            onOpenChange(false)
+            handleClose()
         } catch (err) {
-            console.error('Failed to add employee:', err)
+            console.error('Failed to save driver:', err)
         } finally {
             setIsSubmitting(false)
         }
@@ -134,10 +148,12 @@ export function AddEmployeeForm({ open, onOpenChange }: AddEmployeeFormProps) {
             <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold text-slate-900">
-                        Add New Employee
+                        {initialData ? 'Edit Driver' : 'Add New Driver'}
                     </DialogTitle>
                     <DialogDescription>
-                        Enter the employee's information below. Custom fields can be added for organization-specific data.
+                        {initialData
+                            ? 'Update the driver\'s information below.'
+                            : 'Enter the driver\'s information below. Custom fields can be added for organization-specific data.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -149,7 +165,7 @@ export function AddEmployeeForm({ open, onOpenChange }: AddEmployeeFormProps) {
                         </label>
                         <Input
                             {...register('full_name')}
-                            placeholder="Sarah Johnson"
+                            placeholder="Michael Chen"
                             className={cn(errors.full_name && 'border-red-500')}
                         />
                         {errors.full_name && (
@@ -164,7 +180,7 @@ export function AddEmployeeForm({ open, onOpenChange }: AddEmployeeFormProps) {
                             <Input
                                 {...register('email')}
                                 type="email"
-                                placeholder="employee@company.com"
+                                placeholder="driver@company.com"
                                 className={cn(errors.email && 'border-red-500')}
                             />
                             {errors.email && (
@@ -180,41 +196,25 @@ export function AddEmployeeForm({ open, onOpenChange }: AddEmployeeFormProps) {
                         </div>
                     </div>
 
-                    {/* Role and Department Row */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Role / Position</label>
-                            <Input
-                                {...register('role')}
-                                placeholder="Operations Manager"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Department</label>
-                            <Input
-                                {...register('department')}
-                                placeholder="Operations"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Hire Date */}
+                    {/* License Number */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">Hire Date</label>
+                        <label className="text-sm font-medium text-slate-700">License Number</label>
                         <Input
-                            {...register('hire_date')}
-                            type="date"
+                            {...register('license_number')}
+                            placeholder="DL-123456789"
                         />
                     </div>
 
-                    {/* Notes */}
+                    {/* Vehicle Info */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">Notes</label>
-                        <textarea
-                            {...register('notes')}
-                            placeholder="Any additional notes about the employee..."
-                            className="w-full min-h-[80px] rounded-md border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+                        <label className="text-sm font-medium text-slate-700">Vehicle Information</label>
+                        <Input
+                            {...register('vehicle_info')}
+                            placeholder="2023 Toyota Sienna - White"
                         />
+                        <p className="text-xs text-slate-500">
+                            Include vehicle type, make, model, year, or license plate
+                        </p>
                     </div>
 
                     {/* Custom Fields Section */}
@@ -285,10 +285,10 @@ export function AddEmployeeForm({ open, onOpenChange }: AddEmployeeFormProps) {
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                    Adding...
+                                    {initialData ? 'Saving...' : 'Adding...'}
                                 </>
                             ) : (
-                                'Add Employee'
+                                initialData ? 'Save Changes' : 'Add Driver'
                             )}
                         </Button>
                     </DialogFooter>

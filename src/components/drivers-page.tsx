@@ -19,8 +19,16 @@ import { Button } from '@/components/ui/button'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { DriversEmptyState } from '@/components/ui/empty-state'
-import { AddDriverForm } from '@/components/forms/add-driver-form'
-import { Loader2 } from 'lucide-react'
+import { DriverForm } from '@/components/forms/driver-form'
+import { Loader2, Pencil, Trash } from 'lucide-react'
+import { exportToExcel } from '@/lib/export'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useQueryClient } from '@tanstack/react-query'
 
 interface Driver {
     id: string
@@ -33,6 +41,7 @@ interface Driver {
     totalTrips: number
     status: 'available' | 'on-trip' | 'offline'
     currentLocation?: string
+    custom_fields?: Record<string, string> | null
 }
 
 // Demo data for preview mode
@@ -142,8 +151,10 @@ function DemoIndicator() {
 export function DriversPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
+    const [editingDriver, setEditingDriver] = useState<Driver | null>(null)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
+    const queryClient = useQueryClient()
 
     const { data: realDrivers, isLoading } = useQuery({
         queryKey: ['drivers', currentOrganization?.id],
@@ -168,11 +179,40 @@ export function DriversPage() {
                 rating: 5.0, // Mock for now
                 totalTrips: 0, // Mock for now
                 status: (d.status || 'available').toLowerCase() as 'available' | 'on-trip' | 'offline',
-                currentLocation: undefined // Mock for now
+                currentLocation: undefined, // Mock for now
+                custom_fields: d.custom_fields
             } as Driver))
         },
         enabled: !!currentOrganization
     })
+
+    const handleExport = () => {
+        if (!drivers.length) return
+        const exportData = drivers.map(d => ({
+            Name: d.name,
+            Email: d.email,
+            Phone: d.phone,
+            'Vehicle Type': d.vehicleType,
+            'License Plate': d.licensePlate,
+            Rating: d.rating,
+            'Total Trips': d.totalTrips,
+            Status: d.status
+        }))
+        exportToExcel(exportData, `drivers_${new Date().toISOString().split('T')[0]}`)
+    }
+
+    const handleDeleteDriver = async (id: string) => {
+        if (isDemoMode) return
+        if (!window.confirm('Are you sure you want to delete this driver?')) return
+
+        try {
+            const { error } = await supabase.from('drivers').delete().eq('id', id)
+            if (error) throw error
+            queryClient.invalidateQueries({ queryKey: ['drivers', currentOrganization?.id] })
+        } catch (err) {
+            console.error('Failed to delete driver:', err)
+        }
+    }
 
     const hasRealData = realDrivers && realDrivers.length > 0
     const showData = hasRealData || isDemoMode
@@ -267,8 +307,25 @@ export function DriversPage() {
                 </Button>
             </div>
 
-            {/* Add Driver Form */}
-            <AddDriverForm open={showAddForm} onOpenChange={setShowAddForm} />
+            {/* Driver Form (Add/Edit) */}
+            <DriverForm
+                open={showAddForm || !!editingDriver}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setShowAddForm(false)
+                        setEditingDriver(null)
+                    }
+                }}
+                initialData={editingDriver ? {
+                    id: editingDriver.id,
+                    full_name: editingDriver.name,
+                    email: editingDriver.email,
+                    phone: editingDriver.phone,
+                    license_number: editingDriver.licensePlate,
+                    vehicle_info: editingDriver.vehicleType,
+                    custom_fields: editingDriver.custom_fields
+                } : undefined}
+            />
             {isDemoMode && (
                 <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
                     <div className="flex items-center gap-3">
@@ -337,7 +394,11 @@ export function DriversPage() {
                     <Funnel size={16} />
                     Filters
                 </Button>
-                <Button variant="outline" className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50">
+                <Button
+                    variant="outline"
+                    onClick={handleExport}
+                    className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
+                >
                     <DownloadSimple size={16} />
                     Export
                 </Button>
@@ -421,13 +482,31 @@ export function DriversPage() {
                             >
                                 View Details
                             </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-lg border-slate-200 hover:bg-slate-50"
-                            >
-                                <DotsThreeVertical size={16} weight="bold" />
-                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={isDemoMode}
+                                        className="rounded-lg border-slate-200 hover:bg-slate-50"
+                                    >
+                                        <DotsThreeVertical size={16} weight="bold" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-40">
+                                    <DropdownMenuItem onClick={() => setEditingDriver(driver)} className="gap-2">
+                                        <Pencil className="h-4 w-4" />
+                                        Edit Driver
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() => handleDeleteDriver(driver.id)}
+                                        className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                                    >
+                                        <Trash className="h-4 w-4" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
                 ))}

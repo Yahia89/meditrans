@@ -154,20 +154,24 @@ export function useUploadFlow() {
 
             if (dbError) throw dbError
 
+            const recordType = state.importSource.slice(0, -1) // drivers -> driver
             const mappings = COLUMN_MAPPINGS[state.importSource]
             const stagingRecords = selectedSheet.rows.map((row, index) => {
-                const mapped: Record<string, any> = {
-                    upload_id: uploadRecord.id,
-                    org_id: currentOrganization.id,
-                    row_index: index,
-                    raw_data: row,
-                    status: 'pending',
-                }
-
                 const normalizedRow: Record<string, any> = {}
                 Object.entries(row).forEach(([key, value]) => {
                     normalizedRow[key.toLowerCase().replace(/[^a-z0-9]/g, '_')] = value
                 })
+
+                const metadata: Record<string, any> = {}
+                const mapped: Record<string, any> = {
+                    upload_id: uploadRecord.id,
+                    org_id: currentOrganization.id,
+                    record_type: recordType,
+                    row_index: index,
+                    raw_data: row,
+                    status: 'pending',
+                    metadata: metadata,
+                }
 
                 Object.entries(mappings).forEach(([targetField, sourceFields]) => {
                     const matchedField = sourceFields.find(sf =>
@@ -178,7 +182,12 @@ export function useUploadFlow() {
                             k.includes(matchedField.replace(/[^a-z]/g, ''))
                         )
                         if (key) {
-                            mapped[targetField] = normalizedRow[key]
+                            const value = normalizedRow[key]
+                            if (['full_name', 'email', 'phone'].includes(targetField)) {
+                                mapped[targetField] = value
+                            } else {
+                                metadata[targetField] = value
+                            }
                         }
                     }
                 })
@@ -191,9 +200,8 @@ export function useUploadFlow() {
                 return mapped
             })
 
-            const tableName = `staging_${state.importSource}`
             const { error: stageError } = await supabase
-                .from(tableName)
+                .from('staging_records')
                 .insert(stagingRecords)
 
             if (stageError) throw stageError
