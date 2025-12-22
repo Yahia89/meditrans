@@ -8,7 +8,11 @@ import { PatientsPage } from './components/patients-page'
 import { DriversPage } from './components/drivers-page'
 import { EmployeesPage } from './components/employees-page'
 import { UploadPage } from './components/upload-page'
+import { AccountPage } from './components/account-page'
+import { BillingPage } from './components/billing-page'
+import { NotificationsPage } from './components/notifications-page'
 import { LoginForm } from './components/login-form'
+
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
 import { OrganizationProvider } from '@/contexts/OrganizationContext'
 import { OnboardingProvider } from '@/contexts/OnboardingContext'
@@ -16,7 +20,8 @@ import loginbgimg from './assets/loginbgimg.png'
 import logo from './assets/logo.png'
 
 // Define valid page values for type safety
-const pages = ['dashboard', 'patients', 'drivers', 'employees', 'upload', 'review_import'] as const
+const pages = ['dashboard', 'patients', 'drivers', 'employees', 'upload', 'review_import', 'account', 'billing', 'notifications'] as const
+
 type Page = typeof pages[number]
 
 import { UploadReviewPage } from './components/upload-review-page'
@@ -164,6 +169,25 @@ function AppContent() {
             <UploadReviewPage onBack={() => setCurrentPage('upload')} />
           </DashboardPage>
         )
+      case 'account':
+        return (
+          <DashboardPage title="Account Settings">
+            <AccountPage />
+          </DashboardPage>
+        )
+      case 'billing':
+        return (
+          <DashboardPage title="Billing & Plans">
+            <BillingPage />
+          </DashboardPage>
+        )
+      case 'notifications':
+        return (
+          <DashboardPage title="Notifications">
+            <NotificationsPage />
+          </DashboardPage>
+        )
+
       default:
         return (
           <DashboardPage title="Dashboard">

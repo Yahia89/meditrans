@@ -16,18 +16,23 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatPhoneNumber } from '@/lib/utils'
+
 
 // Schema for employee form
 const employeeSchema = z.object({
     full_name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email').optional().or(z.literal('')),
-    phone: z.string().optional(),
+    phone: z.string()
+        .regex(/^\(\d{3}\) \d{3}-\d{4}$/, 'Invalid phone format (555) 555-5555')
+        .optional()
+        .or(z.literal('')),
     role: z.string().optional(),
     department: z.string().optional(),
     hire_date: z.string().optional(),
     notes: z.string().optional(),
 })
+
 
 interface EmployeeFormData extends z.infer<typeof employeeSchema> {
     id?: string
@@ -59,18 +64,21 @@ export function EmployeeForm({ open, onOpenChange, initialData }: EmployeeFormPr
         register,
         handleSubmit,
         reset,
+        setValue,
         formState: { errors },
     } = useForm<EmployeeFormData>({
+
         resolver: zodResolver(employeeSchema),
         values: initialData ? {
             full_name: initialData.full_name,
             email: initialData.email || '',
-            phone: initialData.phone || '',
+            phone: initialData.phone ? formatPhoneNumber(initialData.phone) : '',
             role: initialData.role || '',
             department: initialData.department || '',
             hire_date: initialData.hire_date || '',
             notes: initialData.notes || '',
         } : {
+
             full_name: '',
             email: '',
             phone: '',
@@ -199,9 +207,18 @@ export function EmployeeForm({ open, onOpenChange, initialData }: EmployeeFormPr
                             <label className="text-sm font-medium text-slate-700">Phone</label>
                             <Input
                                 {...register('phone')}
+                                onChange={(e) => {
+                                    const formatted = formatPhoneNumber(e.target.value)
+                                    setValue('phone', formatted, { shouldValidate: true })
+                                }}
                                 placeholder="(555) 123-4567"
+                                className={cn(errors.phone && 'border-red-500')}
                             />
+                            {errors.phone && (
+                                <p className="text-xs text-red-500">{errors.phone.message}</p>
+                            )}
                         </div>
+
                     </div>
 
                     {/* Role and Department Row */}

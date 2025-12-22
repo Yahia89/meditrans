@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import {
-  Heartbeat,
   UsersThree,
   CarProfile,
   UploadSimple,
@@ -22,7 +21,7 @@ import {
 } from "@/components/ui/sidebar"
 
 // Page type must match the pages defined in App.tsx
-type Page = 'dashboard' | 'patients' | 'drivers' | 'employees' | 'upload' | 'review_import'
+type Page = 'dashboard' | 'patients' | 'drivers' | 'employees' | 'upload' | 'review_import' | 'account' | 'billing' | 'notifications'
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   currentPage: Page

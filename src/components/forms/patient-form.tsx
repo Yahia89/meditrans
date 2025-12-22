@@ -16,17 +16,22 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatPhoneNumber } from '@/lib/utils'
+
 
 // Schema for patient form
 const patientSchema = z.object({
     full_name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email').optional().or(z.literal('')),
-    phone: z.string().optional(),
+    phone: z.string()
+        .regex(/^\(\d{3}\) \d{3}-\d{4}$/, 'Invalid phone format (555) 555-5555')
+        .optional()
+        .or(z.literal('')),
     date_of_birth: z.string().optional(),
     primary_address: z.string().optional(),
     notes: z.string().optional(),
 })
+
 
 interface PatientFormData extends z.infer<typeof patientSchema> {
     id?: string
@@ -58,17 +63,20 @@ export function PatientForm({ open, onOpenChange, initialData }: PatientFormProp
         register,
         handleSubmit,
         reset,
+        setValue,
         formState: { errors },
     } = useForm<PatientFormData>({
+
         resolver: zodResolver(patientSchema),
         values: initialData ? {
             full_name: initialData.full_name,
             email: initialData.email || '',
-            phone: initialData.phone || '',
+            phone: initialData.phone ? formatPhoneNumber(initialData.phone) : '',
             date_of_birth: initialData.date_of_birth || '',
             primary_address: initialData.primary_address || '',
             notes: initialData.notes || '',
         } : {
+
             full_name: '',
             email: '',
             phone: '',
@@ -195,9 +203,18 @@ export function PatientForm({ open, onOpenChange, initialData }: PatientFormProp
                             <label className="text-sm font-medium text-slate-700">Phone</label>
                             <Input
                                 {...register('phone')}
+                                onChange={(e) => {
+                                    const formatted = formatPhoneNumber(e.target.value)
+                                    setValue('phone', formatted, { shouldValidate: true })
+                                }}
                                 placeholder="(555) 123-4567"
+                                className={cn(errors.phone && 'border-red-500')}
                             />
+                            {errors.phone && (
+                                <p className="text-xs text-red-500">{errors.phone.message}</p>
+                            )}
                         </div>
+
                     </div>
 
                     {/* Date of Birth */}

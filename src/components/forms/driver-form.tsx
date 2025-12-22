@@ -16,16 +16,21 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatPhoneNumber } from '@/lib/utils'
+
 
 // Schema for driver form
 const driverSchema = z.object({
     full_name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email').optional().or(z.literal('')),
-    phone: z.string().optional(),
+    phone: z.string()
+        .regex(/^\(\d{3}\) \d{3}-\d{4}$/, 'Invalid phone format (555) 555-5555')
+        .optional()
+        .or(z.literal('')),
     license_number: z.string().optional(),
     vehicle_info: z.string().optional(),
 })
+
 
 interface DriverFormData extends z.infer<typeof driverSchema> {
     id?: string
@@ -57,16 +62,19 @@ export function DriverForm({ open, onOpenChange, initialData }: DriverFormProps)
         register,
         handleSubmit,
         reset,
+        setValue,
         formState: { errors },
     } = useForm<DriverFormData>({
+
         resolver: zodResolver(driverSchema),
         values: initialData ? {
             full_name: initialData.full_name,
             email: initialData.email || '',
-            phone: initialData.phone || '',
+            phone: initialData.phone ? formatPhoneNumber(initialData.phone) : '',
             license_number: initialData.license_number || '',
             vehicle_info: initialData.vehicle_info || '',
         } : {
+
             full_name: '',
             email: '',
             phone: '',
@@ -191,9 +199,18 @@ export function DriverForm({ open, onOpenChange, initialData }: DriverFormProps)
                             <label className="text-sm font-medium text-slate-700">Phone</label>
                             <Input
                                 {...register('phone')}
+                                onChange={(e) => {
+                                    const formatted = formatPhoneNumber(e.target.value)
+                                    setValue('phone', formatted, { shouldValidate: true })
+                                }}
                                 placeholder="(555) 123-4567"
+                                className={cn(errors.phone && 'border-red-500')}
                             />
+                            {errors.phone && (
+                                <p className="text-xs text-red-500">{errors.phone.message}</p>
+                            )}
                         </div>
+
                     </div>
 
                     {/* License Number */}
