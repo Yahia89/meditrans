@@ -7,7 +7,9 @@ import {
   UploadSimple,
   ChartLine,
   UserList,
+  Shield,
 } from "@phosphor-icons/react"
+
 
 import { NavUser } from "@/components/nav-user"
 import {
@@ -21,7 +23,7 @@ import {
 } from "@/components/ui/sidebar"
 
 // Page type must match the pages defined in App.tsx
-type Page = 'dashboard' | 'patients' | 'drivers' | 'employees' | 'upload' | 'review_import' | 'account' | 'billing' | 'notifications'
+type Page = 'dashboard' | 'patients' | 'drivers' | 'employees' | 'upload' | 'review_import' | 'account' | 'billing' | 'notifications' | 'founder' | 'accept-invite'
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   currentPage: Page
@@ -58,8 +60,22 @@ const data = {
   ],
 }
 
+import { usePermissions } from "@/hooks/usePermissions"
+
 export function AppSidebar({ currentPage, onNavigate, ...props }: AppSidebarProps) {
+  const { isSuperAdmin } = usePermissions()
+
+  const navItems = [...data.navMain]
+  if (isSuperAdmin) {
+    navItems.push({
+      title: "Founder Tool",
+      url: "founder" as Page,
+      icon: Shield,
+    })
+  }
+
   return (
+
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
@@ -78,7 +94,8 @@ export function AppSidebar({ currentPage, onNavigate, ...props }: AppSidebarProp
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu className="flex flex-col gap-2 p-2">
-          {data.navMain.map((item) => {
+          {navItems.map((item) => {
+
             const Icon = item.icon
             const isActive = currentPage === item.url
             return (

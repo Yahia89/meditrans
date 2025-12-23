@@ -64,6 +64,41 @@ export interface Database {
           updated_at?: string
         }
       }
+      org_invites: {
+        Row: {
+          id: string
+          org_id: string
+          email: string
+          role: MembershipRole
+          invited_by: string | null
+          token: string
+          accepted_at: string | null
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          email: string
+          role: MembershipRole
+          invited_by?: string | null
+          token?: string
+          accepted_at?: string | null
+          expires_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          email?: string
+          role?: MembershipRole
+          invited_by?: string | null
+          token?: string
+          accepted_at?: string | null
+          expires_at?: string
+          created_at?: string
+        }
+      }
       org_uploads: {
         Row: {
           id: string
@@ -381,6 +416,7 @@ export interface Database {
           full_name: string | null
           phone: string | null
           default_org_id: string | null
+          is_super_admin: boolean
           created_at: string
         }
         Insert: {
@@ -388,6 +424,7 @@ export interface Database {
           full_name?: string | null
           phone?: string | null
           default_org_id?: string | null
+          is_super_admin?: boolean
           created_at?: string
         }
         Update: {
@@ -395,6 +432,7 @@ export interface Database {
           full_name?: string | null
           phone?: string | null
           default_org_id?: string | null
+          is_super_admin?: boolean
           created_at?: string
         }
       }

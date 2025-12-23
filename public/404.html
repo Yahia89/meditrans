@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>MediTrans CRM</title>
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // MIT License
+      // https://github.com/rafgraph/spa-github-pages
+      // This script checks to see if a redirect is present in the query string,
+      // converts it back into a correct url and adds it to the
+      // browser's history using window.history.replaceState(...),
+      // which will cause the browser to look for the correct spa route.
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+    </script>
+    <!-- Standard redirect 404 to index -->
+    <script>
+      var path = window.location.pathname;
+      if (path.includes('/meditrans/')) {
+        // Redirect to the root index.html with the path preserved as a query param if needed
+        // But since we are using ?page=, we just need to ensure index.html is loaded.
+        // GitHub Pages serves index.html for any request to the directory.
+      }
+    </script>
+    <meta http-equiv="refresh" content="0;URL='/meditrans/'">
+  </head>
+  <body>
+  </body>
+</html>

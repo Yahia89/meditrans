@@ -16,11 +16,14 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { EmployeeForm } from '@/components/forms/employee-form'
+import { Loader2, Pencil, Trash } from 'lucide-react'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useOnboarding } from '@/contexts/OnboardingContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { EmployeesEmptyState } from '@/components/ui/empty-state'
-import { EmployeeForm } from '@/components/forms/employee-form'
-import { Loader2, Pencil, Trash } from 'lucide-react'
+
+
 import { exportToExcel } from '@/lib/export'
 import {
     DropdownMenu,
@@ -159,7 +162,10 @@ export function EmployeesPage() {
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
+    const { isAdmin, userRole } = usePermissions()
     const queryClient = useQueryClient()
+
+
 
     const { data: realEmployees, isLoading } = useQuery({
         queryKey: ['employees', currentOrganization?.id],
@@ -273,9 +279,11 @@ export function EmployeesPage() {
                         department: editingEmployee.department,
                         hire_date: editingEmployee.hireDate,
                         notes: editingEmployee.notes || '',
-                        custom_fields: editingEmployee.custom_fields
+                        custom_fields: editingEmployee.custom_fields,
+                        system_role: 'none'
                     } : undefined}
                 />
+
 
                 {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -308,10 +316,11 @@ export function EmployeesPage() {
                 {/* Empty State */}
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <EmployeesEmptyState
-                        onAddEmployee={() => setShowAddForm(true)}
-                        onUpload={() => navigateTo('upload')}
+                        onAddEmployee={isAdmin ? () => setShowAddForm(true) : () => { }}
+                        onUpload={isAdmin ? () => navigateTo('upload') : () => { }}
                     />
                 </div>
+
             </div>
         )
     }
@@ -329,14 +338,17 @@ export function EmployeesPage() {
                         Manage staff members and departments
                     </p>
                 </div>
-                <Button
-                    onClick={() => setShowAddForm(true)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
-                >
-                    <Plus size={18} weight="bold" />
-                    Add Employee
-                </Button>
+                {isAdmin && (
+                    <Button
+                        onClick={() => setShowAddForm(true)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
+                    >
+                        <Plus size={18} weight="bold" />
+                        Add Employee
+                    </Button>
+                )}
             </div>
+
 
             {/* Employee Form (Add/Edit) */}
             <EmployeeForm
@@ -356,9 +368,11 @@ export function EmployeesPage() {
                     department: editingEmployee.department,
                     hire_date: editingEmployee.hireDate,
                     notes: editingEmployee.notes || '',
-                    custom_fields: editingEmployee.custom_fields
+                    custom_fields: editingEmployee.custom_fields,
+                    system_role: 'none'
                 } : undefined}
             />
+
 
             {/* Demo Mode Banner */}
             {isDemoMode && (
@@ -513,7 +527,7 @@ export function EmployeesPage() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        disabled={isDemoMode}
+                                        disabled={isDemoMode || !isAdmin}
                                         className="rounded-lg border-slate-200 hover:bg-slate-50"
                                     >
                                         <DotsThreeVertical size={16} weight="bold" />
@@ -533,6 +547,7 @@ export function EmployeesPage() {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+
                         </div>
                     </div>
                 ))}

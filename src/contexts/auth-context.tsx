@@ -8,8 +8,10 @@ interface UserProfile {
     full_name: string | null
     phone: string | null
     default_org_id: string | null
+    is_super_admin: boolean
     created_at: string
 }
+
 
 interface OrganizationMembership {
     id: string
@@ -36,7 +38,9 @@ interface AuthContextType {
     resetPassword: (email: string) => Promise<{
         error: AuthError | null
     }>
+    refresh: () => Promise<void>
 }
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
@@ -176,6 +180,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return { error }
     }
 
+    // Force refresh profile and memberships
+    const refresh = async () => {
+        if (user) {
+            await Promise.all([
+                fetchProfile(user.id),
+                fetchMemberships(user.id)
+            ])
+        }
+    }
+
     const value = {
         user,
         session,
@@ -186,7 +200,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         signUp,
         signOut,
         resetPassword,
+        refresh,
     }
+
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

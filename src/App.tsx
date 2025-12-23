@@ -11,16 +11,24 @@ import { UploadPage } from './components/upload-page'
 import { AccountPage } from './components/account-page'
 import { BillingPage } from './components/billing-page'
 import { NotificationsPage } from './components/notifications-page'
+import { FounderInviteForm } from './components/founder-invite-form'
+import { AcceptInvitePage } from './components/accept-invite'
 import { LoginForm } from './components/login-form'
+
+
 
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
 import { OrganizationProvider } from '@/contexts/OrganizationContext'
 import { OnboardingProvider } from '@/contexts/OnboardingContext'
 import loginbgimg from './assets/loginbgimg.png'
 import logo from './assets/logo.png'
+import { usePermissions } from '@/hooks/usePermissions'
+
 
 // Define valid page values for type safety
-const pages = ['dashboard', 'patients', 'drivers', 'employees', 'upload', 'review_import', 'account', 'billing', 'notifications'] as const
+const pages = ['dashboard', 'patients', 'drivers', 'employees', 'upload', 'review_import', 'account', 'billing', 'notifications', 'founder', 'accept-invite'] as const
+
+
 
 type Page = typeof pages[number]
 
@@ -28,6 +36,8 @@ import { UploadReviewPage } from './components/upload-review-page'
 
 function AppContent() {
   const { user, loading } = useAuth()
+  const { isSuperAdmin } = usePermissions()
+
 
   // nuqs: sync page state with URL query string (?page=dashboard)
   // Features enabled:
@@ -54,7 +64,17 @@ function AppContent() {
     )
   }
 
+  // Handle invitation acceptance regardless of auth status (will show login prompt inside if needed)
+  if (currentPage === 'accept-invite') {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+        <AcceptInvitePage />
+      </div>
+    )
+  }
+
   // Show login page if not authenticated
+
   if (!user) {
     return (
       <div className="flex min-h-svh w-full">
@@ -187,6 +207,18 @@ function AppContent() {
             <NotificationsPage />
           </DashboardPage>
         )
+      case 'founder':
+        if (!isSuperAdmin) {
+          setCurrentPage('dashboard')
+          return null
+        }
+        return (
+          <DashboardPage title="Founder Admin">
+            <FounderInviteForm />
+          </DashboardPage>
+        )
+
+
 
       default:
         return (

@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo } from 'react'
 import { useAuth } from './auth-context'
-import { supabase } from '@/lib/supabase'
+import { supabase, type MembershipRole } from '@/lib/supabase'
+
 
 // Types
 interface Organization {
@@ -12,9 +13,11 @@ interface Organization {
 interface OrganizationContextType {
     currentOrganization: Organization | null
     organizations: Organization[]
+    userRole: MembershipRole | null
     loading: boolean
     setCurrentOrganization: (org: Organization | null) => void
 }
+
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined)
 
@@ -98,12 +101,20 @@ export const OrganizationProvider = ({ children }: OrganizationProviderProps) =>
         fetchOrganizations()
     }, [user, memberships, profile])
 
+    const userRole = useMemo(() => {
+        if (!currentOrganization || memberships.length === 0) return null
+        const membership = memberships.find(m => m.org_id === currentOrganization.id)
+        return membership?.role || null
+    }, [currentOrganization, memberships])
+
     const value = {
         currentOrganization,
         organizations,
+        userRole,
         loading,
         setCurrentOrganization,
     }
+
 
     return (
         <OrganizationContext.Provider value={value}>
