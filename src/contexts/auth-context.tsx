@@ -70,10 +70,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 .from('user_profiles')
                 .select('*')
                 .eq('user_id', userId)
-                .single()
+                .maybeSingle()
 
             if (error) throw error
-            setProfile(data)
+            setProfile(data || null)
         } catch (error) {
             console.error('Error fetching profile:', error)
             setProfile(null)

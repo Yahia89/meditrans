@@ -12,15 +12,7 @@ export interface DataCounts {
     trips: number
 }
 
-export interface UploadRecord {
-    id: string
-    source: 'drivers' | 'patients' | 'employees'
-    original_filename: string
-    status: string
-    created_at: string
-    processed_at: string | null
-    notes: string | null
-}
+import type { UploadRecord } from '@/components/upload/types'
 
 export interface SetupChecklistItem {
     id: string
@@ -54,6 +46,7 @@ interface OnboardingContextType {
     hasUploadedDrivers: boolean
     hasUploadedPatients: boolean
     hasUploadedEmployees: boolean
+    hasUploadedTrips: boolean
 
     // Actions
     refreshDataCounts: () => Promise<void>
@@ -97,6 +90,7 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
     const hasUploadedDrivers = uploadedTypes.has('drivers')
     const hasUploadedPatients = uploadedTypes.has('patients')
     const hasUploadedEmployees = uploadedTypes.has('employees')
+    const hasUploadedTrips = uploadedTypes.has('trips')
 
     // Determine data state based on counts
     const getDataState = useCallback((counts: DataCounts): DataState => {
@@ -263,6 +257,7 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
         hasUploadedDrivers,
         hasUploadedPatients,
         hasUploadedEmployees,
+        hasUploadedTrips,
         refreshDataCounts,
         refreshUploadHistory,
         navigateTo,

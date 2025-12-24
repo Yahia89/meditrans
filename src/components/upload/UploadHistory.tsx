@@ -11,6 +11,7 @@ import {
 } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 import { useUploadHistory } from "@/hooks/use-upload-history"
+import type { UploadRecord } from "./types"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -22,18 +23,6 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-type UploadSource = "drivers" | "patients" | "employees" | "unknown"
-type UploadStatus = "pending" | "processing" | "ready_for_review" | "failed" | string
-
-type UploadRow = {
-    id: string
-    original_filename: string | null
-    created_at: string
-    mime_type: string | null
-    file_size: number | null
-    status: UploadStatus | null
-    source: UploadSource | null
-}
 
 const ITEMS_PER_PAGE = 4
 
@@ -84,13 +73,13 @@ function FileIcon({ kind }: { kind: "pdf" | "xls" | "csv" | "file" }) {
     }
 }
 
-function statusLabel(status?: UploadStatus | null) {
+function statusLabel(status?: string | null) {
     if (!status) return "unknown"
     const s = String(status)
     return s.replaceAll("_", " ")
 }
 
-function sourceLabel(source?: UploadSource | null) {
+function sourceLabel(source?: string | null) {
     if (!source) return "unknown"
     return source
 }
@@ -101,9 +90,9 @@ export function UploadHistory() {
 
     // Local state
     const [currentPage, setCurrentPage] = React.useState(0)
-    const [uploadToDelete, setUploadToDelete] = React.useState<UploadRow | null>(null)
+    const [uploadToDelete, setUploadToDelete] = React.useState<UploadRecord | null>(null)
 
-    const uploads = (recentUploads ?? []) as UploadRow[]
+    const uploads = (recentUploads ?? []) as UploadRecord[]
 
     // Keep pagination sane if list length changes (e.g., after delete)
     React.useEffect(() => {
@@ -174,7 +163,12 @@ export function UploadHistory() {
                         const kind = getFileKind(upload.mime_type, upload.original_filename)
                         const bytes = formatBytes(upload.file_size)
                         const metaLeft = formatDateTime(upload.created_at)
-                        const metaRight = [bytes, sourceLabel(upload.source), statusLabel(upload.status)]
+                        const metaRight = [
+                            bytes,
+                            sourceLabel(upload.source),
+                            statusLabel(upload.status),
+                            upload.committed_by_profile?.full_name ? `by ${upload.committed_by_profile.full_name}` : null
+                        ]
                             .filter(Boolean)
                             .join(" • ")
 

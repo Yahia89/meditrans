@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { useQueryState } from 'nuqs'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -30,7 +31,7 @@ type StagingRow = {
 export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
     const { currentOrganization } = useOrganization()
     const { refreshUploadHistory, refreshDataCounts } = useOnboarding()
-    const [uploadId, setUploadId] = useState<string | null>(null)
+    const [uploadId] = useQueryState('upload_id')
     const [uploadRec, setUploadRec] = useState<any>(null)
     const [stagingRows, setStagingRows] = useState<StagingRow[]>([])
     const [loading, setLoading] = useState(true)
@@ -40,14 +41,10 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
     const [showRawData, setShowRawData] = useState<string | null>(null)
 
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search)
-        const id = params.get('upload_id')
-        setUploadId(id)
-
-        if (id && currentOrganization) {
-            loadData(id)
+        if (uploadId && currentOrganization) {
+            loadData(uploadId)
         }
-    }, [currentOrganization])
+    }, [uploadId, currentOrganization])
 
     async function loadData(id: string) {
         setLoading(true)
@@ -57,9 +54,14 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
                 .from('org_uploads')
                 .select('*')
                 .eq('id', id)
-                .single()
+                .maybeSingle()
 
             if (uploadError) throw uploadError
+            if (!upload) {
+                console.error('Upload record not found for ID:', id)
+                setUploadRec(null)
+                return
+            }
             setUploadRec(upload)
 
             // 2. Fetch Staging Data
@@ -224,6 +226,7 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
                 .update({
                     status: allCommitted ? 'committed' : 'ready_for_review',
                     notes: `Committed ${successCount} records. ${errorCount} errors.`,
+                    committed_by: (await supabase.auth.getUser()).data.user?.id,
                 })
                 .eq('id', uploadRec.id)
 

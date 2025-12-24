@@ -1,4 +1,4 @@
-export type ImportSource = 'drivers' | 'patients' | 'employees'
+export type ImportSource = 'drivers' | 'patients' | 'employees' | 'trips'
 
 export interface ParsedSheet {
     name: string
@@ -25,6 +25,10 @@ export interface UploadRecord {
     created_at: string
     processed_at: string | null
     notes: string | null
+    file_size?: number
+    mime_type?: string
+    committed_by?: string
+    committed_by_profile?: { full_name: string }
 }
 
 export const COLUMN_MAPPINGS: Record<ImportSource, Record<string, string[]>> = {
@@ -50,5 +54,11 @@ export const COLUMN_MAPPINGS: Record<ImportSource, Record<string, string[]>> = {
         role: ['role', 'title', 'position', 'job_title'],
         department: ['department', 'dept', 'team'],
         hire_date: ['hire_date', 'start_date', 'date_hired', 'joined'],
+    },
+    trips: {
+        full_name: ['patient', 'patient_name', 'patient name', 'name'],
+        destination: ['destination', 'to', 'address', 'drop_off', 'dropoff'],
+        scheduled_time: ['time', 'date', 'scheduled', 'appointment'],
+        notes: ['notes', 'note', 'comment', 'description'],
     },
 }

@@ -19,7 +19,11 @@ export function useUploadHistory() {
             // 1. Fetch from Database (Metadata Rich)
             const { data: dbData, error: dbError } = await supabase
                 .from('org_uploads')
-                .select('id, source, file_path, original_filename, status, created_at, processed_at, notes, file_size')
+                .select(`
+                    id, source, file_path, original_filename, status, created_at, processed_at, notes, file_size, 
+                    committed_by,
+                    committed_by_profile:committed_by (full_name)
+                `)
                 .eq('org_id', currentOrganization.id)
                 .order('created_at', { ascending: false })
                 .limit(15)

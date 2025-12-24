@@ -24,6 +24,7 @@ interface SelectFileStepProps {
     hasUploadedDrivers?: boolean
     hasUploadedPatients?: boolean
     hasUploadedEmployees?: boolean
+    hasUploadedTrips?: boolean
 }
 
 export function SelectFileStep({
@@ -33,7 +34,8 @@ export function SelectFileStep({
     isProcessing,
     hasUploadedDrivers,
     hasUploadedPatients,
-    hasUploadedEmployees
+    hasUploadedEmployees,
+    hasUploadedTrips
 }: SelectFileStepProps) {
     const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -67,6 +69,7 @@ export function SelectFileStep({
                         <SourceItem value="drivers" label="Drivers Fleet" completed={hasUploadedDrivers} />
                         <SourceItem value="patients" label="Patients List" completed={hasUploadedPatients} />
                         <SourceItem value="employees" label="Team Members" completed={hasUploadedEmployees} />
+                        <SourceItem value="trips" label="Scheduled Trips" completed={hasUploadedTrips} />
                     </SelectContent>
                 </Select>
             </div>

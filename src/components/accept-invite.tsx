@@ -112,7 +112,7 @@ export function AcceptInvitePage() {
                 .from('user_profiles')
                 .select('default_org_id')
                 .eq('user_id', user.id)
-                .single()
+                .maybeSingle()
 
             if (profile && !profile.default_org_id) {
                 await supabase

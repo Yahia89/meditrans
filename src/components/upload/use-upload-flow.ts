@@ -215,15 +215,17 @@ export function useUploadFlow() {
                 })
                 .eq('id', uploadRecord.id)
 
-            // Refresh both contexts/queries
-            await Promise.all([
+            // Trigger navigation first to get off the upload page
+            setUploadIdParam(uploadRecord.id)
+            setPage('review_import')
+
+            // Perform refreshes in the background if still mounted, 
+            // but don't block the nav as much
+            Promise.all([
                 refreshOnboardingHistory(),
                 refreshDataCounts(),
                 refreshQueryHistory()
-            ])
-            
-            setUploadIdParam(uploadRecord.id)
-            setPage('review_import')
+            ]).catch(console.error)
 
         } catch (err: any) {
             setState(s => ({

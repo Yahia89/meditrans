@@ -21,7 +21,8 @@ export function UploadPage() {
     const {
         hasUploadedDrivers,
         hasUploadedPatients,
-        hasUploadedEmployees
+        hasUploadedEmployees,
+        hasUploadedTrips
     } = useOnboarding()
 
     return (
@@ -66,6 +67,7 @@ export function UploadPage() {
                                         hasUploadedDrivers={hasUploadedDrivers}
                                         hasUploadedPatients={hasUploadedPatients}
                                         hasUploadedEmployees={hasUploadedEmployees}
+                                        hasUploadedTrips={hasUploadedTrips}
                                     />
                                 </div>
                             </div>
