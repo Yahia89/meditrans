@@ -25,6 +25,7 @@ export function useUploadHistory() {
                     committed_by_profile:committed_by (full_name)
                 `)
                 .eq('org_id', currentOrganization.id)
+                .neq('purpose', 'patient_document')
                 .order('created_at', { ascending: false })
                 .limit(15)
 

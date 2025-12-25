@@ -26,13 +26,12 @@ import { usePermissions } from '@/hooks/usePermissions'
 
 
 // Define valid page values for type safety
-const pages = ['dashboard', 'patients', 'drivers', 'employees', 'upload', 'review_import', 'account', 'billing', 'notifications', 'founder', 'accept-invite'] as const
-
-
+const pages = ['dashboard', 'patients', 'patient-details', 'drivers', 'employees', 'upload', 'review_import', 'account', 'billing', 'notifications', 'founder', 'accept-invite'] as const
 
 type Page = typeof pages[number]
 
 import { UploadReviewPage } from './components/upload-review-page'
+import { PatientDetailsPage } from './components/patient-details-page'
 
 function AppContent() {
   const { user, loading } = useAuth()
@@ -51,6 +50,8 @@ function AppContent() {
       .withDefault('dashboard')
       .withOptions({ history: 'push' }) // Creates history entry for back/forward nav
   )
+
+  const [patientId, setPatientId] = useQueryState('id')
 
   // Show loading state while checking auth
   if (loading) {
@@ -162,7 +163,22 @@ function AppContent() {
       case 'patients':
         return (
           <DashboardPage title="Patients">
-            <PatientsPage />
+            <PatientsPage onPatientClick={(id) => {
+              setPatientId(id)
+              setCurrentPage('patient-details')
+            }} />
+          </DashboardPage>
+        )
+      case 'patient-details':
+        return (
+          <DashboardPage title="Patient Details">
+            <PatientDetailsPage
+              id={patientId || ''}
+              onBack={() => {
+                setCurrentPage('patients')
+                setPatientId(null)
+              }}
+            />
           </DashboardPage>
         )
       case 'drivers':

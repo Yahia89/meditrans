@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sidebar"
 
 // Page type must match the pages defined in App.tsx
-type Page = 'dashboard' | 'patients' | 'drivers' | 'employees' | 'upload' | 'review_import' | 'account' | 'billing' | 'notifications' | 'founder' | 'accept-invite'
+type Page = 'dashboard' | 'patients' | 'patient-details' | 'drivers' | 'employees' | 'upload' | 'review_import' | 'account' | 'billing' | 'notifications' | 'founder' | 'accept-invite'
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   currentPage: Page
@@ -97,7 +97,7 @@ export function AppSidebar({ currentPage, onNavigate, ...props }: AppSidebarProp
           {navItems.map((item) => {
 
             const Icon = item.icon
-            const isActive = currentPage === item.url
+            const isActive = currentPage === item.url || (item.url === 'patients' && currentPage === 'patient-details')
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton

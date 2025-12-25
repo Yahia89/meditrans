@@ -21,6 +21,7 @@ import { PatientsEmptyState } from '@/components/ui/empty-state'
 import { PatientForm } from '@/components/forms/patient-form'
 import { Loader2, Pencil, Trash } from 'lucide-react'
 import { exportToExcel } from '@/lib/export'
+import { usePermissions } from '@/hooks/usePermissions'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -140,13 +141,16 @@ function DemoIndicator() {
     );
 }
 
-export function PatientsPage() {
+export function PatientsPage({ onPatientClick }: { onPatientClick?: (id: string) => void }) {
     const [searchQuery, setSearchQuery] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
     const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
+    const { isAdmin, isOwner } = usePermissions()
     const queryClient = useQueryClient()
+
+    const canManagePatients = isAdmin || isOwner
 
     const { data: realPatients, isLoading } = useQuery({
         queryKey: ['patients', currentOrganization?.id],
@@ -314,13 +318,15 @@ export function PatientsPage() {
                         Manage and view all patient records
                     </p>
                 </div>
-                <Button
-                    onClick={() => setShowAddForm(true)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
-                >
-                    <Plus size={18} weight="bold" />
-                    Add Patient
-                </Button>
+                {canManagePatients && (
+                    <Button
+                        onClick={() => setShowAddForm(true)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
+                    >
+                        <Plus size={18} weight="bold" />
+                        Add Patient
+                    </Button>
+                )}
             </div>
 
             {/* Patient Form (Add/Edit) */}
@@ -451,7 +457,11 @@ export function PatientsPage() {
                             {filteredPatients.map((patient) => (
                                 <tr
                                     key={patient.id}
-                                    className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                                    onClick={() => canManagePatients && onPatientClick?.(patient.id)}
+                                    className={cn(
+                                        "hover:bg-slate-50/50 transition-colors",
+                                        canManagePatients && "cursor-pointer"
+                                    )}
                                 >
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-3">
@@ -504,29 +514,31 @@ export function PatientsPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <button
-                                                    disabled={isDemoMode}
-                                                    className="p-2 rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50"
-                                                >
-                                                    <DotsThreeVertical size={18} weight="bold" className="text-slate-500" />
-                                                </button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-40">
-                                                <DropdownMenuItem onClick={() => setEditingPatient(patient)} className="gap-2">
-                                                    <Pencil className="h-4 w-4" />
-                                                    Edit Patient
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={() => handleDeletePatient(patient.id)}
-                                                    className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
-                                                >
-                                                    <Trash className="h-4 w-4" />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        {canManagePatients && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button
+                                                        disabled={isDemoMode}
+                                                        className="p-2 rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50"
+                                                    >
+                                                        <DotsThreeVertical size={18} weight="bold" className="text-slate-500" />
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-40">
+                                                    <DropdownMenuItem onClick={() => setEditingPatient(patient)} className="gap-2">
+                                                        <Pencil className="h-4 w-4" />
+                                                        Edit Patient
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleDeletePatient(patient.id)}
+                                                        className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                                                    >
+                                                        <Trash className="h-4 w-4" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

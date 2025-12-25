@@ -139,6 +139,9 @@ export function PatientForm({ open, onOpenChange, initialData }: PatientFormProp
 
             // Invalidate and refetch patients
             await queryClient.invalidateQueries({ queryKey: ['patients', currentOrganization.id] })
+            if (initialData?.id) {
+                await queryClient.invalidateQueries({ queryKey: ['patient', initialData.id] })
+            }
 
             // Reset form and close
             handleClose()
