@@ -32,6 +32,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useQueryClient } from '@tanstack/react-query'
+import { EmployeeDetailsPage } from '@/components/employee-details-page'
 
 interface Employee {
     id: string
@@ -160,6 +161,7 @@ export function EmployeesPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
     const { isAdmin, userRole } = usePermissions()
@@ -211,7 +213,8 @@ export function EmployeesPage() {
         exportToExcel(exportData, `employees_${new Date().toISOString().split('T')[0]}`)
     }
 
-    const handleDeleteEmployee = async (id: string) => {
+    const handleDeleteEmployee = async (id: string, e?: React.MouseEvent) => {
+        e?.stopPropagation()
         if (isDemoMode) return
         if (!window.confirm('Are you sure you want to delete this employee?')) return
 
@@ -248,6 +251,15 @@ export function EmployeesPage() {
         })
     }
 
+    if (selectedEmployeeId) {
+        return (
+            <EmployeeDetailsPage
+                id={selectedEmployeeId}
+                onBack={() => setSelectedEmployeeId(null)}
+            />
+        )
+    }
+
     if (isLoading) {
         return (
             <div className="flex h-96 items-center justify-center">
@@ -260,7 +272,6 @@ export function EmployeesPage() {
     if (!showData) {
         return (
             <div className="space-y-6">
-                {/* Add Employee Form - must be rendered for dialog to work */}
                 {/* Employee Form (Add/Edit) */}
                 <EmployeeForm
                     open={showAddForm || !!editingEmployee}
@@ -453,6 +464,7 @@ export function EmployeesPage() {
                 {filteredEmployees.map((employee) => (
                     <div
                         key={employee.id}
+                        onClick={() => setSelectedEmployeeId(employee.id)}
                         className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                     >
                         <div className="flex items-start justify-between mb-4">
@@ -514,10 +526,11 @@ export function EmployeesPage() {
                             </span>
                         </div>
 
-                        <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
+                        <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100" onClick={e => e.stopPropagation()}>
                             <Button
                                 variant="outline"
                                 size="sm"
+                                onClick={() => setSelectedEmployeeId(employee.id)}
                                 className="flex-1 rounded-lg border-slate-200 hover:bg-slate-50"
                             >
                                 View Details
@@ -539,7 +552,7 @@ export function EmployeesPage() {
                                         Edit Employee
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                        onClick={() => handleDeleteEmployee(employee.id)}
+                                        onClick={(e) => handleDeleteEmployee(employee.id, e)}
                                         className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
                                     >
                                         <Trash className="h-4 w-4" />

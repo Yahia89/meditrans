@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import {
     ArrowLeft,
-    Calendar,
     Phone,
     Mail,
-    MapPin,
     Clock,
     Plus,
     Loader2,
     Pencil,
     ShieldAlert,
+    Car,
+    ScanEye,
+    Star,
+    TrendingUp,
     FileText
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -18,24 +20,25 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { usePermissions } from '@/hooks/usePermissions'
-import { PatientForm } from '@/components/forms/patient-form'
+import { DriverForm } from '@/components/forms/driver-form'
 import { DocumentManager } from '@/components/document-manager'
 
-interface PatientDetailsPageProps {
+interface DriverDetailsPageProps {
     id: string
     onBack: () => void
 }
 
-interface Patient {
+interface Driver {
     id: string
     org_id: string
     full_name: string
-    date_of_birth: string | null
-    phone: string | null
     email: string | null
-    primary_address: string | null
-    notes: string | null
+    phone: string | null
+    license_number: string | null
+    vehicle_info: string | null
+    status: string
     created_at: string
+    custom_fields: Record<string, any> | null
 }
 
 function formatDate(dateStr: string | null) {
@@ -47,31 +50,38 @@ function formatDate(dateStr: string | null) {
     })
 }
 
-export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
+function getStatusConfig(status: string | null) {
+    const s = (status || '').toUpperCase()
+    if (s === 'AVAILABLE') return { label: 'Available', className: "bg-emerald-100 text-emerald-700" }
+    if (s === 'ON_TRIP' || s === 'ON-TRIP') return { label: 'On Trip', className: "bg-blue-100 text-blue-700" }
+    return { label: s || 'Offline', className: "bg-slate-100 text-slate-700" }
+}
+
+export function DriverDetailsPage({ id, onBack }: DriverDetailsPageProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'trips'>('overview')
     const [isEditing, setIsEditing] = useState(false)
     const { currentOrganization } = useOrganization()
     const { isAdmin, isOwner } = usePermissions()
 
-    const canManagePatients = isAdmin || isOwner
+    const canManageDrivers = isAdmin || isOwner
 
-    // Fetch patient data
-    const { data: patient, isLoading: isLoadingPatient } = useQuery({
-        queryKey: ['patient', id],
+    // Fetch driver data
+    const { data: driver, isLoading: isLoadingDriver } = useQuery({
+        queryKey: ['driver', id],
         queryFn: async () => {
             const { data, error } = await supabase
-                .from('patients')
+                .from('drivers')
                 .select('*')
                 .eq('id', id)
                 .single()
 
             if (error) throw error
-            return data as Patient
+            return data as Driver
         },
         enabled: !!id
     })
 
-    if (isLoadingPatient) {
+    if (isLoadingDriver) {
         return (
             <div className="flex h-96 items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -79,14 +89,16 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
         )
     }
 
-    if (!patient) {
+    if (!driver) {
         return (
             <div className="text-center py-12">
-                <p className="text-slate-500">Patient not found</p>
-                <Button variant="link" onClick={onBack}>Go back to patients</Button>
+                <p className="text-slate-500">Driver not found</p>
+                <Button variant="link" onClick={onBack}>Go back to drivers</Button>
             </div>
         )
     }
+
+    const statusInfo = getStatusConfig(driver.status)
 
     return (
         <div className="space-y-6">
@@ -100,17 +112,22 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                         <ArrowLeft size={20} className="text-slate-500" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900">{patient.full_name}</h1>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                                Active Patient
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-semibold text-slate-900">{driver.full_name}</h1>
+                            <span className={cn(
+                                "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                                statusInfo.className
+                            )}>
+                                {statusInfo.label}
                             </span>
-                            <span className="text-xs text-slate-500">ID: {patient.id.substring(0, 8)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-slate-500">ID: {driver.id.substring(0, 8)}</span>
                         </div>
                     </div>
                 </div>
 
-                {canManagePatients && (
+                {canManageDrivers && (
                     <div className="flex gap-2">
                         <Button
                             variant="outline"
@@ -167,67 +184,96 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                 <div className="lg:col-span-2 space-y-6">
                     {activeTab === 'overview' && (
                         <div className="space-y-6">
-                            {/* Personal Information */}
+                            {/* Fleet Information */}
                             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                                <h3 className="text-lg font-semibold text-slate-900 mb-6">Personal Information</h3>
+                                <h3 className="text-lg font-semibold text-slate-900 mb-6">Fleet Information</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-4">
                                         <div className="flex items-start gap-3">
                                             <div className="p-2 bg-slate-50 rounded-lg">
-                                                <Calendar className="w-5 h-5 text-slate-400" />
+                                                <ScanEye className="w-5 h-5 text-slate-400" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Date of Birth</p>
-                                                <p className="text-slate-900 mt-0.5">
-                                                    {formatDate(patient.date_of_birth)}
-                                                </p>
+                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">License Number</p>
+                                                <p className="text-slate-900 mt-0.5">{driver.license_number || 'Not specified'}</p>
                                             </div>
                                         </div>
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-slate-50 rounded-lg">
+                                                <Car className="w-5 h-5 text-slate-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Vehicle Info</p>
+                                                <p className="text-slate-900 mt-0.5">{driver.vehicle_info || 'Not registered'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
                                         <div className="flex items-start gap-3">
                                             <div className="p-2 bg-slate-50 rounded-lg">
                                                 <Phone className="w-5 h-5 text-slate-400" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Phone Number</p>
-                                                <p className="text-slate-900 mt-0.5">{patient.phone || 'Not specified'}</p>
+                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Contact Phone</p>
+                                                <p className="text-slate-900 mt-0.5">{driver.phone || 'Not specified'}</p>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="space-y-4">
                                         <div className="flex items-start gap-3">
                                             <div className="p-2 bg-slate-50 rounded-lg">
                                                 <Mail className="w-5 h-5 text-slate-400" />
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Email Address</p>
-                                                <p className="text-slate-900 mt-0.5">{patient.email || 'Not specified'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-slate-50 rounded-lg">
-                                                <MapPin className="w-5 h-5 text-slate-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Primary Address</p>
-                                                <p className="text-slate-900 mt-0.5">{patient.primary_address || 'Not specified'}</p>
+                                                <p className="text-slate-900 mt-0.5">{driver.email || 'Not specified'}</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Medical Notes */}
-                            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg font-semibold text-slate-900">Medical Notes</h3>
-                                    <FileText className="w-5 h-5 text-slate-300" />
+                            {/* Custom Fields Display */}
+                            {driver.custom_fields && Object.keys(driver.custom_fields).length > 0 && (
+                                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="text-lg font-semibold text-slate-900">Additional Information</h3>
+                                        <FileText className="w-5 h-5 text-slate-300" />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {Object.entries(driver.custom_fields).map(([key, value]) => (
+                                            <div key={key} className="flex flex-col gap-1">
+                                                <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">{key}</span>
+                                                <span className="text-slate-900">{value as string}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 min-h-[120px]">
-                                    {patient.notes ? (
-                                        <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{patient.notes}</p>
-                                    ) : (
-                                        <p className="text-slate-400 italic">No notes recorded for this patient.</p>
-                                    )}
+                            )}
+
+                            {/* Performance Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Current Rating</h3>
+                                        <Star className="w-5 h-5 text-amber-400" fill="currentColor" />
+                                    </div>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-3xl font-bold text-slate-900">5.0</span>
+                                        <span className="text-slate-500 text-sm">Target Score</span>
+                                    </div>
+                                    <div className="mt-4 h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-amber-400 w-full rounded-full" />
+                                    </div>
+                                </div>
+                                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total Trips</h3>
+                                        <TrendingUp className="w-5 h-5 text-[#3D5A3D]" />
+                                    </div>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-3xl font-bold text-slate-900">0</span>
+                                        <span className="text-slate-500 text-sm">Transports</span>
+                                    </div>
+                                    <p className="mt-2 text-xs text-slate-400 italic">No trip history recorded yet.</p>
                                 </div>
                             </div>
                         </div>
@@ -236,8 +282,8 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                     {activeTab === 'documents' && (
                         <DocumentManager
                             ownerId={id}
-                            purpose="patient_document"
-                            source="patients"
+                            purpose="driver_document"
+                            source="drivers"
                         />
                     )}
 
@@ -245,7 +291,7 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
                             <Clock className="w-12 h-12 text-slate-200 mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-slate-900 mb-2">Trip History</h3>
-                            <p className="text-slate-500">History and future scheduled trips will appear here.</p>
+                            <p className="text-slate-500">Completed and assigned trips will appear here.</p>
                         </div>
                     )}
                 </div>
@@ -253,31 +299,31 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                 {/* Sidebar Stats/Summary */}
                 <div className="space-y-6">
                     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Patient Status</h3>
+                        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Driver Profile</h3>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between py-2 border-b border-slate-50">
-                                <span className="text-sm text-slate-500">Total Trips</span>
-                                <span className="text-sm font-semibold text-slate-900">0</span>
+                                <span className="text-sm text-slate-500">Account Type</span>
+                                <span className="text-sm font-semibold text-slate-900">Standard Driver</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-slate-50">
-                                <span className="text-sm text-slate-500">Last Transport</span>
+                                <span className="text-sm text-slate-500">Last Active</span>
                                 <span className="text-sm text-slate-900">Never</span>
                             </div>
                             <div className="flex items-center justify-between py-2">
-                                <span className="text-sm text-slate-500">Added On</span>
-                                <span className="text-sm text-slate-900">{formatDate(patient.created_at)}</span>
+                                <span className="text-sm text-slate-500">Member Since</span>
+                                <span className="text-sm text-slate-900">{formatDate(driver.created_at)}</span>
                             </div>
                         </div>
                     </div>
 
-                    {!canManagePatients && (
+                    {!canManageDrivers && (
                         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
                             <div className="flex items-center gap-3 text-amber-800 mb-2">
                                 <ShieldAlert size={20} />
                                 <span className="font-semibold">View Only</span>
                             </div>
                             <p className="text-sm text-amber-700 leading-relaxed">
-                                You have view-only access to this patient's profile. Only administrators and owners can modify details or upload documents.
+                                You have view-only access to this driver's profile. Only administrators and owners can modify details or manage documentation.
                             </p>
                         </div>
                     )}
@@ -285,17 +331,17 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
             </div>
 
             {/* Edit Form */}
-            <PatientForm
+            <DriverForm
                 open={isEditing}
                 onOpenChange={setIsEditing}
                 initialData={{
-                    id: patient.id,
-                    full_name: patient.full_name,
-                    email: patient.email || '',
-                    phone: patient.phone || '',
-                    primary_address: patient.primary_address || '',
-                    date_of_birth: patient.date_of_birth || '',
-                    notes: patient.notes || ''
+                    id: driver.id,
+                    full_name: driver.full_name,
+                    email: driver.email || '',
+                    phone: driver.phone || '',
+                    license_number: driver.license_number || '',
+                    vehicle_info: driver.vehicle_info || '',
+                    custom_fields: driver.custom_fields
                 }}
             />
         </div>

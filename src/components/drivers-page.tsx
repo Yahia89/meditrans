@@ -29,6 +29,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useQueryClient } from '@tanstack/react-query'
+import { DriverDetailsPage } from '@/components/driver-details-page'
 
 interface Driver {
     id: string
@@ -152,6 +153,7 @@ export function DriversPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
     const [editingDriver, setEditingDriver] = useState<Driver | null>(null)
+    const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
     const queryClient = useQueryClient()
@@ -201,7 +203,8 @@ export function DriversPage() {
         exportToExcel(exportData, `drivers_${new Date().toISOString().split('T')[0]}`)
     }
 
-    const handleDeleteDriver = async (id: string) => {
+    const handleDeleteDriver = async (id: string, e?: React.MouseEvent) => {
+        e?.stopPropagation()
         if (isDemoMode) return
         if (!window.confirm('Are you sure you want to delete this driver?')) return
 
@@ -230,6 +233,15 @@ export function DriversPage() {
     const avgRating = drivers.length > 0
         ? (drivers.reduce((sum, d) => sum + d.rating, 0) / drivers.length).toFixed(1)
         : '0.0'
+
+    if (selectedDriverId) {
+        return (
+            <DriverDetailsPage
+                id={selectedDriverId}
+                onBack={() => setSelectedDriverId(null)}
+            />
+        )
+    }
 
     if (isLoading) {
         return (
@@ -275,12 +287,16 @@ export function DriversPage() {
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <DriversEmptyState
                         onAddDriver={() => {
-                            // TODO: Open add driver modal
-                            console.log('Add driver clicked')
+                            setShowAddForm(true)
                         }}
                         onUpload={() => navigateTo('upload')}
                     />
                 </div>
+
+                <DriverForm
+                    open={showAddForm}
+                    onOpenChange={setShowAddForm}
+                />
             </div>
         )
     }
@@ -409,6 +425,7 @@ export function DriversPage() {
                 {filteredDrivers.map((driver) => (
                     <div
                         key={driver.id}
+                        onClick={() => setSelectedDriverId(driver.id)}
                         className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                     >
                         <div className="flex items-start justify-between mb-4">
@@ -474,10 +491,11 @@ export function DriversPage() {
                             </div>
                         )}
 
-                        <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
+                        <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100" onClick={e => e.stopPropagation()}>
                             <Button
                                 variant="outline"
                                 size="sm"
+                                onClick={() => setSelectedDriverId(driver.id)}
                                 className="flex-1 rounded-lg border-slate-200 hover:bg-slate-50"
                             >
                                 View Details
@@ -499,7 +517,7 @@ export function DriversPage() {
                                         Edit Driver
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                        onClick={() => handleDeleteDriver(driver.id)}
+                                        onClick={(e) => handleDeleteDriver(driver.id, e)}
                                         className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
                                     >
                                         <Trash className="h-4 w-4" />

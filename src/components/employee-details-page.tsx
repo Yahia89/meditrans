@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import {
     ArrowLeft,
-    Calendar,
     Phone,
     Mail,
-    MapPin,
     Clock,
     Plus,
     Loader2,
     Pencil,
     ShieldAlert,
-    FileText
+    Briefcase,
+    Calendar,
+    MapPin,
+    ChartPie
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -18,24 +19,27 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { usePermissions } from '@/hooks/usePermissions'
-import { PatientForm } from '@/components/forms/patient-form'
+import { EmployeeForm } from '@/components/forms/employee-form'
 import { DocumentManager } from '@/components/document-manager'
 
-interface PatientDetailsPageProps {
+interface EmployeeDetailsPageProps {
     id: string
     onBack: () => void
 }
 
-interface Patient {
+interface Employee {
     id: string
     org_id: string
     full_name: string
-    date_of_birth: string | null
-    phone: string | null
     email: string | null
-    primary_address: string | null
+    phone: string | null
+    department: string | null
+    role: string | null
+    status: string
+    hire_date: string | null
     notes: string | null
     created_at: string
+    custom_fields: Record<string, any> | null
 }
 
 function formatDate(dateStr: string | null) {
@@ -47,31 +51,31 @@ function formatDate(dateStr: string | null) {
     })
 }
 
-export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
+export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'trips'>('overview')
     const [isEditing, setIsEditing] = useState(false)
     const { currentOrganization } = useOrganization()
     const { isAdmin, isOwner } = usePermissions()
 
-    const canManagePatients = isAdmin || isOwner
+    const canManageEmployees = isAdmin || isOwner
 
-    // Fetch patient data
-    const { data: patient, isLoading: isLoadingPatient } = useQuery({
-        queryKey: ['patient', id],
+    // Fetch employee data
+    const { data: employee, isLoading: isLoadingEmployee } = useQuery({
+        queryKey: ['employee', id],
         queryFn: async () => {
             const { data, error } = await supabase
-                .from('patients')
+                .from('employees')
                 .select('*')
                 .eq('id', id)
                 .single()
 
             if (error) throw error
-            return data as Patient
+            return data as Employee
         },
         enabled: !!id
     })
 
-    if (isLoadingPatient) {
+    if (isLoadingEmployee) {
         return (
             <div className="flex h-96 items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -79,11 +83,11 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
         )
     }
 
-    if (!patient) {
+    if (!employee) {
         return (
             <div className="text-center py-12">
-                <p className="text-slate-500">Patient not found</p>
-                <Button variant="link" onClick={onBack}>Go back to patients</Button>
+                <p className="text-slate-500">Employee not found</p>
+                <Button variant="link" onClick={onBack}>Go back to employees</Button>
             </div>
         )
     }
@@ -100,17 +104,24 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                         <ArrowLeft size={20} className="text-slate-500" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900">{patient.full_name}</h1>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                                Active Patient
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-semibold text-slate-900">{employee.full_name}</h1>
+                            <span className={cn(
+                                "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                                employee.status === 'ACTIVE' || employee.status === 'active' ? "bg-emerald-100 text-emerald-700" :
+                                    employee.status === 'ON_LEAVE' || employee.status === 'on-leave' ? "bg-amber-100 text-amber-700" :
+                                        "bg-slate-100 text-slate-700"
+                            )}>
+                                {employee.status.replace('_', ' ')}
                             </span>
-                            <span className="text-xs text-slate-500">ID: {patient.id.substring(0, 8)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-slate-500">Member ID: {employee.id.substring(0, 8)}</span>
                         </div>
                     </div>
                 </div>
 
-                {canManagePatients && (
+                {canManageEmployees && (
                     <div className="flex gap-2">
                         <Button
                             variant="outline"
@@ -157,7 +168,7 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                     )}
                 >
-                    Trip History
+                    Work History
                 </button>
             </div>
 
@@ -167,68 +178,83 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                 <div className="lg:col-span-2 space-y-6">
                     {activeTab === 'overview' && (
                         <div className="space-y-6">
-                            {/* Personal Information */}
+                            {/* Professional Information */}
                             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                                <h3 className="text-lg font-semibold text-slate-900 mb-6">Personal Information</h3>
+                                <h3 className="text-lg font-semibold text-slate-900 mb-6">Staff Information</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-4">
                                         <div className="flex items-start gap-3">
                                             <div className="p-2 bg-slate-50 rounded-lg">
-                                                <Calendar className="w-5 h-5 text-slate-400" />
+                                                <Briefcase className="w-5 h-5 text-slate-400" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Date of Birth</p>
-                                                <p className="text-slate-900 mt-0.5">
-                                                    {formatDate(patient.date_of_birth)}
-                                                </p>
+                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Role / Position</p>
+                                                <p className="text-slate-900 mt-0.5">{employee.role || 'Not specified'}</p>
                                             </div>
                                         </div>
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-slate-50 rounded-lg">
+                                                <ChartPie className="w-5 h-5 text-slate-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Department</p>
+                                                <p className="text-slate-900 mt-0.5">{employee.department || 'Unassigned'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
                                         <div className="flex items-start gap-3">
                                             <div className="p-2 bg-slate-50 rounded-lg">
                                                 <Phone className="w-5 h-5 text-slate-400" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Phone Number</p>
-                                                <p className="text-slate-900 mt-0.5">{patient.phone || 'Not specified'}</p>
+                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Contact Phone</p>
+                                                <p className="text-slate-900 mt-0.5">{employee.phone || 'Not specified'}</p>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="space-y-4">
                                         <div className="flex items-start gap-3">
                                             <div className="p-2 bg-slate-50 rounded-lg">
                                                 <Mail className="w-5 h-5 text-slate-400" />
                                             </div>
                                             <div>
                                                 <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Email Address</p>
-                                                <p className="text-slate-900 mt-0.5">{patient.email || 'Not specified'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-slate-50 rounded-lg">
-                                                <MapPin className="w-5 h-5 text-slate-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Primary Address</p>
-                                                <p className="text-slate-900 mt-0.5">{patient.primary_address || 'Not specified'}</p>
+                                                <p className="text-slate-900 mt-0.5">{employee.email || 'Not specified'}</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Medical Notes */}
+                            {/* Additional Information */}
                             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg font-semibold text-slate-900">Medical Notes</h3>
-                                    <FileText className="w-5 h-5 text-slate-300" />
+                                <h3 className="text-lg font-semibold text-slate-900 mb-6">Employment Details</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-slate-50 rounded-lg">
+                                            <Calendar className="w-5 h-5 text-slate-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Hire Date</p>
+                                            <p className="text-slate-900 mt-0.5">{formatDate(employee.hire_date)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-slate-50 rounded-lg">
+                                            <MapPin className="w-5 h-5 text-slate-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Primary Location</p>
+                                            <p className="text-slate-900 mt-0.5">Main Office</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 min-h-[120px]">
-                                    {patient.notes ? (
-                                        <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{patient.notes}</p>
-                                    ) : (
-                                        <p className="text-slate-400 italic">No notes recorded for this patient.</p>
-                                    )}
-                                </div>
+
+                                {employee.notes && (
+                                    <div className="mt-8 pt-6 border-t border-slate-100">
+                                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2">Internal Notes</p>
+                                        <p className="text-slate-600 text-sm whitespace-pre-wrap">{employee.notes}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -236,16 +262,16 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                     {activeTab === 'documents' && (
                         <DocumentManager
                             ownerId={id}
-                            purpose="patient_document"
-                            source="patients"
+                            purpose="employee_document"
+                            source="employees"
                         />
                     )}
 
                     {activeTab === 'trips' && (
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
                             <Clock className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-slate-900 mb-2">Trip History</h3>
-                            <p className="text-slate-500">History and future scheduled trips will appear here.</p>
+                            <h3 className="text-lg font-medium text-slate-900 mb-2">Work History</h3>
+                            <p className="text-slate-500">Employee tasks and shift history will appear here.</p>
                         </div>
                     )}
                 </div>
@@ -253,31 +279,31 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                 {/* Sidebar Stats/Summary */}
                 <div className="space-y-6">
                     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Patient Status</h3>
+                        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Account Status</h3>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between py-2 border-b border-slate-50">
-                                <span className="text-sm text-slate-500">Total Trips</span>
-                                <span className="text-sm font-semibold text-slate-900">0</span>
+                                <span className="text-sm text-slate-500">Organization Access</span>
+                                <span className="text-sm font-semibold text-slate-900">Standard User</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-slate-50">
-                                <span className="text-sm text-slate-500">Last Transport</span>
+                                <span className="text-sm text-slate-500">Last Activity</span>
                                 <span className="text-sm text-slate-900">Never</span>
                             </div>
                             <div className="flex items-center justify-between py-2">
                                 <span className="text-sm text-slate-500">Added On</span>
-                                <span className="text-sm text-slate-900">{formatDate(patient.created_at)}</span>
+                                <span className="text-sm text-slate-900">{formatDate(employee.created_at)}</span>
                             </div>
                         </div>
                     </div>
 
-                    {!canManagePatients && (
+                    {!canManageEmployees && (
                         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
                             <div className="flex items-center gap-3 text-amber-800 mb-2">
                                 <ShieldAlert size={20} />
                                 <span className="font-semibold">View Only</span>
                             </div>
                             <p className="text-sm text-amber-700 leading-relaxed">
-                                You have view-only access to this patient's profile. Only administrators and owners can modify details or upload documents.
+                                You have view-only access to this profile. Only administrators and owners can modify details or manage documentation.
                             </p>
                         </div>
                     )}
@@ -285,17 +311,20 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
             </div>
 
             {/* Edit Form */}
-            <PatientForm
+            <EmployeeForm
                 open={isEditing}
                 onOpenChange={setIsEditing}
                 initialData={{
-                    id: patient.id,
-                    full_name: patient.full_name,
-                    email: patient.email || '',
-                    phone: patient.phone || '',
-                    primary_address: patient.primary_address || '',
-                    date_of_birth: patient.date_of_birth || '',
-                    notes: patient.notes || ''
+                    id: employee.id,
+                    full_name: employee.full_name,
+                    email: employee.email || '',
+                    phone: employee.phone || '',
+                    role: employee.role || '',
+                    department: employee.department || '',
+                    hire_date: employee.hire_date || '',
+                    notes: employee.notes || '',
+                    custom_fields: employee.custom_fields,
+                    system_role: 'none'
                 }}
             />
         </div>
