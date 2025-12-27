@@ -26,12 +26,32 @@ import { usePermissions } from '@/hooks/usePermissions'
 
 
 // Define valid page values for type safety
-const pages = ['dashboard', 'patients', 'patient-details', 'drivers', 'employees', 'upload', 'review_import', 'account', 'billing', 'notifications', 'founder', 'accept-invite'] as const
+const pages = [
+  'dashboard',
+  'patients',
+  'patient-details',
+  'drivers',
+  'driver-details',
+  'employees',
+  'upload',
+  'review_import',
+  'account',
+  'billing',
+  'notifications',
+  'founder',
+  'accept-invite',
+  'trips',
+  'create-trip',
+  'edit-trip',
+  'trip-details'
+] as const
 
 type Page = typeof pages[number]
 
 import { UploadReviewPage } from './components/upload-review-page'
 import { PatientDetailsPage } from './components/patient-details-page'
+import { DriverDetailsPage } from './components/driver-details-page'
+import { TripsModule } from './modules/trips/TripsModule'
 
 function AppContent() {
   const { user, loading } = useAuth()
@@ -52,6 +72,8 @@ function AppContent() {
   )
 
   const [patientId, setPatientId] = useQueryState('id')
+  const [driverId, setDriverId] = useQueryState('driverId')
+  const [tripId, setTripId] = useQueryState('tripId')
 
   // Show loading state while checking auth
   if (loading) {
@@ -99,52 +121,49 @@ function AppContent() {
                 />
               </div>
 
+              {/* Title & Description */}
+              <div className="mb-8 text-center">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome Back</h1>
+                <p className="text-slate-500 dark:text-slate-400">Sign in to manage your transportation fleet</p>
+              </div>
+
               <LoginForm />
 
               {/* Footer text */}
-              <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
-                © 2025 Medical Transportation CRM. All rights reserved.
+              <div className="mt-8 text-center">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  © 2025 MediTrans Pro. All rights reserved.
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Side - Image Placeholder */}
-        <div className="hidden lg:flex w-1/2 relative overflow-hidden">
-          {/* Gradient background placeholder - replace with your image */}
-          <div
-            className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700"
-            style={{
-              backgroundImage: `url(${loginbgimg})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          >
-            {/* Overlay for text readability */}
-            <div className="absolute inset-0 bg-black/20" />
+        {/* Right Side - Visual / Image */}
+        <div className="hidden lg:flex lg:w-1/2 bg-slate-100 dark:bg-slate-800 items-center justify-center relative overflow-hidden">
+          {/* Main Visual */}
+          <div className="relative w-full h-full flex items-center justify-center">
+            <img
+              src={loginbgimg}
+              alt="Medical Transportation Dashboard"
+              className="w-full h-full object-cover opacity-90 dark:opacity-70 scale-105"
+            />
+            {/* Soft Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-slate-50/50 dark:to-slate-950/50" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 to-transparent" />
 
-            {/* Optional decorative pattern overlay */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute inset-0" style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-              }} />
-            </div>
-          </div>
-
-          {/* Content overlay */}
-          <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-white">
-            {/* Image placeholder indicator */}
-
-            {/* Decorative elements */}
-            <div className="absolute bottom-12 left-12 right-12">
-              <div className="flex items-center gap-4 text-white/60 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  <span>System Online</span>
+            {/* Floating info card */}
+            <div className="absolute bottom-12 left-12 right-12 p-8 backdrop-blur-md bg-white/10 border border-white/20 rounded-3xl text-white">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
+                  <span className="text-2xl">✓</span>
                 </div>
-                <div className="h-4 w-px bg-white/30" />
-                <span>Secure Connection</span>
+                <div>
+                  <h3 className="font-bold text-lg">Trusted Platform</h3>
+                  <p className="text-white/80 text-sm">Managing over 10k transports monthly</p>
+                </div>
               </div>
+              <p className="italic text-white/70">"MediTrans has transformed our fleet operations, increasing efficiency by 40% in our first quarter."</p>
             </div>
           </div>
         </div>
@@ -178,13 +197,36 @@ function AppContent() {
                 setCurrentPage('patients')
                 setPatientId(null)
               }}
+              onTripClick={(id) => {
+                setTripId(id)
+                setCurrentPage('trip-details')
+              }}
             />
           </DashboardPage>
         )
       case 'drivers':
         return (
           <DashboardPage title="Drivers">
-            <DriversPage />
+            <DriversPage onDriverClick={(id) => {
+              setDriverId(id)
+              setCurrentPage('driver-details')
+            }} />
+          </DashboardPage>
+        )
+      case 'driver-details':
+        return (
+          <DashboardPage title="Driver Details">
+            <DriverDetailsPage
+              id={driverId || ''}
+              onBack={() => {
+                setCurrentPage('drivers')
+                setDriverId(null)
+              }}
+              onTripClick={(id) => {
+                setTripId(id)
+                setCurrentPage('trip-details')
+              }}
+            />
           </DashboardPage>
         )
       case 'employees':
@@ -233,9 +275,57 @@ function AppContent() {
             <FounderInviteForm />
           </DashboardPage>
         )
-
-
-
+      case 'trips':
+        return (
+          <DashboardPage title="Trips Management">
+            <TripsModule
+              view="list"
+              onNavigate={(view, id) => {
+                if (view === 'create') setCurrentPage('create-trip')
+                if (view === 'details' && id) {
+                  setTripId(id)
+                  setCurrentPage('trip-details')
+                }
+              }}
+              onBack={() => setCurrentPage('dashboard')}
+            />
+          </DashboardPage>
+        )
+      case 'create-trip':
+        return (
+          <DashboardPage title="Create New Trip">
+            <TripsModule
+              view="create"
+              onBack={() => setCurrentPage('trips')}
+            />
+          </DashboardPage>
+        )
+      case 'edit-trip':
+        return (
+          <DashboardPage title="Edit Trip">
+            <TripsModule
+              view="edit"
+              tripId={tripId || ''}
+              onBack={() => setCurrentPage('trip-details')}
+            />
+          </DashboardPage>
+        )
+      case 'trip-details':
+        return (
+          <DashboardPage title="Trip Details">
+            <TripsModule
+              view="details"
+              tripId={tripId || ''}
+              onNavigate={(view, id) => {
+                if (view === 'edit' && id) {
+                  setTripId(id)
+                  setCurrentPage('edit-trip')
+                }
+              }}
+              onBack={() => setCurrentPage('trips')}
+            />
+          </DashboardPage>
+        )
       default:
         return (
           <DashboardPage title="Dashboard">
@@ -246,12 +336,21 @@ function AppContent() {
   }
 
   return (
-    <OnboardingProvider onNavigate={(page) => setCurrentPage(page as Page)}>
-      <SidebarProvider>
-        <AppSidebar currentPage={currentPage as Page} onNavigate={(p) => setCurrentPage(p as Page)} />
+    <SidebarProvider>
+      <AppSidebar
+        currentPage={currentPage}
+        onNavigate={(page) => {
+          setCurrentPage(page as Page)
+          // Keep clear state when navigating between main modules
+          if (page !== 'patient-details') setPatientId(null)
+          if (page !== 'driver-details') setDriverId(null)
+          if (page !== 'trip-details' && page !== 'edit-trip' && page !== 'create-trip') setTripId(null)
+        }}
+      />
+      <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
         {renderPage()}
-      </SidebarProvider>
-    </OnboardingProvider>
+      </main>
+    </SidebarProvider>
   )
 }
 
@@ -259,7 +358,9 @@ function App() {
   return (
     <AuthProvider>
       <OrganizationProvider>
-        <AppContent />
+        <OnboardingProvider>
+          <AppContent />
+        </OnboardingProvider>
       </OrganizationProvider>
     </AuthProvider>
   )

@@ -222,7 +222,7 @@ export function Dashboard() {
 
                 <button
                     className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
-                    onClick={() => navigateTo('dashboard')}
+                    onClick={() => navigateTo('create-trip')}
                 >
                     <UsersThree size={18} weight="duotone" />
                     + Create trip

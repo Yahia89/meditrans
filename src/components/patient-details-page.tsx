@@ -5,8 +5,6 @@ import {
     Phone,
     Mail,
     MapPin,
-    Clock,
-    Plus,
     Loader2,
     Pencil,
     ShieldAlert,
@@ -16,14 +14,15 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useOrganization } from '@/contexts/OrganizationContext'
 import { usePermissions } from '@/hooks/usePermissions'
 import { PatientForm } from '@/components/forms/patient-form'
 import { DocumentManager } from '@/components/document-manager'
+import { TripList } from '@/modules/trips/components/TripList'
 
 interface PatientDetailsPageProps {
     id: string
     onBack: () => void
+    onTripClick?: (id: string) => void
 }
 
 interface Patient {
@@ -47,10 +46,9 @@ function formatDate(dateStr: string | null) {
     })
 }
 
-export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
+export function PatientDetailsPage({ id, onBack, onTripClick }: PatientDetailsPageProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'trips'>('overview')
     const [isEditing, setIsEditing] = useState(false)
-    const { currentOrganization } = useOrganization()
     const { isAdmin, isOwner } = usePermissions()
 
     const canManagePatients = isAdmin || isOwner
@@ -70,6 +68,33 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
         },
         enabled: !!id
     })
+
+    // Fetch trip count
+    const { data: tripCount = 0 } = useQuery({
+        queryKey: ['patient-trips-count', id],
+        queryFn: async () => {
+            const { count, error } = await supabase
+                .from('trips')
+                .select('*', { count: 'exact', head: true })
+                .eq('patient_id', id);
+            if (error) throw error;
+            return count || 0;
+        }
+    });
+
+    // Fetch document count
+    const { data: docCount = 0 } = useQuery({
+        queryKey: ['patient-docs-count', id],
+        queryFn: async () => {
+            const { count, error } = await supabase
+                .from('org_uploads')
+                .select('*', { count: 'exact', head: true })
+                .eq('purpose', 'patient_document')
+                .eq('notes', id);
+            if (error) throw error;
+            return count || 0;
+        }
+    });
 
     if (isLoadingPatient) {
         return (
@@ -129,7 +154,7 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                 <button
                     onClick={() => setActiveTab('overview')}
                     className={cn(
-                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors",
+                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
                         activeTab === 'overview'
                             ? "border-[#3D5A3D] text-[#3D5A3D]"
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
@@ -140,24 +165,36 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                 <button
                     onClick={() => setActiveTab('documents')}
                     className={cn(
-                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors",
+                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
                         activeTab === 'documents'
                             ? "border-[#3D5A3D] text-[#3D5A3D]"
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                     )}
                 >
                     Documents
+                    <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                        activeTab === 'documents' ? "bg-[#3D5A3D] text-white" : "bg-slate-100 text-slate-500"
+                    )}>
+                        {docCount}
+                    </span>
                 </button>
                 <button
                     onClick={() => setActiveTab('trips')}
                     className={cn(
-                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors",
+                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
                         activeTab === 'trips'
                             ? "border-[#3D5A3D] text-[#3D5A3D]"
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                     )}
                 >
                     Trip History
+                    <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                        activeTab === 'trips' ? "bg-[#3D5A3D] text-white" : "bg-slate-100 text-slate-500"
+                    )}>
+                        {tripCount}
+                    </span>
                 </button>
             </div>
 
@@ -242,11 +279,11 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                     )}
 
                     {activeTab === 'trips' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
-                            <Clock className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-slate-900 mb-2">Trip History</h3>
-                            <p className="text-slate-500">History and future scheduled trips will appear here.</p>
-                        </div>
+                        <TripList
+                            patientId={id}
+                            onTripClick={(tripId) => onTripClick?.(tripId)}
+                            hideHeader
+                        />
                     )}
                 </div>
 
@@ -257,7 +294,7 @@ export function PatientDetailsPage({ id, onBack }: PatientDetailsPageProps) {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between py-2 border-b border-slate-50">
                                 <span className="text-sm text-slate-500">Total Trips</span>
-                                <span className="text-sm font-semibold text-slate-900">0</span>
+                                <span className="text-sm font-semibold text-slate-900">{tripCount}</span>
                             </div>
                             <div className="flex items-center justify-between py-2 border-b border-slate-50">
                                 <span className="text-sm text-slate-500">Last Transport</span>

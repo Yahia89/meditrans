@@ -149,7 +149,11 @@ function DemoIndicator() {
     );
 }
 
-export function DriversPage() {
+interface DriversPageProps {
+    onDriverClick?: (id: string) => void
+}
+
+export function DriversPage({ onDriverClick }: DriversPageProps) {
     const [searchQuery, setSearchQuery] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
     const [editingDriver, setEditingDriver] = useState<Driver | null>(null)
@@ -233,6 +237,14 @@ export function DriversPage() {
     const avgRating = drivers.length > 0
         ? (drivers.reduce((sum, d) => sum + d.rating, 0) / drivers.length).toFixed(1)
         : '0.0'
+
+    const handleDriverSelect = (id: string) => {
+        if (onDriverClick) {
+            onDriverClick(id)
+        } else {
+            setSelectedDriverId(id)
+        }
+    }
 
     if (selectedDriverId) {
         return (
@@ -425,7 +437,7 @@ export function DriversPage() {
                 {filteredDrivers.map((driver) => (
                     <div
                         key={driver.id}
-                        onClick={() => setSelectedDriverId(driver.id)}
+                        onClick={() => handleDriverSelect(driver.id)}
                         className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                     >
                         <div className="flex items-start justify-between mb-4">
@@ -495,7 +507,7 @@ export function DriversPage() {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setSelectedDriverId(driver.id)}
+                                onClick={() => handleDriverSelect(driver.id)}
                                 className="flex-1 rounded-lg border-slate-200 hover:bg-slate-50"
                             >
                                 View Details

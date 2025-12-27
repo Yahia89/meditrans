@@ -3,21 +3,20 @@ import {
     ArrowLeft,
     Phone,
     Mail,
-    Clock,
-    Plus,
     Loader2,
     Pencil,
     ShieldAlert,
     Briefcase,
     Calendar,
     MapPin,
-    ChartPie
+    ChartPie,
+    CheckCircle2,
+    History
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useOrganization } from '@/contexts/OrganizationContext'
 import { usePermissions } from '@/hooks/usePermissions'
 import { EmployeeForm } from '@/components/forms/employee-form'
 import { DocumentManager } from '@/components/document-manager'
@@ -54,7 +53,6 @@ function formatDate(dateStr: string | null) {
 export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'trips'>('overview')
     const [isEditing, setIsEditing] = useState(false)
-    const { currentOrganization } = useOrganization()
     const { isAdmin, isOwner } = usePermissions()
 
     const canManageEmployees = isAdmin || isOwner
@@ -74,6 +72,19 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
         },
         enabled: !!id
     })
+    // Fetch document count
+    const { data: docCount = 0 } = useQuery({
+        queryKey: ['employee-docs-count', id],
+        queryFn: async () => {
+            const { count, error } = await supabase
+                .from('org_uploads')
+                .select('*', { count: 'exact', head: true })
+                .eq('purpose', 'employee_document')
+                .eq('notes', id);
+            if (error) throw error;
+            return count || 0;
+        }
+    });
 
     if (isLoadingEmployee) {
         return (
@@ -91,6 +102,25 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
             </div>
         )
     }
+
+    const workEvents = [
+        {
+            date: employee.hire_date,
+            title: 'Employment Started',
+            description: `Joined as ${employee.role || 'Staff Member'} in ${employee.department || 'the organization'}.`,
+            icon: CheckCircle2,
+            color: 'text-emerald-500',
+            bg: 'bg-emerald-50'
+        },
+        {
+            date: employee.created_at,
+            title: 'Account Created',
+            description: 'Profile was initialized in the system.',
+            icon: Calendar,
+            color: 'text-blue-500',
+            bg: 'bg-blue-50'
+        }
+    ].filter(e => e.date).sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
 
     return (
         <div className="space-y-6">
@@ -151,18 +181,24 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                 <button
                     onClick={() => setActiveTab('documents')}
                     className={cn(
-                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors",
+                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
                         activeTab === 'documents'
                             ? "border-[#3D5A3D] text-[#3D5A3D]"
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                     )}
                 >
                     Documents
+                    <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                        activeTab === 'documents' ? "bg-[#3D5A3D] text-white" : "bg-slate-100 text-slate-500"
+                    )}>
+                        {docCount}
+                    </span>
                 </button>
                 <button
                     onClick={() => setActiveTab('trips')}
                     className={cn(
-                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors",
+                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
                         activeTab === 'trips'
                             ? "border-[#3D5A3D] text-[#3D5A3D]"
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
@@ -268,10 +304,43 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                     )}
 
                     {activeTab === 'trips' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
-                            <Clock className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-slate-900 mb-2">Work History</h3>
-                            <p className="text-slate-500">Employee tasks and shift history will appear here.</p>
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="p-2 bg-[#3D5A3D]/10 rounded-lg">
+                                    <History className="w-5 h-5 text-[#3D5A3D]" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-slate-900">Career Timeline</h3>
+                            </div>
+
+                            <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-slate-200 before:via-slate-200 before:to-transparent">
+                                {workEvents.length > 0 ? (
+                                    workEvents.map((event, idx) => (
+                                        <div key={idx} className="relative flex items-start gap-6 pl-2">
+                                            <div className={cn(
+                                                "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-4 border-white shadow-sm z-10",
+                                                event.bg
+                                            )}>
+                                                <event.icon className={cn("w-5 h-5", event.color)} />
+                                            </div>
+                                            <div className="flex-1 pt-1">
+                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1">
+                                                    <h4 className="text-sm font-bold text-slate-900">{event.title}</h4>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                                        {formatDate(event.date)}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-slate-500 leading-relaxed">
+                                                    {event.description}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <p className="text-slate-500 italic">No history records available.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

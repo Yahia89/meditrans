@@ -3,8 +3,6 @@ import {
     ArrowLeft,
     Phone,
     Mail,
-    Clock,
-    Plus,
     Loader2,
     Pencil,
     ShieldAlert,
@@ -18,14 +16,15 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useOrganization } from '@/contexts/OrganizationContext'
 import { usePermissions } from '@/hooks/usePermissions'
 import { DriverForm } from '@/components/forms/driver-form'
 import { DocumentManager } from '@/components/document-manager'
+import { TripList } from '@/modules/trips/components/TripList'
 
 interface DriverDetailsPageProps {
     id: string
     onBack: () => void
+    onTripClick?: (id: string) => void
 }
 
 interface Driver {
@@ -57,10 +56,9 @@ function getStatusConfig(status: string | null) {
     return { label: s || 'Offline', className: "bg-slate-100 text-slate-700" }
 }
 
-export function DriverDetailsPage({ id, onBack }: DriverDetailsPageProps) {
+export function DriverDetailsPage({ id, onBack, onTripClick }: DriverDetailsPageProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'trips'>('overview')
     const [isEditing, setIsEditing] = useState(false)
-    const { currentOrganization } = useOrganization()
     const { isAdmin, isOwner } = usePermissions()
 
     const canManageDrivers = isAdmin || isOwner
@@ -80,6 +78,33 @@ export function DriverDetailsPage({ id, onBack }: DriverDetailsPageProps) {
         },
         enabled: !!id
     })
+
+    // Fetch trip count
+    const { data: tripCount = 0 } = useQuery({
+        queryKey: ['driver-trips-count', id],
+        queryFn: async () => {
+            const { count, error } = await supabase
+                .from('trips')
+                .select('*', { count: 'exact', head: true })
+                .eq('driver_id', id);
+            if (error) throw error;
+            return count || 0;
+        }
+    });
+
+    // Fetch document count
+    const { data: docCount = 0 } = useQuery({
+        queryKey: ['driver-docs-count', id],
+        queryFn: async () => {
+            const { count, error } = await supabase
+                .from('org_uploads')
+                .select('*', { count: 'exact', head: true })
+                .eq('purpose', 'driver_document')
+                .eq('notes', id);
+            if (error) throw error;
+            return count || 0;
+        }
+    });
 
     if (isLoadingDriver) {
         return (
@@ -146,7 +171,7 @@ export function DriverDetailsPage({ id, onBack }: DriverDetailsPageProps) {
                 <button
                     onClick={() => setActiveTab('overview')}
                     className={cn(
-                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors",
+                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
                         activeTab === 'overview'
                             ? "border-[#3D5A3D] text-[#3D5A3D]"
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
@@ -157,24 +182,36 @@ export function DriverDetailsPage({ id, onBack }: DriverDetailsPageProps) {
                 <button
                     onClick={() => setActiveTab('documents')}
                     className={cn(
-                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors",
+                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
                         activeTab === 'documents'
                             ? "border-[#3D5A3D] text-[#3D5A3D]"
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                     )}
                 >
                     Documents
+                    <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                        activeTab === 'documents' ? "bg-[#3D5A3D] text-white" : "bg-slate-100 text-slate-500"
+                    )}>
+                        {docCount}
+                    </span>
                 </button>
                 <button
                     onClick={() => setActiveTab('trips')}
                     className={cn(
-                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors",
+                        "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
                         activeTab === 'trips'
                             ? "border-[#3D5A3D] text-[#3D5A3D]"
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                     )}
                 >
                     Trip History
+                    <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                        activeTab === 'trips' ? "bg-[#3D5A3D] text-white" : "bg-slate-100 text-slate-500"
+                    )}>
+                        {tripCount}
+                    </span>
                 </button>
             </div>
 
@@ -270,10 +307,12 @@ export function DriverDetailsPage({ id, onBack }: DriverDetailsPageProps) {
                                         <TrendingUp className="w-5 h-5 text-[#3D5A3D]" />
                                     </div>
                                     <div className="flex items-baseline gap-2">
-                                        <span className="text-3xl font-bold text-slate-900">0</span>
+                                        <span className="text-3xl font-bold text-slate-900">{tripCount}</span>
                                         <span className="text-slate-500 text-sm">Transports</span>
                                     </div>
-                                    <p className="mt-2 text-xs text-slate-400 italic">No trip history recorded yet.</p>
+                                    <p className="mt-2 text-xs text-slate-400 italic">
+                                        {tripCount > 0 ? `${tripCount} trips successfully managed.` : 'No trip history recorded yet.'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -288,11 +327,11 @@ export function DriverDetailsPage({ id, onBack }: DriverDetailsPageProps) {
                     )}
 
                     {activeTab === 'trips' && (
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
-                            <Clock className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-slate-900 mb-2">Trip History</h3>
-                            <p className="text-slate-500">Completed and assigned trips will appear here.</p>
-                        </div>
+                        <TripList
+                            driverId={id}
+                            onTripClick={(tripId: string) => onTripClick?.(tripId)}
+                            hideHeader
+                        />
                     )}
                 </div>
 

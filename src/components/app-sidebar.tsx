@@ -8,6 +8,7 @@ import {
   ChartLine,
   UserList,
   Shield,
+  MapTrifold,
 } from "@phosphor-icons/react"
 
 
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/sidebar"
 
 // Page type must match the pages defined in App.tsx
-type Page = 'dashboard' | 'patients' | 'patient-details' | 'drivers' | 'employees' | 'upload' | 'review_import' | 'account' | 'billing' | 'notifications' | 'founder' | 'accept-invite'
+type Page = 'dashboard' | 'patients' | 'patient-details' | 'drivers' | 'employees' | 'upload' | 'review_import' | 'account' | 'billing' | 'notifications' | 'founder' | 'accept-invite' | 'trips' | 'create-trip' | 'trip-details'
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   currentPage: Page
@@ -36,6 +37,11 @@ const data = {
       title: "Dashboard",
       url: "dashboard" as Page,
       icon: ChartLine,
+    },
+    {
+      title: "Trips",
+      url: "trips" as Page,
+      icon: MapTrifold,
     },
     {
       title: "Patients",
