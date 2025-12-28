@@ -1,84 +1,83 @@
-import { useQueryState, parseAsStringLiteral } from 'nuqs'
-import './App.css'
-import { SidebarProvider } from '@/components/ui/sidebar'
-import { AppSidebar } from './components/app-sidebar'
-import { DashboardPage } from './components/dashboard-page'
-import { Dashboard } from './components/dashboard'
-import { PatientsPage } from './components/patients-page'
-import { DriversPage } from './components/drivers-page'
-import { EmployeesPage } from './components/employees-page'
-import { UploadPage } from './components/upload-page'
-import { AccountPage } from './components/account-page'
-import { BillingPage } from './components/billing-page'
-import { NotificationsPage } from './components/notifications-page'
-import { FounderInviteForm } from './components/founder-invite-form'
-import { AcceptInvitePage } from './components/accept-invite'
-import { LoginForm } from './components/login-form'
+import { useQueryState, parseAsStringLiteral } from "nuqs";
+import "./App.css";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "./components/app-sidebar";
+import { DashboardPage } from "./components/dashboard-page";
+import { Dashboard } from "./components/dashboard";
+import { PatientsPage } from "./components/patients-page";
+import { DriversPage } from "./components/drivers-page";
+import { EmployeesPage } from "./components/employees-page";
+import { UploadPage } from "./components/upload-page";
+import { AccountPage } from "./components/account-page";
+import { BillingPage } from "./components/billing-page";
+import { NotificationsPage } from "./components/notifications-page";
+import { FounderInviteForm } from "./components/founder-invite-form";
+import { AcceptInvitePage } from "./components/accept-invite";
+import { LoginForm } from "./components/login-form";
 
-
-
-import { AuthProvider, useAuth } from '@/contexts/auth-context'
-import { OrganizationProvider, useOrganization } from '@/contexts/OrganizationContext'
-import { OnboardingProvider } from '@/contexts/OnboardingContext'
-import loginbgimg from './assets/loginbgimg.png'
-import logo from './assets/logo.png'
-import { usePermissions } from '@/hooks/usePermissions'
-
+import { AuthProvider, useAuth } from "@/contexts/auth-context";
+import {
+  OrganizationProvider,
+  useOrganization,
+} from "@/contexts/OrganizationContext";
+import { OnboardingProvider } from "@/contexts/OnboardingContext";
+import loginbgimg from "./assets/loginbgimg.png";
+import logo from "./assets/logo.png";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Define valid page values for type safety
 export const pages = [
-  'dashboard',
-  'patients',
-  'patient-details',
-  'drivers',
-  'driver-details',
-  'employees',
-  'upload',
-  'review_import',
-  'account',
-  'billing',
-  'notifications',
-  'founder',
-  'accept-invite',
-  'trips',
-  'trip-details'
-] as const
+  "dashboard",
+  "patients",
+  "patient-details",
+  "drivers",
+  "driver-details",
+  "employees",
+  "upload",
+  "review_import",
+  "account",
+  "billing",
+  "notifications",
+  "founder",
+  "accept-invite",
+  "trips",
+  "trip-details",
+] as const;
 
-export type Page = typeof pages[number]
+export type Page = (typeof pages)[number];
 
-import { UploadReviewPage } from './components/upload-review-page'
-import { PatientDetailsPage } from './components/patient-details-page'
-import { DriverDetailsPage } from './components/driver-details-page'
-import { TripList } from './components/trips/TripList'
-import { TripDetails } from './components/trips/TripDetails'
-import { TripDialog } from './components/trips/TripDialog'
-import { ErrorBoundary } from './components/error-boundary'
+import { UploadReviewPage } from "./components/upload-review-page";
+import { PatientDetailsPage } from "./components/patient-details-page";
+import { DriverDetailsPage } from "./components/driver-details-page";
+import { TripList } from "./components/trips/TripList";
+import { TripDetails } from "./components/trips/TripDetails";
+import { TripDialog } from "./components/trips/TripDialog";
+import { ErrorBoundary } from "./components/error-boundary";
 
 function AppContent() {
-  const { user, loading: authLoading } = useAuth()
-  const { loading: orgLoading } = useOrganization()
-  const { isSuperAdmin } = usePermissions()
+  const { user, loading: authLoading } = useAuth();
+  const { loading: orgLoading } = useOrganization();
+  const { isSuperAdmin } = usePermissions();
 
-  const loading = authLoading || (user && orgLoading)
-
+  const loading = authLoading || (user && orgLoading);
 
   // nuqs: sync page state with URL query string (?page=dashboard)
   // Features enabled:
   // - Refresh persistence: page state survives browser refresh
-  // - Back/forward nav: browser history works correctly  
+  // - Back/forward nav: browser history works correctly
   // - Shareable URLs: copy URL to share exact app state
   // - Type-safe: only valid page values are accepted
   const [currentPage, setCurrentPage] = useQueryState<Page>(
-    'page',
+    "page",
     parseAsStringLiteral(pages)
-      .withDefault('dashboard')
-      .withOptions({ history: 'push' }) // Creates history entry for back/forward nav
-  )
+      .withDefault("dashboard")
+      .withOptions({ history: "push" }) // Creates history entry for back/forward nav
+  );
 
-  const [patientId, setPatientId] = useQueryState('id')
-  const [driverId, setDriverId] = useQueryState('driverId')
-  const [tripId, setTripId] = useQueryState('tripId')
-  const [modalType, setModalType] = useQueryState('modal')
+  const [patientId, setPatientId] = useQueryState("id");
+  const [driverId, setDriverId] = useQueryState("driverId");
+  const [tripId, setTripId] = useQueryState("tripId");
+  const [modalType, setModalType] = useQueryState("modal");
 
   // Show loading state while checking auth
   if (loading) {
@@ -89,16 +88,16 @@ function AppContent() {
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Handle invitation acceptance regardless of auth status (will show login prompt inside if needed)
-  if (currentPage === 'accept-invite') {
+  if (currentPage === "accept-invite") {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
         <AcceptInvitePage />
       </div>
-    )
+    );
   }
 
   // Show login page if not authenticated
@@ -128,8 +127,12 @@ function AppContent() {
 
               {/* Title & Description */}
               <div className="mb-8 text-center">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Welcome Back</h1>
-                <p className="text-slate-500 dark:text-slate-400">Sign in to manage your transportation fleet</p>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                  Welcome Back
+                </h1>
+                <p className="text-slate-500 dark:text-slate-400">
+                  Sign in to manage your transportation fleet
+                </p>
               </div>
 
               <LoginForm />
@@ -165,198 +168,209 @@ function AppContent() {
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">Trusted Platform</h3>
-                  <p className="text-white/80 text-sm">Managing over 10k transports monthly</p>
+                  <p className="text-white/80 text-sm">
+                    Managing over 10k transports monthly
+                  </p>
                 </div>
               </div>
-              <p className="italic text-white/70">"MediTrans has transformed our fleet operations, increasing efficiency by 40% in our first quarter."</p>
+              <p className="italic text-white/70">
+                "MediTrans has transformed our fleet operations, increasing
+                efficiency by 40% in our first quarter."
+              </p>
             </div>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard':
+      case "dashboard":
         return (
           <DashboardPage title="Dashboard">
             <Dashboard />
           </DashboardPage>
-        )
-      case 'patients':
+        );
+      case "patients":
         return (
           <DashboardPage title="Patients">
-            <PatientsPage onPatientClick={(id) => {
-              setPatientId(id)
-              setCurrentPage('patient-details')
-            }} />
+            <PatientsPage
+              onPatientClick={(id) => {
+                setPatientId(id);
+                setCurrentPage("patient-details");
+              }}
+            />
           </DashboardPage>
-        )
-      case 'patient-details':
+        );
+      case "patient-details":
         return (
           <DashboardPage title="Patient Details">
             <PatientDetailsPage
-              id={patientId || ''}
+              id={patientId || ""}
               onBack={() => {
-                setCurrentPage('patients')
-                setPatientId(null)
+                setCurrentPage("patients");
+                setPatientId(null);
               }}
               onTripClick={(id) => {
-                setTripId(id)
-                setCurrentPage('trip-details')
+                setTripId(id);
+                setCurrentPage("trip-details");
               }}
             />
           </DashboardPage>
-        )
-      case 'drivers':
+        );
+      case "drivers":
         return (
           <DashboardPage title="Drivers">
-            <DriversPage onDriverClick={(id) => {
-              setDriverId(id)
-              setCurrentPage('driver-details')
-            }} />
+            <DriversPage
+              onDriverClick={(id) => {
+                setDriverId(id);
+                setCurrentPage("driver-details");
+              }}
+            />
           </DashboardPage>
-        )
-      case 'driver-details':
+        );
+      case "driver-details":
         return (
           <DashboardPage title="Driver Details">
             <DriverDetailsPage
-              id={driverId || ''}
+              id={driverId || ""}
               onBack={() => {
-                setCurrentPage('drivers')
-                setDriverId(null)
+                setCurrentPage("drivers");
+                setDriverId(null);
               }}
               onTripClick={(id) => {
-                setTripId(id)
-                setCurrentPage('trip-details')
+                setTripId(id);
+                setCurrentPage("trip-details");
               }}
             />
           </DashboardPage>
-        )
-      case 'employees':
+        );
+      case "employees":
         return (
           <DashboardPage title="Employees">
             <EmployeesPage />
           </DashboardPage>
-        )
-      case 'upload':
+        );
+      case "upload":
         return (
           <DashboardPage title="Upload">
             <UploadPage />
           </DashboardPage>
-        )
-      case 'review_import':
+        );
+      case "review_import":
         return (
           <DashboardPage title="Review Import">
-            <UploadReviewPage onBack={() => setCurrentPage('upload')} />
+            <UploadReviewPage onBack={() => setCurrentPage("upload")} />
           </DashboardPage>
-        )
-      case 'account':
+        );
+      case "account":
         return (
           <DashboardPage title="Account Settings">
             <AccountPage />
           </DashboardPage>
-        )
-      case 'billing':
+        );
+      case "billing":
         return (
           <DashboardPage title="Billing & Plans">
             <BillingPage />
           </DashboardPage>
-        )
-      case 'notifications':
+        );
+      case "notifications":
         return (
           <DashboardPage title="Notifications">
             <NotificationsPage />
           </DashboardPage>
-        )
-      case 'founder':
+        );
+      case "founder":
         if (!isSuperAdmin) {
-          setCurrentPage('dashboard')
-          return null
+          setCurrentPage("dashboard");
+          return null;
         }
         return (
           <DashboardPage title="Founder Admin">
             <FounderInviteForm />
           </DashboardPage>
-        )
-      case 'trips':
+        );
+      case "trips":
         return (
           <DashboardPage title="Trips Management">
             <TripList
-              onCreateClick={() => setModalType('create')}
+              onCreateClick={() => setModalType("create")}
               onTripClick={(id) => {
-                setTripId(id)
-                setCurrentPage('trip-details')
+                setTripId(id);
+                setCurrentPage("trip-details");
               }}
             />
           </DashboardPage>
-        )
-      case 'trip-details':
+        );
+      case "trip-details":
         return (
           <DashboardPage title="Trip Details">
             <TripDetails
-              tripId={tripId || ''}
-              onEdit={() => setModalType('edit')}
-              onDeleteSuccess={() => setCurrentPage('trips')}
+              tripId={tripId || ""}
+              onEdit={() => setModalType("edit")}
+              onDeleteSuccess={() => setCurrentPage("trips")}
+              onBack={() => {
+                setCurrentPage("trips");
+                setTripId(null);
+              }}
             />
           </DashboardPage>
-        )
+        );
       default:
         return (
           <DashboardPage title="Dashboard">
             <Dashboard />
           </DashboardPage>
-        )
+        );
     }
-  }
+  };
 
   return (
     <SidebarProvider>
       <AppSidebar
         currentPage={currentPage}
         onNavigate={(page) => {
-          setCurrentPage(page as Page)
+          setCurrentPage(page as Page);
           // Keep clear state when navigating between main modules
-          if (page !== 'patient-details') setPatientId(null)
-          if (page !== 'driver-details') setDriverId(null)
-          if (page !== 'trip-details') {
-            setTripId(null)
-            setModalType(null)
+          if (page !== "patient-details") setPatientId(null);
+          if (page !== "driver-details") setDriverId(null);
+          if (page !== "trip-details") {
+            setTripId(null);
+            setModalType(null);
           }
-          if (page !== 'trips') {
+          if (page !== "trips") {
             // Clear create modal when leaving trips page
-            if (modalType === 'create') setModalType(null)
+            if (modalType === "create") setModalType(null);
           }
         }}
       />
       <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
-        <ErrorBoundary fallbackTitle="Page Error">
-          {renderPage()}
-        </ErrorBoundary>
+        <ErrorBoundary fallbackTitle="Page Error">{renderPage()}</ErrorBoundary>
       </main>
 
       {/* Trip Dialogs rendered at App level to ensure they appear as proper overlays */}
       {/* Only render when on trips-related pages to prevent query conflicts */}
-      {(currentPage === 'trips' || currentPage === 'trip-details') && (
+      {(currentPage === "trips" || currentPage === "trip-details") && (
         <>
           <TripDialog
             key="create-dialog"
-            open={modalType === 'create'}
-            onOpenChange={(open) => setModalType(open ? 'create' : null)}
+            open={modalType === "create"}
+            onOpenChange={(open) => setModalType(open ? "create" : null)}
             onSuccess={() => setModalType(null)}
           />
           <TripDialog
-            key={`edit-dialog-${tripId || 'none'}`}
-            open={modalType === 'edit'}
+            key={`edit-dialog-${tripId || "none"}`}
+            open={modalType === "edit"}
             tripId={tripId || undefined}
-            onOpenChange={(open) => setModalType(open ? 'edit' : null)}
+            onOpenChange={(open) => setModalType(open ? "edit" : null)}
             onSuccess={() => setModalType(null)}
           />
         </>
       )}
     </SidebarProvider>
-  )
+  );
 }
 
 function App() {
@@ -368,7 +382,7 @@ function App() {
         </OnboardingProvider>
       </OrganizationProvider>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;
