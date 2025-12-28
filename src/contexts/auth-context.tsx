@@ -100,12 +100,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Initialize auth state
     useEffect(() => {
         // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             setSession(session)
-            setUser(session?.user ?? null)
-            if (session?.user) {
-                fetchProfile(session.user.id)
-                fetchMemberships(session.user.id)
+            const currentUser = session?.user ?? null
+            setUser(currentUser)
+
+            if (currentUser) {
+                // Wait for core data before finishing load
+                await Promise.all([
+                    fetchProfile(currentUser.id),
+                    fetchMemberships(currentUser.id)
+                ])
             }
             setLoading(false)
         })

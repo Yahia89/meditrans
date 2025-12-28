@@ -224,11 +224,12 @@ export function PatientsPage({ onPatientClick }: { onPatientClick?: (id: string)
     const showData = hasRealData || isDemoMode
     const patients = hasRealData ? realPatients : (isDemoMode ? demoPatients : [])
 
-    const filteredPatients = patients.filter(patient =>
-        patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.phone.includes(searchQuery)
-    )
+    const filteredPatients = patients.filter(patient => {
+        const nameMatch = (patient.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+        const emailMatch = (patient.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+        const phoneMatch = (patient.phone || '').includes(searchQuery)
+        return nameMatch || emailMatch || phoneMatch
+    })
 
     const activeCount = patients.filter(p => p.status === 'active').length
     const totalTrips = patients.reduce((sum, p) => sum + p.totalTrips, 0)

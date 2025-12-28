@@ -18,7 +18,7 @@ import { LoginForm } from './components/login-form'
 
 
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
-import { OrganizationProvider } from '@/contexts/OrganizationContext'
+import { OrganizationProvider, useOrganization } from '@/contexts/OrganizationContext'
 import { OnboardingProvider } from '@/contexts/OnboardingContext'
 import loginbgimg from './assets/loginbgimg.png'
 import logo from './assets/logo.png'
@@ -26,7 +26,7 @@ import { usePermissions } from '@/hooks/usePermissions'
 
 
 // Define valid page values for type safety
-const pages = [
+export const pages = [
   'dashboard',
   'patients',
   'patient-details',
@@ -46,7 +46,7 @@ const pages = [
   'trip-details'
 ] as const
 
-type Page = typeof pages[number]
+export type Page = typeof pages[number]
 
 import { UploadReviewPage } from './components/upload-review-page'
 import { PatientDetailsPage } from './components/patient-details-page'
@@ -54,8 +54,11 @@ import { DriverDetailsPage } from './components/driver-details-page'
 import { TripsModule } from './modules/trips/TripsModule'
 
 function AppContent() {
-  const { user, loading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
+  const { loading: orgLoading } = useOrganization()
   const { isSuperAdmin } = usePermissions()
+
+  const loading = authLoading || (user && orgLoading)
 
 
   // nuqs: sync page state with URL query string (?page=dashboard)

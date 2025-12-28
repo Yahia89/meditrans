@@ -225,12 +225,13 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
     const showData = hasRealData || isDemoMode
     const drivers = hasRealData ? realDrivers : (isDemoMode ? demoDrivers : [])
 
-    const filteredDrivers = drivers.filter(driver =>
-        driver.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        driver.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        driver.phone.includes(searchQuery) ||
-        driver.licensePlate.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredDrivers = drivers.filter(driver => {
+        const nameMatch = (driver.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+        const emailMatch = (driver.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+        const phoneMatch = (driver.phone || '').includes(searchQuery)
+        const plateMatch = (driver.licensePlate || '').toLowerCase().includes(searchQuery.toLowerCase())
+        return nameMatch || emailMatch || phoneMatch || plateMatch
+    })
 
     const availableCount = drivers.filter(d => d.status === 'available').length
     const onTripCount = drivers.filter(d => d.status === 'on-trip').length

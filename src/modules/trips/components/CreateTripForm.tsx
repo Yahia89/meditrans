@@ -79,15 +79,34 @@ export function CreateTripForm({ onSuccess, onCancel, tripId }: CreateTripFormPr
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('drivers')
-                .select('id, full_name')
+                .select('id, full_name, email, phone')
                 .eq('org_id', currentOrganization?.id)
-                .eq('active', true)
                 .order('full_name');
             if (error) throw error;
             return data;
         },
         enabled: !!currentOrganization
     });
+
+    const { data: employees } = useQuery({
+        queryKey: ['employees', currentOrganization?.id],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('employees')
+                .select('id, full_name, email, phone')
+                .eq('org_id', currentOrganization?.id)
+                .order('full_name');
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!currentOrganization
+    });
+
+    // Merge drivers and employees, removing duplicates (based on email or name if needed, but let's keep it simple for now)
+    const allPotentialDrivers = [
+        ...(drivers || []).map(d => ({ ...d, type: 'driver' as const })),
+        ...(employees || []).filter(e => !(drivers || []).some(d => d.email === e.email)).map(e => ({ ...e, type: 'employee' as const }))
+    ].sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -96,17 +115,49 @@ export function CreateTripForm({ onSuccess, onCancel, tripId }: CreateTripFormPr
 
         try {
             const pickupDateTime = new Date(`${formData.pickup_date}T${formData.pickup_time}`);
+            let finalDriverId = formData.driver_id;
+
+            // If an employee was selected who isn't a driver yet, we need to create a driver record
+            const selectedEntity = allPotentialDrivers.find(p => p.id === formData.driver_id);
+            if (selectedEntity && selectedEntity.type === 'employee') {
+                // Check if they already exist in drivers table (maybe by email)
+                const { data: existingDriver } = await supabase
+                    .from('drivers')
+                    .select('id')
+                    .eq('email', selectedEntity.email)
+                    .single();
+
+                if (existingDriver) {
+                    finalDriverId = existingDriver.id;
+                } else {
+                    // Create a new driver record for this employee
+                    const { data: newDriver, error: driverError } = await supabase
+                        .from('drivers')
+                        .insert({
+                            org_id: currentOrganization.id,
+                            full_name: selectedEntity.full_name,
+                            email: selectedEntity.email,
+                            phone: selectedEntity.phone,
+                            active: true
+                        })
+                        .select()
+                        .single();
+
+                    if (driverError) throw driverError;
+                    finalDriverId = newDriver.id;
+                }
+            }
 
             const payload = {
                 org_id: currentOrganization.id,
                 patient_id: formData.patient_id,
-                driver_id: formData.driver_id || null,
+                driver_id: finalDriverId || null,
                 pickup_location: formData.pickup_location,
                 dropoff_location: formData.dropoff_location,
                 pickup_time: pickupDateTime.toISOString(),
                 trip_type: formData.trip_type,
                 notes: formData.notes,
-                status: formData.driver_id ? (existingTrip?.status === 'pending' ? 'assigned' : (existingTrip?.status || 'assigned')) : 'pending'
+                status: finalDriverId ? (existingTrip?.status === 'pending' ? 'assigned' : (existingTrip?.status || 'assigned')) : 'pending'
             };
 
             if (tripId) {
@@ -172,8 +223,10 @@ export function CreateTripForm({ onSuccess, onCancel, tripId }: CreateTripFormPr
                                 className="w-full rounded-lg border-slate-200 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500/20"
                             >
                                 <option value="">Unassigned</option>
-                                {drivers?.map(d => (
-                                    <option key={d.id} value={d.id}>{d.full_name}</option>
+                                {allPotentialDrivers.map(d => (
+                                    <option key={d.id} value={d.id}>
+                                        {d.full_name} {d.type === 'employee' ? '(Staff)' : ''}
+                                    </option>
                                 ))}
                             </select>
                         </div>

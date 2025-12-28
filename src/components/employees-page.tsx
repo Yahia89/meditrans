@@ -164,7 +164,7 @@ export function EmployeesPage() {
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
     const { isDemoMode, navigateTo } = useOnboarding()
     const { currentOrganization } = useOrganization()
-    const { isAdmin, userRole } = usePermissions()
+    const { isAdmin } = usePermissions()
     const queryClient = useQueryClient()
 
 
@@ -231,13 +231,14 @@ export function EmployeesPage() {
     const showData = hasRealData || isDemoMode
     const employees = hasRealData ? realEmployees : (isDemoMode ? demoEmployees : [])
 
-    const filteredEmployees = employees.filter(employee =>
-        employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        employee.phone.includes(searchQuery) ||
-        employee.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        employee.position.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredEmployees = employees.filter(employee => {
+        const nameMatch = (employee.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+        const emailMatch = (employee.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+        const deptMatch = (employee.department || '').toLowerCase().includes(searchQuery.toLowerCase())
+        const posMatch = (employee.position || '').toLowerCase().includes(searchQuery.toLowerCase())
+        const phoneMatch = (employee.phone || '').includes(searchQuery)
+        return nameMatch || emailMatch || deptMatch || posMatch || phoneMatch
+    })
 
     const activeCount = employees.filter(e => e.status === 'active').length
     const onLeaveCount = employees.filter(e => e.status === 'on-leave').length
