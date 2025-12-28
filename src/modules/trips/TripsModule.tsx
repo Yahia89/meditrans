@@ -67,6 +67,7 @@ export function TripsModule({ view, onNavigate, onBack, tripId }: TripsModulePro
                     <TripDetails
                         tripId={tripId || ''}
                         onEdit={(id) => onNavigate?.('edit', id)}
+                        onDeleteSuccess={() => onBack?.()}
                     />
                 </div>
             );
