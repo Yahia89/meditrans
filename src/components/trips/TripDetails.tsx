@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { Trip, TripStatus } from '../types';
+import type { Trip, TripStatus } from './types';
 import { Button } from '@/components/ui/button';
 import {
     Pencil,

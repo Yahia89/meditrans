@@ -444,7 +444,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-full bg-[#3D5A3D] flex items-center justify-center text-white text-lg font-semibold">
-                                    {driver.name.split(' ').map(n => n[0]).join('')}
+                                    {(driver.name || 'D').split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase()}
                                 </div>
                                 <div>
                                     <h3 className="text-base font-semibold text-slate-900">{driver.name}</h3>

@@ -452,9 +452,9 @@ export function Dashboard() {
 
                     {/* Mini calendar week */}
                     <div className="grid grid-cols-7 gap-1 mb-6">
-                        {weekDays.map((day) => (
+                        {weekDays.map((day, index) => (
                             <div
-                                key={day.day}
+                                key={`weekday-${index}`}
                                 className={cn(
                                     "flex flex-col items-center gap-1 rounded-lg py-2 text-center transition",
                                     day.isToday

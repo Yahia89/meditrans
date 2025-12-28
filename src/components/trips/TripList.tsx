@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2, Calendar, Clock, MapPin, User, Car } from 'lucide-react';
-import type { Trip, TripStatus } from '../types';
+import type { Trip, TripStatus } from './types';
 import { cn } from '@/lib/utils';
 
 interface TripListProps {

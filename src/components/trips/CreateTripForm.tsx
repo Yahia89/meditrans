@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ interface CreateTripFormProps {
 
 export function CreateTripForm({ onSuccess, onCancel, tripId }: CreateTripFormProps) {
     const { currentOrganization } = useOrganization();
+    const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         patient_id: '',
@@ -28,9 +29,9 @@ export function CreateTripForm({ onSuccess, onCancel, tripId }: CreateTripFormPr
         notes: ''
     });
 
-    // Fetch existing trip if editing
+    // Fetch existing trip if editing - use different query key to avoid cache conflicts
     const { data: existingTrip, isLoading: isLoadingTrip } = useQuery({
-        queryKey: ['trip', tripId],
+        queryKey: ['trip-form', tripId],
         queryFn: async () => {
             if (!tripId) return null;
             const { data, error } = await supabase
@@ -45,23 +46,25 @@ export function CreateTripForm({ onSuccess, onCancel, tripId }: CreateTripFormPr
     });
 
     useEffect(() => {
-        if (existingTrip) {
+        if (existingTrip && existingTrip.pickup_time) {
             const date = new Date(existingTrip.pickup_time);
-            setFormData({
-                patient_id: existingTrip.patient_id,
-                driver_id: existingTrip.driver_id || '',
-                pickup_location: existingTrip.pickup_location || '',
-                dropoff_location: existingTrip.dropoff_location || '',
-                pickup_date: date.toISOString().split('T')[0],
-                pickup_time: date.toTimeString().split(' ')[0].substring(0, 5),
-                trip_type: existingTrip.trip_type || 'Ambulatory',
-                notes: existingTrip.notes || ''
-            });
+            if (!isNaN(date.getTime())) {
+                setFormData({
+                    patient_id: existingTrip.patient_id,
+                    driver_id: existingTrip.driver_id || '',
+                    pickup_location: existingTrip.pickup_location || '',
+                    dropoff_location: existingTrip.dropoff_location || '',
+                    pickup_date: date.toISOString().split('T')[0],
+                    pickup_time: date.toTimeString().split(' ')[0].substring(0, 5),
+                    trip_type: existingTrip.trip_type || 'Ambulatory',
+                    notes: existingTrip.notes || ''
+                });
+            }
         }
     }, [existingTrip]);
 
     const { data: patients } = useQuery({
-        queryKey: ['patients', currentOrganization?.id],
+        queryKey: ['patients-form', currentOrganization?.id],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('patients')
@@ -75,7 +78,7 @@ export function CreateTripForm({ onSuccess, onCancel, tripId }: CreateTripFormPr
     });
 
     const { data: drivers } = useQuery({
-        queryKey: ['drivers', currentOrganization?.id],
+        queryKey: ['drivers-form', currentOrganization?.id],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('drivers')
@@ -89,7 +92,7 @@ export function CreateTripForm({ onSuccess, onCancel, tripId }: CreateTripFormPr
     });
 
     const { data: employees } = useQuery({
-        queryKey: ['employees', currentOrganization?.id],
+        queryKey: ['employees-form', currentOrganization?.id],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('employees')
@@ -166,10 +169,15 @@ export function CreateTripForm({ onSuccess, onCancel, tripId }: CreateTripFormPr
                     .update(payload)
                     .eq('id', tripId);
                 if (error) throw error;
+                // Invalidate the specific trip and trips list cache
+                queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
             } else {
                 const { error } = await supabase.from('trips').insert(payload);
                 if (error) throw error;
             }
+
+            // Invalidate trips list to refresh immediately
+            await queryClient.invalidateQueries({ queryKey: ['trips'] });
 
             onSuccess();
         } catch (error) {
@@ -189,8 +197,8 @@ export function CreateTripForm({ onSuccess, onCancel, tripId }: CreateTripFormPr
     }
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden max-w-4xl mx-auto">
-            <div className="p-8 space-y-8">
+        <div className="bg-white">
+            <div className="space-y-8">
                 <form onSubmit={handleSubmit} className="space-y-8">
                     {/* Patient & Driver Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-slate-50 rounded-xl border border-slate-100">

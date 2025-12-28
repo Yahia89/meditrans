@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 import { usePermissions } from '@/hooks/usePermissions'
 import { PatientForm } from '@/components/forms/patient-form'
 import { DocumentManager } from '@/components/document-manager'
-import { TripList } from '@/modules/trips/components/TripList'
+import { TripList } from '@/components/trips/TripList'
 
 interface PatientDetailsPageProps {
     id: string

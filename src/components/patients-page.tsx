@@ -467,7 +467,7 @@ export function PatientsPage({ onPatientClick }: { onPatientClick?: (id: string)
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-[#3D5A3D] flex items-center justify-center text-white font-semibold text-sm">
-                                                {patient.name.split(' ').map(n => n[0]).join('')}
+                                                {(patient?.name || 'P').split(' ').filter(Boolean).map(n => n?.[0] || '').join('').toUpperCase()}
                                             </div>
                                             <div>
                                                 <p className="font-medium text-slate-900">{patient.name}</p>

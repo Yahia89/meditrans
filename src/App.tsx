@@ -41,8 +41,6 @@ export const pages = [
   'founder',
   'accept-invite',
   'trips',
-  'create-trip',
-  'edit-trip',
   'trip-details'
 ] as const
 
@@ -51,7 +49,10 @@ export type Page = typeof pages[number]
 import { UploadReviewPage } from './components/upload-review-page'
 import { PatientDetailsPage } from './components/patient-details-page'
 import { DriverDetailsPage } from './components/driver-details-page'
-import { TripsModule } from './modules/trips/TripsModule'
+import { TripList } from './components/trips/TripList'
+import { TripDetails } from './components/trips/TripDetails'
+import { TripDialog } from './components/trips/TripDialog'
+import { ErrorBoundary } from './components/error-boundary'
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth()
@@ -77,6 +78,7 @@ function AppContent() {
   const [patientId, setPatientId] = useQueryState('id')
   const [driverId, setDriverId] = useQueryState('driverId')
   const [tripId, setTripId] = useQueryState('tripId')
+  const [modalType, setModalType] = useQueryState('modal')
 
   // Show loading state while checking auth
   if (loading) {
@@ -281,51 +283,22 @@ function AppContent() {
       case 'trips':
         return (
           <DashboardPage title="Trips Management">
-            <TripsModule
-              view="list"
-              onNavigate={(view, id) => {
-                if (view === 'create') setCurrentPage('create-trip')
-                if (view === 'details' && id) {
-                  setTripId(id)
-                  setCurrentPage('trip-details')
-                }
+            <TripList
+              onCreateClick={() => setModalType('create')}
+              onTripClick={(id) => {
+                setTripId(id)
+                setCurrentPage('trip-details')
               }}
-              onBack={() => setCurrentPage('dashboard')}
-            />
-          </DashboardPage>
-        )
-      case 'create-trip':
-        return (
-          <DashboardPage title="Create New Trip">
-            <TripsModule
-              view="create"
-              onBack={() => setCurrentPage('trips')}
-            />
-          </DashboardPage>
-        )
-      case 'edit-trip':
-        return (
-          <DashboardPage title="Edit Trip">
-            <TripsModule
-              view="edit"
-              tripId={tripId || ''}
-              onBack={() => setCurrentPage('trip-details')}
             />
           </DashboardPage>
         )
       case 'trip-details':
         return (
           <DashboardPage title="Trip Details">
-            <TripsModule
-              view="details"
+            <TripDetails
               tripId={tripId || ''}
-              onNavigate={(view, id) => {
-                if (view === 'edit' && id) {
-                  setTripId(id)
-                  setCurrentPage('edit-trip')
-                }
-              }}
-              onBack={() => setCurrentPage('trips')}
+              onEdit={() => setModalType('edit')}
+              onDeleteSuccess={() => setCurrentPage('trips')}
             />
           </DashboardPage>
         )
@@ -347,12 +320,41 @@ function AppContent() {
           // Keep clear state when navigating between main modules
           if (page !== 'patient-details') setPatientId(null)
           if (page !== 'driver-details') setDriverId(null)
-          if (page !== 'trip-details' && page !== 'edit-trip' && page !== 'create-trip') setTripId(null)
+          if (page !== 'trip-details') {
+            setTripId(null)
+            setModalType(null)
+          }
+          if (page !== 'trips') {
+            // Clear create modal when leaving trips page
+            if (modalType === 'create') setModalType(null)
+          }
         }}
       />
       <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
-        {renderPage()}
+        <ErrorBoundary fallbackTitle="Page Error">
+          {renderPage()}
+        </ErrorBoundary>
       </main>
+
+      {/* Trip Dialogs rendered at App level to ensure they appear as proper overlays */}
+      {/* Only render when on trips-related pages to prevent query conflicts */}
+      {(currentPage === 'trips' || currentPage === 'trip-details') && (
+        <>
+          <TripDialog
+            key="create-dialog"
+            open={modalType === 'create'}
+            onOpenChange={(open) => setModalType(open ? 'create' : null)}
+            onSuccess={() => setModalType(null)}
+          />
+          <TripDialog
+            key={`edit-dialog-${tripId || 'none'}`}
+            open={modalType === 'edit'}
+            tripId={tripId || undefined}
+            onOpenChange={(open) => setModalType(open ? 'edit' : null)}
+            onSuccess={() => setModalType(null)}
+          />
+        </>
+      )}
     </SidebarProvider>
   )
 }
