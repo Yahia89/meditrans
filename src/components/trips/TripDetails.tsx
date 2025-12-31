@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Trip, TripStatus } from "./types";
+import type { Trip, TripStatus, TripStatusHistory } from "./types";
 import { Button } from "@/components/ui/button";
 import {
   Pencil,
@@ -32,6 +32,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 
 interface TripDetailsProps {
@@ -47,10 +62,13 @@ export function TripDetails({
   onDeleteSuccess,
   onBack,
 }: TripDetailsProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { isAdmin, isOwner } = usePermissions();
   const queryClient = useQueryClient();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [statusToUpdate, setStatusToUpdate] = useState<TripStatus | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>("");
+  const [cancelExplanation, setCancelExplanation] = useState<string>("");
 
   const { data: trip, isLoading } = useQuery({
     queryKey: ["trip", tripId],
@@ -71,35 +89,65 @@ export function TripDetails({
     },
   });
 
+  const { data: history } = useQuery({
+    queryKey: ["trip-history", tripId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trip_status_history")
+        .select("*")
+        .eq("trip_id", tripId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as TripStatusHistory[];
+    },
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({
       status,
       requestedByDriver,
+      cancelReason,
+      cancelExplanation,
     }: {
       status: TripStatus;
       requestedByDriver?: boolean;
+      cancelReason?: string;
+      cancelExplanation?: string;
     }) => {
+      const updates: any = {};
+
       if (requestedByDriver) {
-        // Foundation: Set requested status instead of immediate update
-        const { error } = await supabase
-          .from("trips")
-          .update({
-            status_requested: status,
-            status_requested_at: new Date().toISOString(),
-          })
-          .eq("id", tripId);
-        if (error) throw error;
+        updates.status_requested = status;
+        updates.status_requested_at = new Date().toISOString();
+        if (cancelReason) updates.cancel_reason = cancelReason;
+        if (cancelExplanation) updates.cancel_explanation = cancelExplanation;
       } else {
-        const { error } = await supabase
-          .from("trips")
-          .update({ status: status })
-          .eq("id", tripId);
-        if (error) throw error;
+        updates.status = status;
+        updates.status_requested = null;
+        updates.status_requested_at = null;
+        if (cancelReason) updates.cancel_reason = cancelReason;
+        if (cancelExplanation) updates.cancel_explanation = cancelExplanation;
       }
+
+      const { error } = await supabase
+        .from("trips")
+        .update(updates)
+        .eq("id", tripId);
+
+      if (error) throw error;
+
+      // Log to history
+      await supabase.from("trip_status_history").insert({
+        trip_id: tripId,
+        status: requestedByDriver ? `REQUESTED: ${status}` : status,
+        actor_id: user?.id,
+        actor_name: profile?.full_name || user?.email || "Unknown User",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
       queryClient.invalidateQueries({ queryKey: ["trips"] });
+      queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
     },
   });
 
@@ -126,9 +174,99 @@ export function TripDetails({
 
   const isDesignatedDriver = trip.driver?.user_id === user?.id;
   const canManage = isAdmin || isOwner;
-  const canAccept = isDesignatedDriver && trip.status === "assigned";
-  const canStart = isDesignatedDriver && trip.status === "accepted";
-  const canFinish = isDesignatedDriver && trip.status === "in_progress";
+
+  const handleStatusUpdate = (status: TripStatus) => {
+    if (status === "cancelled" || status === "no_show") {
+      setStatusToUpdate(status);
+    } else {
+      updateStatusMutation.mutate({
+        status,
+        requestedByDriver: isDesignatedDriver && !canManage,
+      });
+    }
+  };
+
+  const confirmStatusUpdate = () => {
+    if (!statusToUpdate) return;
+
+    updateStatusMutation.mutate({
+      status: statusToUpdate,
+      requestedByDriver: isDesignatedDriver && !canManage,
+      cancelReason: statusToUpdate === "cancelled" ? cancelReason : undefined,
+      cancelExplanation:
+        statusToUpdate === "cancelled" && cancelReason === "other"
+          ? cancelExplanation
+          : undefined,
+    });
+
+    setStatusToUpdate(null);
+    setCancelReason("");
+    setCancelExplanation("");
+  };
+
+  // Build a comprehensive timeline from trip data and history
+  const buildTimeline = () => {
+    const events: Array<{
+      id: string;
+      status: string;
+      actor_name: string;
+      created_at: string;
+    }> = [];
+
+    // Add real history events first
+    if (history && history.length > 0) {
+      history.forEach((item) => {
+        events.push({
+          id: item.id,
+          status: item.status,
+          actor_name: item.actor_name,
+          created_at: item.created_at,
+        });
+      });
+    }
+
+    // Add synthetic events from trip state if no history exists for them
+    const hasHistoryForStatus = (status: string) =>
+      events.some((e) => e.status.toLowerCase().includes(status.toLowerCase()));
+
+    // Current status event (if not already in history)
+    if (trip.status && !hasHistoryForStatus(trip.status)) {
+      events.push({
+        id: `current-${trip.status}`,
+        status: trip.status.toUpperCase(),
+        actor_name: trip.driver?.full_name || "System",
+        created_at: trip.updated_at || trip.created_at,
+      });
+    }
+
+    // Assigned event
+    if (trip.driver && !hasHistoryForStatus("assigned")) {
+      events.push({
+        id: "assigned-event",
+        status: `Assigned to ${trip.driver.full_name}`,
+        actor_name: "Admin",
+        created_at: trip.created_at,
+      });
+    }
+
+    // Created event
+    if (!hasHistoryForStatus("created")) {
+      events.push({
+        id: "created-event",
+        status: "TRIP CREATED",
+        actor_name: "System",
+        created_at: trip.created_at,
+      });
+    }
+
+    // Sort by date descending (most recent first)
+    return events.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  };
+
+  const timelineEvents = buildTimeline();
 
   return (
     <div className="space-y-6">
@@ -142,6 +280,87 @@ export function TripDetails({
           <CaretLeft weight="bold" className="w-4 h-4" />
           Back to Trips
         </Button>
+      )}
+
+      {/* Admin Review Banner */}
+      {canManage && trip.status_requested && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white border border-amber-200 flex items-center justify-center shadow-sm">
+              <Warning weight="duotone" className="w-6 h-6 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-amber-900">
+                Pending Review
+              </h3>
+              <p className="text-sm text-amber-700/80">
+                Driver has requested to change status to{" "}
+                <span className="font-bold uppercase tracking-wider">
+                  {trip.status_requested.replace("_", " ")}
+                </span>
+                {trip.cancel_reason && ` - Reason: ${trip.cancel_reason}`}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 w-full md:w-auto">
+            <Button
+              onClick={() =>
+                updateStatusMutation.mutate({
+                  status: trip.status_requested!,
+                  requestedByDriver: false,
+                })
+              }
+              className="flex-1 md:flex-none bg-amber-600 hover:bg-amber-700 text-white font-bold h-11 px-8 rounded-xl"
+            >
+              Approve
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await supabase
+                  .from("trips")
+                  .update({ status_requested: null, status_requested_at: null })
+                  .eq("id", trip.id);
+
+                await supabase.from("trip_status_history").insert({
+                  trip_id: trip.id,
+                  status: "REQUEST REJECTED",
+                  actor_id: user?.id,
+                  actor_name: profile?.full_name || user?.email || "Admin",
+                });
+
+                queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
+                queryClient.invalidateQueries({
+                  queryKey: ["trip-history", tripId],
+                });
+              }}
+              className="flex-1 md:flex-none border-amber-200 text-amber-700 hover:bg-amber-100 font-bold h-11 px-8 rounded-xl"
+            >
+              Reject
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Driver Pending Message */}
+      {isDesignatedDriver && !canManage && trip.status_requested && (
+        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-white border border-blue-100 flex items-center justify-center shadow-sm">
+            <Clock weight="duotone" className="w-5 h-5 text-blue-500" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-blue-900">
+              Status Change Pending
+            </h3>
+            <p className="text-xs text-blue-700/80">
+              Your request to mark trip as{" "}
+              <span className="font-bold uppercase">
+                {trip.status_requested.replace("_", " ")}
+              </span>{" "}
+              is waiting for admin approval.
+            </p>
+          </div>
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -187,18 +406,32 @@ export function TripDetails({
                     className={cn(
                       "px-4 py-1.5 rounded-full text-[11px] font-bold tracking-wider border uppercase",
                       trip.status === "completed"
-                        ? "bg-slate-100 text-slate-600 border-slate-200"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                         : trip.status === "in_progress"
                         ? "bg-blue-50 text-blue-700 border-blue-100"
-                        : trip.status === "cancelled"
+                        : trip.status === "cancelled" ||
+                          trip.status === "no_show"
                         ? "bg-red-50 text-red-700 border-red-100"
-                        : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                        : "bg-slate-50 text-slate-600 border-slate-200"
                     )}
                   >
-                    {trip.status}
+                    {trip.status.replace("_", " ")}
                   </div>
                 </div>
               </div>
+
+              {trip.status === "cancelled" && trip.cancel_reason && (
+                <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-xl">
+                  <p className="text-xs font-bold text-red-400 uppercase tracking-widest mb-1">
+                    Cancellation Reason
+                  </p>
+                  <p className="text-sm font-bold text-red-900">
+                    {trip.cancel_reason === "other"
+                      ? trip.cancel_explanation
+                      : trip.cancel_reason}
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                 <div className="space-y-6">
@@ -303,61 +536,90 @@ export function TripDetails({
           </div>
 
           {/* Driver Actions */}
-          {isDesignatedDriver && (
-            <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-8 shadow-sm">
+          {(isDesignatedDriver || canManage) && (
+            <div className="bg-slate-50 rounded-2xl border border-slate-200 p-8 shadow-sm">
               <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white border border-emerald-100 flex items-center justify-center shadow-sm">
+                  <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
                     <HandPointing
                       weight="duotone"
-                      className="w-6 h-6 text-emerald-600"
+                      className="w-6 h-6 text-slate-600"
                     />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-emerald-900">
-                      Driver Actions
+                    <h3 className="text-lg font-bold text-slate-900">
+                      {isDesignatedDriver
+                        ? "Driver Actions"
+                        : "Trip Management"}
                     </h3>
-                    <p className="text-sm text-emerald-700/80">
+                    <p className="text-sm text-slate-600">
                       Manage the current state of this trip.
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-4 w-full md:w-auto">
-                  {canAccept && (
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                  {/* Status Flow Buttons - Moved to right for better flow */}
+
+                  {/* Terminal Statuses (Secondary) */}
+                  {!["completed", "cancelled", "no_show"].includes(
+                    trip.status
+                  ) && (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleStatusUpdate("no_show")}
+                        className="flex-1 md:flex-none border-orange-200 text-orange-700 hover:bg-orange-50 font-bold h-11 px-6 rounded-xl transition-all duration-300"
+                      >
+                        No Show
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleStatusUpdate("cancelled")}
+                        className="flex-1 md:flex-none border-red-200 text-red-600 hover:bg-red-50 font-bold h-11 px-6 rounded-xl transition-all duration-300"
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+
+                  {trip.status === "assigned" && (
                     <Button
-                      onClick={() =>
-                        updateStatusMutation.mutate({ status: "accepted" })
-                      }
+                      onClick={() => handleStatusUpdate("accepted")}
                       className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-emerald-200/50"
                     >
                       Accept Trip
                     </Button>
                   )}
-                  {canStart && (
+
+                  {trip.status === "accepted" && (
                     <Button
-                      onClick={() =>
-                        updateStatusMutation.mutate({ status: "in_progress" })
-                      }
+                      onClick={() => handleStatusUpdate("arrived")}
+                      className="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-amber-200/50"
+                    >
+                      Mark Arrived
+                    </Button>
+                  )}
+
+                  {trip.status === "arrived" && (
+                    <Button
+                      onClick={() => handleStatusUpdate("in_progress")}
                       className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-blue-200/50"
                     >
                       Start Trip
                     </Button>
                   )}
-                  {canFinish && (
+
+                  {trip.status === "in_progress" && (
                     <Button
-                      onClick={() =>
-                        updateStatusMutation.mutate({
-                          status: "completed",
-                          requestedByDriver: false,
-                        })
-                      }
+                      onClick={() => handleStatusUpdate("completed")}
                       className="flex-1 md:flex-none bg-slate-900 hover:bg-slate-800 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-slate-200/50"
                     >
-                      Finish Trip
+                      Done
                     </Button>
                   )}
+
                   {trip.status === "completed" && (
-                    <div className="flex items-center gap-3 px-6 py-2 bg-white rounded-xl border border-emerald-100 text-emerald-700 font-bold shadow-sm">
+                    <div className="flex items-center gap-3 px-6 py-2 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-700 font-bold shadow-sm">
                       <CheckCircle
                         weight="duotone"
                         className="w-6 h-6 text-emerald-500"
@@ -461,6 +723,82 @@ export function TripDetails({
               </div>
             )}
           </div>
+
+          {/* Activity Timeline / History */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">
+              Activity Timeline
+            </h3>
+            <div className="space-y-6">
+              {timelineEvents.map((item, idx) => (
+                <div key={item.id} className="relative flex gap-4">
+                  {idx !== timelineEvents.length - 1 && (
+                    <div className="absolute left-[19px] top-10 bottom-[-24px] w-0.5 bg-slate-100" />
+                  )}
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300",
+                      item.status.includes("REQUEST")
+                        ? "bg-amber-50 border-amber-100"
+                        : item.status.toLowerCase() === "completed"
+                        ? "bg-emerald-50 border-emerald-100"
+                        : item.status.toLowerCase().includes("assigned")
+                        ? "bg-blue-50 border-blue-100"
+                        : item.status.toLowerCase().includes("created")
+                        ? "bg-slate-50 border-slate-100"
+                        : "bg-slate-50 border-slate-100"
+                    )}
+                  >
+                    {item.status.toLowerCase() === "completed" ? (
+                      <CheckCircle
+                        weight="duotone"
+                        className="w-5 h-5 text-emerald-600"
+                      />
+                    ) : item.status.includes("CANCEL") ||
+                      item.status.includes("REJECTED") ? (
+                      <Warning
+                        weight="duotone"
+                        className="w-5 h-5 text-red-500"
+                      />
+                    ) : item.status.toLowerCase().includes("assigned") ? (
+                      <Car weight="duotone" className="w-5 h-5 text-blue-500" />
+                    ) : item.status.toLowerCase().includes("created") ? (
+                      <Calendar
+                        weight="duotone"
+                        className="w-5 h-5 text-slate-400"
+                      />
+                    ) : (
+                      <Clock
+                        weight="duotone"
+                        className="w-5 h-5 text-slate-400"
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1 pt-1">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-sm font-bold text-slate-900 uppercase tracking-tight">
+                        {item.status.replace(/_/g, " ")}
+                      </p>
+                      <time className="text-[10px] font-bold text-slate-400 uppercase">
+                        {new Date(item.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </time>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      by{" "}
+                      <span className="font-semibold text-slate-700">
+                        {item.actor_name}
+                      </span>
+                      <span className="mx-2 text-slate-300">•</span>
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Delete Confirmation */}
@@ -498,6 +836,90 @@ export function TripDetails({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Status Update Dialog (Cancel/No Show) */}
+        <Dialog
+          open={!!statusToUpdate}
+          onOpenChange={(open) => !open && setStatusToUpdate(null)}
+        >
+          <DialogContent className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">
+                {statusToUpdate === "cancelled"
+                  ? "Cancel Trip"
+                  : "Mark as No Show"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="py-6 space-y-6">
+              {statusToUpdate === "cancelled" && (
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Cancellation Reason
+                  </label>
+                  <Select value={cancelReason} onValueChange={setCancelReason}>
+                    <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50/50">
+                      <SelectValue placeholder="Select a reason" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                      <SelectItem value="late driver">Late Driver</SelectItem>
+                      <SelectItem value="appointment cancel">
+                        Appointment Canceled
+                      </SelectItem>
+                      <SelectItem value="other">Other (Explain)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {statusToUpdate === "cancelled" && cancelReason === "other" && (
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Explanation
+                  </label>
+                  <Textarea
+                    value={cancelExplanation}
+                    onChange={(e) => setCancelExplanation(e.target.value)}
+                    placeholder="Please explain why the trip is being canceled..."
+                    className="min-h-[100px] rounded-xl border-slate-200 bg-slate-50/50"
+                  />
+                </div>
+              )}
+
+              <p className="text-sm text-slate-500 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+                {statusToUpdate === "cancelled"
+                  ? "Are you sure you want to cancel this trip? This action will notify relevant parties."
+                  : "Are you sure you want to mark this patient as a No Show? This will update the trip status."}
+              </p>
+            </div>
+
+            <DialogFooter className="gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => setStatusToUpdate(null)}
+                className="rounded-xl font-bold text-slate-500 h-11"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={confirmStatusUpdate}
+                disabled={
+                  (statusToUpdate === "cancelled" && !cancelReason) ||
+                  (cancelReason === "other" && !cancelExplanation)
+                }
+                className={cn(
+                  "rounded-xl font-bold h-11 px-8 shadow-lg",
+                  statusToUpdate === "cancelled"
+                    ? "bg-red-600 hover:bg-red-700 text-white shadow-red-200/50"
+                    : "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-200/50"
+                )}
+              >
+                Confirm{" "}
+                {statusToUpdate === "cancelled" ? "Cancellation" : "No Show"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

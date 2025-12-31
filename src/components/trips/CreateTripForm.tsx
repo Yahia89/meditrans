@@ -14,6 +14,7 @@ import {
   Clock,
   Clipboard,
 } from "lucide-react";
+import type { TripStatus } from "./types";
 
 interface CreateTripFormProps {
   onSuccess: () => void;
@@ -38,6 +39,7 @@ export function CreateTripForm({
     pickup_time: "",
     trip_type: "Ambulatory",
     notes: "",
+    status: "pending" as TripStatus,
   });
 
   // Fetch existing trip if editing - use different query key to avoid cache conflicts
@@ -69,6 +71,7 @@ export function CreateTripForm({
           pickup_time: date.toTimeString().split(" ")[0].substring(0, 5),
           trip_type: existingTrip.trip_type || "Ambulatory",
           notes: existingTrip.notes || "",
+          status: existingTrip.status || "pending",
         });
       }
     }
@@ -181,11 +184,10 @@ export function CreateTripForm({
         pickup_time: pickupDateTime.toISOString(),
         trip_type: formData.trip_type,
         notes: formData.notes,
-        status: finalDriverId
-          ? existingTrip?.status === "pending"
+        status:
+          formData.status === "pending" && finalDriverId
             ? "assigned"
-            : existingTrip?.status || "assigned"
-          : "pending",
+            : formData.status,
       };
 
       if (tripId) {
@@ -364,6 +366,33 @@ export function CreateTripForm({
                 <option>Wheelchair</option>
                 <option>Stretcher</option>
                 <option>Bariatric</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Clipboard className="w-4 h-4 text-slate-500" />
+                Status
+              </Label>
+              <select
+                value={formData.status}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    status: e.target.value as TripStatus,
+                  })
+                }
+                className="w-full rounded-lg border-slate-200 bg-white p-2.5"
+              >
+                <option value="pending">Pending</option>
+                <option value="assigned" disabled={!formData.driver_id}>
+                  Assigned
+                </option>
+                <option value="accepted">Accepted</option>
+                <option value="arrived">Arrived</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="no_show">No Show</option>
               </select>
             </div>
           </div>

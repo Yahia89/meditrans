@@ -1,4 +1,4 @@
-export type TripStatus = 'pending' | 'assigned' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
+export type TripStatus = 'pending' | 'assigned' | 'accepted' | 'arrived' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
 
 export interface Trip {
     id: string;
@@ -12,8 +12,11 @@ export interface Trip {
     status: TripStatus;
     notes: string | null;
     created_at: string;
+    updated_at?: string;
     status_requested?: TripStatus | null;
     status_requested_at?: string | null;
+    cancel_reason?: string | null;
+    cancel_explanation?: string | null;
     patient?: {
         id: string;
         full_name: string;
@@ -30,4 +33,13 @@ export interface Trip {
         user_id: string | null;
         vehicle_info: string | null;
     };
+}
+
+export interface TripStatusHistory {
+    id: string;
+    trip_id: string;
+    status: string;
+    actor_id: string | null;
+    actor_name: string;
+    created_at: string;
 }

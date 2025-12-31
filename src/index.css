@@ -98,8 +98,6 @@ button {
   transition: border-color 0.25s;
 }
 
-
-
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -114,8 +112,6 @@ button:focus-visible {
 a:hover {
   color: #747bff;
 }
-
-
 
 /* Override dark mode preference - always use light mode */
 @media (prefers-color-scheme: dark) {
@@ -173,3 +169,4 @@ a:hover {
     @apply bg-background text-foreground;
   }
 }
+
