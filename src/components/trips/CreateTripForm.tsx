@@ -288,16 +288,16 @@ export function CreateTripForm({
 
   return (
     <div className="bg-white">
-      <div className="space-y-8">
+      <div className="space-y-5">
         <form
           id="create-trip-form"
           onSubmit={handleSubmit}
-          className="space-y-8"
+          className="space-y-5"
         >
           {/* Patient & Driver Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="space-y-4">
-              <Label className="flex items-center gap-2 text-slate-700 font-semibold">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-slate-700 font-medium text-sm">
                 <User className="w-4 h-4 text-blue-500" />
                 Patient Information
               </Label>
@@ -307,7 +307,7 @@ export function CreateTripForm({
                 onChange={(e) =>
                   setFormData({ ...formData, patient_id: e.target.value })
                 }
-                className="w-full rounded-lg border-slate-200 bg-white p-2.5 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-md border-slate-200 bg-white h-10 px-3 text-sm focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="">Select Patient</option>
                 {patients?.map((p) => (
@@ -318,8 +318,8 @@ export function CreateTripForm({
               </select>
             </div>
 
-            <div className="space-y-4">
-              <Label className="flex items-center gap-2 text-slate-700 font-semibold">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-slate-700 font-medium text-sm">
                 <Car className="w-4 h-4 text-emerald-500" />
                 Assign Driver (Optional)
               </Label>
@@ -334,7 +334,7 @@ export function CreateTripForm({
                 onChange={(e) =>
                   setFormData({ ...formData, driver_id: e.target.value })
                 }
-                className="w-full rounded-lg border-slate-200 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full rounded-md border-slate-200 bg-white h-10 px-3 text-sm focus:ring-2 focus:ring-emerald-500/20"
               >
                 <option value="">Unassigned</option>
                 {compatibleDrivers.map((d) => (
@@ -359,11 +359,11 @@ export function CreateTripForm({
           </div>
 
           {/* Locations Section */}
-          <div className="space-y-6">
-            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Trip Details
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-red-500" />
@@ -402,7 +402,7 @@ export function CreateTripForm({
           </div>
 
           {/* Schedule Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-slate-500" />
@@ -441,7 +441,7 @@ export function CreateTripForm({
                 onChange={(e) =>
                   setFormData({ ...formData, trip_type: e.target.value })
                 }
-                className="w-full rounded-lg border-slate-200 bg-white p-2.5"
+                className="w-full rounded-md border-slate-200 bg-white h-10 px-3 text-sm"
               >
                 {TRIP_TYPES.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -463,7 +463,7 @@ export function CreateTripForm({
                     status: e.target.value as TripStatus,
                   })
                 }
-                className="w-full rounded-lg border-slate-200 bg-white p-2.5"
+                className="w-full rounded-md border-slate-200 bg-white h-10 px-3 text-sm"
               >
                 <option value="pending">Pending</option>
                 <option value="assigned" disabled={!formData.driver_id}>
@@ -484,7 +484,7 @@ export function CreateTripForm({
             <Label>Special Instructions / Notes</Label>
             <Textarea
               placeholder="Add any specific details for the driver or trip..."
-              className="min-h-[120px]"
+              className="min-h-[80px] text-sm"
               value={formData.notes}
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
