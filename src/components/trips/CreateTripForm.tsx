@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -13,8 +13,39 @@ import {
   Calendar,
   Clock,
   Clipboard,
+  AlertCircle,
 } from "lucide-react";
 import type { TripStatus } from "./types";
+
+// Trip type options (purpose-based)
+const TRIP_TYPES = [
+  { value: "work", label: "Work" },
+  { value: "school", label: "School" },
+  { value: "pleasure", label: "Pleasure" },
+  { value: "dentist", label: "Dentist" },
+  { value: "hospital_appointment", label: "Hospital Appointment" },
+  { value: "clinic", label: "Clinic" },
+  { value: "other", label: "Other" },
+] as const;
+
+// Vehicle type compatibility matrix
+// Returns true if driver's vehicle can accommodate patient's need
+const canDriverServePatient = (
+  driverVehicleType: string | null,
+  patientNeed: string | null
+): boolean => {
+  if (!patientNeed || patientNeed === "ambulatory") return true; // Any vehicle works
+  if (!driverVehicleType) return false; // No vehicle type set
+
+  const compatibility: Record<string, string[]> = {
+    common_carrier: ["ambulatory"],
+    folded_wheelchair: ["ambulatory", "folded_wheelchair"],
+    wheelchair: ["ambulatory", "folded_wheelchair", "wheelchair"],
+    van: ["ambulatory", "folded_wheelchair", "wheelchair", "stretcher"],
+  };
+
+  return compatibility[driverVehicleType]?.includes(patientNeed) || false;
+};
 
 interface CreateTripFormProps {
   onSuccess: () => void;
@@ -37,7 +68,7 @@ export function CreateTripForm({
     dropoff_location: "",
     pickup_date: "",
     pickup_time: "",
-    trip_type: "Ambulatory",
+    trip_type: "hospital_appointment",
     notes: "",
     status: "pending" as TripStatus,
   });
@@ -69,7 +100,7 @@ export function CreateTripForm({
           dropoff_location: existingTrip.dropoff_location || "",
           pickup_date: date.toISOString().split("T")[0],
           pickup_time: date.toTimeString().split(" ")[0].substring(0, 5),
-          trip_type: existingTrip.trip_type || "Ambulatory",
+          trip_type: existingTrip.trip_type || "hospital_appointment",
           notes: existingTrip.notes || "",
           status: existingTrip.status || "pending",
         });
@@ -82,7 +113,7 @@ export function CreateTripForm({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
-        .select("id, full_name")
+        .select("id, full_name, vehicle_type_need")
         .eq("org_id", currentOrganization?.id)
         .order("full_name");
       if (error) throw error;
@@ -96,7 +127,7 @@ export function CreateTripForm({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("drivers")
-        .select("id, full_name, email, phone")
+        .select("id, full_name, email, phone, vehicle_type")
         .eq("org_id", currentOrganization?.id)
         .order("full_name");
       if (error) throw error;
@@ -124,8 +155,40 @@ export function CreateTripForm({
     ...(drivers || []).map((d) => ({ ...d, type: "driver" as const })),
     ...(employees || [])
       .filter((e) => !(drivers || []).some((d) => d.email === e.email))
-      .map((e) => ({ ...e, type: "employee" as const })),
+      .map((e) => ({
+        ...e,
+        type: "employee" as const,
+        vehicle_type: null as string | null,
+      })),
   ].sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
+
+  // Get selected patient's vehicle need
+  const selectedPatient = patients?.find((p) => p.id === formData.patient_id);
+  const patientVehicleNeed = selectedPatient?.vehicle_type_need || null;
+
+  // Filter drivers based on patient's vehicle need
+  const compatibleDrivers = useMemo(() => {
+    if (!patientVehicleNeed) return allPotentialDrivers;
+    return allPotentialDrivers.filter((d) =>
+      canDriverServePatient(d.vehicle_type, patientVehicleNeed)
+    );
+  }, [allPotentialDrivers, patientVehicleNeed]);
+
+  // Check if selected driver is still compatible when patient changes
+  useEffect(() => {
+    if (formData.driver_id && patientVehicleNeed) {
+      const selectedDriver = allPotentialDrivers.find(
+        (d) => d.id === formData.driver_id
+      );
+      if (
+        selectedDriver &&
+        !canDriverServePatient(selectedDriver.vehicle_type, patientVehicleNeed)
+      ) {
+        // Clear incompatible driver selection
+        setFormData((prev) => ({ ...prev, driver_id: "" }));
+      }
+    }
+  }, [formData.patient_id, patientVehicleNeed]);
 
   const toggleLoading = (val: boolean) => {
     onLoadingChange?.(val);
@@ -260,6 +323,12 @@ export function CreateTripForm({
                 <Car className="w-4 h-4 text-emerald-500" />
                 Assign Driver (Optional)
               </Label>
+              {patientVehicleNeed && compatibleDrivers.length === 0 && (
+                <div className="flex items-center gap-2 text-amber-600 text-sm bg-amber-50 p-2 rounded-lg">
+                  <AlertCircle className="w-4 h-4" />
+                  No drivers available for {patientVehicleNeed} needs
+                </div>
+              )}
               <select
                 value={formData.driver_id}
                 onChange={(e) =>
@@ -268,12 +337,24 @@ export function CreateTripForm({
                 className="w-full rounded-lg border-slate-200 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500/20"
               >
                 <option value="">Unassigned</option>
-                {allPotentialDrivers.map((d) => (
+                {compatibleDrivers.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.full_name} {d.type === "employee" ? "(Staff)" : ""}
+                    {d.full_name}
+                    {d.vehicle_type
+                      ? ` (${d.vehicle_type.replace("_", " ")})`
+                      : ""}
+                    {d.type === "employee" ? " - Staff" : ""}
                   </option>
                 ))}
               </select>
+              {patientVehicleNeed && (
+                <p className="text-xs text-slate-500">
+                  Showing drivers compatible with:{" "}
+                  <span className="font-medium capitalize">
+                    {patientVehicleNeed.replace("_", " ")}
+                  </span>
+                </p>
+              )}
             </div>
           </div>
 
@@ -362,10 +443,11 @@ export function CreateTripForm({
                 }
                 className="w-full rounded-lg border-slate-200 bg-white p-2.5"
               >
-                <option>Ambulatory</option>
-                <option>Wheelchair</option>
-                <option>Stretcher</option>
-                <option>Bariatric</option>
+                {TRIP_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="space-y-2">

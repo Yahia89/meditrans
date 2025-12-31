@@ -18,6 +18,14 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { cn, formatPhoneNumber } from "@/lib/utils";
 
+// Vehicle type need options for patients
+const VEHICLE_TYPE_NEEDS = [
+  { value: "ambulatory", label: "Ambulatory (Can walk)" },
+  { value: "folded_wheelchair", label: "Folded Wheelchair" },
+  { value: "wheelchair", label: "Wheelchair" },
+  { value: "stretcher", label: "Stretcher" },
+] as const;
+
 // Schema for patient form
 const patientSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters"),
@@ -27,9 +35,26 @@ const patientSchema = z.object({
     .regex(/^\(\d{3}\) \d{3}-\d{4}$/, "Invalid phone format (555) 555-5555")
     .optional()
     .or(z.literal("")),
-  date_of_birth: z.string().optional(),
+  dob: z.string().optional(),
   primary_address: z.string().optional(),
+  county: z.string().optional(),
+  // Service & Referral
+  waiver_type: z.string().optional(),
+  referral_by: z.string().optional(),
+  referral_date: z.string().optional(),
+  referral_expiration_date: z.string().optional(),
+  service_type: z.string().optional(),
+  // Case Management
+  case_manager: z.string().optional(),
+  case_manager_phone: z.string().optional(),
+  // Billing
+  monthly_credit: z.string().optional(),
+  credit_used_for: z.string().optional(),
+  // Transportation
+  vehicle_type_need: z.string().optional(),
   notes: z.string().optional(),
+  // Legacy
+  date_of_birth: z.string().optional(),
 });
 
 interface PatientFormData extends z.infer<typeof patientSchema> {
@@ -80,16 +105,38 @@ export function PatientForm({
           full_name: initialData.full_name,
           email: initialData.email || "",
           phone: initialData.phone ? formatPhoneNumber(initialData.phone) : "",
-          date_of_birth: initialData.date_of_birth || "",
+          dob: initialData.dob || initialData.date_of_birth || "",
           primary_address: initialData.primary_address || "",
+          county: initialData.county || "",
+          waiver_type: initialData.waiver_type || "",
+          referral_by: initialData.referral_by || "",
+          referral_date: initialData.referral_date || "",
+          referral_expiration_date: initialData.referral_expiration_date || "",
+          service_type: initialData.service_type || "",
+          case_manager: initialData.case_manager || "",
+          case_manager_phone: initialData.case_manager_phone || "",
+          monthly_credit: initialData.monthly_credit?.toString() || "",
+          credit_used_for: initialData.credit_used_for || "",
+          vehicle_type_need: initialData.vehicle_type_need || "",
           notes: initialData.notes || "",
         }
       : {
           full_name: "",
           email: "",
           phone: "",
-          date_of_birth: "",
+          dob: "",
           primary_address: "",
+          county: "",
+          waiver_type: "",
+          referral_by: "",
+          referral_date: "",
+          referral_expiration_date: "",
+          service_type: "",
+          case_manager: "",
+          case_manager_phone: "",
+          monthly_credit: "",
+          credit_used_for: "",
+          vehicle_type_need: "",
           notes: "",
         },
   });
@@ -130,8 +177,22 @@ export function PatientForm({
         full_name: data.full_name,
         email: data.email || null,
         phone: data.phone || null,
-        date_of_birth: data.date_of_birth || null,
+        dob: data.dob || null,
+        date_of_birth: data.dob || null, // Legacy field
         primary_address: data.primary_address || null,
+        county: data.county || null,
+        waiver_type: data.waiver_type || null,
+        referral_by: data.referral_by || null,
+        referral_date: data.referral_date || null,
+        referral_expiration_date: data.referral_expiration_date || null,
+        service_type: data.service_type || null,
+        case_manager: data.case_manager || null,
+        case_manager_phone: data.case_manager_phone || null,
+        monthly_credit: data.monthly_credit
+          ? parseFloat(data.monthly_credit)
+          : null,
+        credit_used_for: data.credit_used_for || null,
+        vehicle_type_need: data.vehicle_type_need || null,
         notes: data.notes || null,
         custom_fields: Object.keys(fieldsObj).length > 0 ? fieldsObj : null,
       };
@@ -174,7 +235,7 @@ export function PatientForm({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
         <DialogHeader className="p-6 pb-4 border-b">
           <DialogTitle className="text-xl font-semibold text-slate-900">
             {initialData ? "Edit Patient" : "Add New Patient"}
@@ -182,84 +243,243 @@ export function PatientForm({
           <DialogDescription>
             {initialData
               ? "Update the patient's information below."
-              : "Enter the patient's information below. Custom fields can be added for organization-specific data."}
+              : "Enter the patient's information below."}
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="flex-1">
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="space-y-4 p-6 pt-4"
+            className="space-y-6 p-6 pt-4"
           >
-            {/* Required Field */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">
-                Full Name <span className="text-red-500">*</span>
-              </label>
-              <Input
-                {...register("full_name")}
-                placeholder="John Smith"
-                className={cn(errors.full_name && "border-red-500")}
-              />
-              {errors.full_name && (
-                <p className="text-xs text-red-500">
-                  {errors.full_name.message}
-                </p>
-              )}
-            </div>
+            {/* Basic Information Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider border-b pb-2">
+                Basic Information
+              </h3>
 
-            {/* Contact Info Row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Email
-                </label>
-                <Input
-                  {...register("email")}
-                  type="email"
-                  placeholder="patient@email.com"
-                  className={cn(errors.email && "border-red-500")}
-                />
-                {errors.email && (
-                  <p className="text-xs text-red-500">{errors.email.message}</p>
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    {...register("full_name")}
+                    placeholder="John Smith"
+                    className={cn(errors.full_name && "border-red-500")}
+                  />
+                  {errors.full_name && (
+                    <p className="text-xs text-red-500">
+                      {errors.full_name.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Date of Birth
+                  </label>
+                  <Input {...register("dob")} type="date" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Phone
-                </label>
-                <Input
-                  {...register("phone")}
-                  onChange={(e) => {
-                    const formatted = formatPhoneNumber(e.target.value);
-                    setValue("phone", formatted, { shouldValidate: true });
-                  }}
-                  placeholder="(555) 123-4567"
-                  className={cn(errors.phone && "border-red-500")}
-                />
-                {errors.phone && (
-                  <p className="text-xs text-red-500">{errors.phone.message}</p>
-                )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Email
+                  </label>
+                  <Input
+                    {...register("email")}
+                    type="email"
+                    placeholder="patient@email.com"
+                    className={cn(errors.email && "border-red-500")}
+                  />
+                  {errors.email && (
+                    <p className="text-xs text-red-500">
+                      {errors.email.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Phone
+                  </label>
+                  <Input
+                    {...register("phone")}
+                    onChange={(e) => {
+                      const formatted = formatPhoneNumber(e.target.value);
+                      setValue("phone", formatted, { shouldValidate: true });
+                    }}
+                    placeholder="(555) 123-4567"
+                    className={cn(errors.phone && "border-red-500")}
+                  />
+                  {errors.phone && (
+                    <p className="text-xs text-red-500">
+                      {errors.phone.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Address
+                  </label>
+                  <Input
+                    {...register("primary_address")}
+                    placeholder="123 Main St, City, State ZIP"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    County
+                  </label>
+                  <Input {...register("county")} placeholder="County name" />
+                </div>
               </div>
             </div>
 
-            {/* Date of Birth */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">
-                Date of Birth
-              </label>
-              <Input {...register("date_of_birth")} type="date" />
+            {/* Transportation Needs Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider border-b pb-2">
+                Transportation Needs
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Vehicle Type Needed <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register("vehicle_type_need")}
+                    className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+                  >
+                    <option value="">Select type needed</option>
+                    {VEHICLE_TYPE_NEEDS.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500">
+                    Used to match with compatible drivers
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Service Type
+                  </label>
+                  <Input
+                    {...register("service_type")}
+                    placeholder="e.g., Medical, Personal"
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* Address */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">
-                Primary Address
-              </label>
-              <Input
-                {...register("primary_address")}
-                placeholder="123 Main St, City, State ZIP"
-              />
+            {/* Service & Referral Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider border-b pb-2">
+                Service & Referral
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Waiver Type
+                  </label>
+                  <Input
+                    {...register("waiver_type")}
+                    placeholder="Waiver type"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Referred By
+                  </label>
+                  <Input
+                    {...register("referral_by")}
+                    placeholder="Referral source"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Referral Date
+                  </label>
+                  <Input {...register("referral_date")} type="date" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Referral Expiration
+                  </label>
+                  <Input
+                    {...register("referral_expiration_date")}
+                    type="date"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Case Management Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider border-b pb-2">
+                Case Management
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Case Manager Name
+                  </label>
+                  <Input
+                    {...register("case_manager")}
+                    placeholder="Case manager name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Case Manager Phone
+                  </label>
+                  <Input
+                    {...register("case_manager_phone")}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Billing Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider border-b pb-2">
+                Billing & Credits
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Monthly Credit ($)
+                  </label>
+                  <Input
+                    {...register("monthly_credit")}
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Credit Used For
+                  </label>
+                  <Input
+                    {...register("credit_used_for")}
+                    placeholder="e.g., Medical appointments only"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Notes */}
