@@ -49,9 +49,9 @@ export type Page = (typeof pages)[number];
 import { UploadReviewPage } from "./components/upload-review-page";
 import { PatientDetailsPage } from "./components/patient-details-page";
 import { DriverDetailsPage } from "./components/driver-details-page";
-import { TripList } from "./components/trips/TripList";
 import { TripDetails } from "./components/trips/TripDetails";
 import { TripDialog } from "./components/trips/TripDialog";
+import { TripsScheduler } from "./components/trips/TripsScheduler";
 import { ErrorBoundary } from "./components/error-boundary";
 
 function AppContent() {
@@ -295,7 +295,7 @@ function AppContent() {
       case "trips":
         return (
           <DashboardPage title="Trips Management">
-            <TripList
+            <TripsScheduler
               onCreateClick={() => setModalType("create")}
               onTripClick={(id) => {
                 setTripId(id);
