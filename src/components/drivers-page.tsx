@@ -1,562 +1,676 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
-    MagnifyingGlass,
-    Plus,
-    DotsThreeVertical,
-    Phone,
-    Envelope,
-    Star,
-    Funnel,
-    DownloadSimple,
-    NavigationArrow,
-    Car,
-    CloudArrowUp,
-} from "@phosphor-icons/react"
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { useOnboarding } from '@/contexts/OnboardingContext'
-import { useOrganization } from '@/contexts/OrganizationContext'
-import { DriversEmptyState } from '@/components/ui/empty-state'
-import { DriverForm } from '@/components/forms/driver-form'
-import { Loader2, Pencil, Trash } from 'lucide-react'
-import { exportToExcel } from '@/lib/export'
+  MagnifyingGlass,
+  Plus,
+  DotsThreeVertical,
+  Phone,
+  Envelope,
+  Star,
+  Funnel,
+  DownloadSimple,
+  NavigationArrow,
+  Car,
+  CloudArrowUp,
+} from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useOnboarding } from "@/contexts/OnboardingContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { DriversEmptyState } from "@/components/ui/empty-state";
+import { DriverForm } from "@/components/forms/driver-form";
+import { Loader2, Pencil, Trash } from "lucide-react";
+import { exportToExcel } from "@/lib/export";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useQueryClient } from '@tanstack/react-query'
-import { DriverDetailsPage } from '@/components/driver-details-page'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useQueryClient } from "@tanstack/react-query";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { DriverDetailsPage } from "@/components/driver-details-page";
 
 interface Driver {
-    id: string
-    name: string
-    phone: string
-    email: string
-    vehicleType: string
-    licensePlate: string
-    rating: number
-    totalTrips: number
-    status: 'available' | 'on-trip' | 'offline'
-    currentLocation?: string
-    custom_fields?: Record<string, string> | null
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  vehicleType: string;
+  licensePlate: string;
+  rating: number;
+  totalTrips: number;
+  status: "available" | "on-trip" | "offline";
+  currentLocation?: string;
+  custom_fields?: Record<string, string> | null;
 }
 
 // Demo data for preview mode
 const demoDrivers: Driver[] = [
-    {
-        id: '1',
-        name: 'Michael Chen',
-        phone: '(555) 111-2222',
-        email: 'michael.chen@meditrans.com',
-        vehicleType: 'Van',
-        licensePlate: 'ABC-1234',
-        rating: 4.9,
-        totalTrips: 342,
-        status: 'available',
-        currentLocation: 'Downtown District'
-    },
-    {
-        id: '2',
-        name: 'David Wilson',
-        phone: '(555) 222-3333',
-        email: 'david.wilson@meditrans.com',
-        vehicleType: 'Sedan',
-        licensePlate: 'XYZ-5678',
-        rating: 4.8,
-        totalTrips: 298,
-        status: 'on-trip',
-        currentLocation: 'En route to City Medical'
-    },
-    {
-        id: '3',
-        name: 'James Davis',
-        phone: '(555) 333-4444',
-        email: 'james.davis@meditrans.com',
-        vehicleType: 'SUV',
-        licensePlate: 'LMN-9012',
-        rating: 4.7,
-        totalTrips: 256,
-        status: 'available',
-        currentLocation: 'West Side'
-    },
-    {
-        id: '4',
-        name: 'Robert Martinez',
-        phone: '(555) 444-5555',
-        email: 'robert.m@meditrans.com',
-        vehicleType: 'Van',
-        licensePlate: 'PQR-3456',
-        rating: 4.9,
-        totalTrips: 412,
-        status: 'on-trip',
-        currentLocation: 'Highway 101'
-    },
-    {
-        id: '5',
-        name: 'Thomas Anderson',
-        phone: '(555) 555-6666',
-        email: 'thomas.a@meditrans.com',
-        vehicleType: 'Sedan',
-        licensePlate: 'STU-7890',
-        rating: 4.6,
-        totalTrips: 189,
-        status: 'offline'
-    },
-]
+  {
+    id: "1",
+    name: "Michael Chen",
+    phone: "(555) 111-2222",
+    email: "michael.chen@meditrans.com",
+    vehicleType: "Van",
+    licensePlate: "ABC-1234",
+    rating: 4.9,
+    totalTrips: 342,
+    status: "available",
+    currentLocation: "Downtown District",
+  },
+  {
+    id: "2",
+    name: "David Wilson",
+    phone: "(555) 222-3333",
+    email: "david.wilson@meditrans.com",
+    vehicleType: "Sedan",
+    licensePlate: "XYZ-5678",
+    rating: 4.8,
+    totalTrips: 298,
+    status: "on-trip",
+    currentLocation: "En route to City Medical",
+  },
+  {
+    id: "3",
+    name: "James Davis",
+    phone: "(555) 333-4444",
+    email: "james.davis@meditrans.com",
+    vehicleType: "SUV",
+    licensePlate: "LMN-9012",
+    rating: 4.7,
+    totalTrips: 256,
+    status: "available",
+    currentLocation: "West Side",
+  },
+  {
+    id: "4",
+    name: "Robert Martinez",
+    phone: "(555) 444-5555",
+    email: "robert.m@meditrans.com",
+    vehicleType: "Van",
+    licensePlate: "PQR-3456",
+    rating: 4.9,
+    totalTrips: 412,
+    status: "on-trip",
+    currentLocation: "Highway 101",
+  },
+  {
+    id: "5",
+    name: "Thomas Anderson",
+    phone: "(555) 555-6666",
+    email: "thomas.a@meditrans.com",
+    vehicleType: "Sedan",
+    licensePlate: "STU-7890",
+    rating: 4.6,
+    totalTrips: 189,
+    status: "offline",
+  },
+];
 
 // Inline stat component matching reference design
-function InlineStat({ label, value, valueColor = "text-slate-900", suffix }: {
-    label: string;
-    value: string | number;
-    valueColor?: string;
-    suffix?: React.ReactNode;
+function InlineStat({
+  label,
+  value,
+  valueColor = "text-slate-900",
+  suffix,
+}: {
+  label: string;
+  value: string | number;
+  valueColor?: string;
+  suffix?: React.ReactNode;
 }) {
-    return (
-        <div className="flex flex-col gap-1">
-            <span className="text-sm text-slate-500">{label}</span>
-            <div className="flex items-center gap-1">
-                <span className={cn("text-2xl font-semibold tracking-tight", valueColor)}>
-                    {value}
-                </span>
-                {suffix}
-            </div>
-        </div>
-    );
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm text-slate-500">{label}</span>
+      <div className="flex items-center gap-1">
+        <span
+          className={cn("text-2xl font-semibold tracking-tight", valueColor)}
+        >
+          {value}
+        </span>
+        {suffix}
+      </div>
+    </div>
+  );
 }
 
 // Zero stat for empty state
 function ZeroStat({ label }: { label: string }) {
-    return (
-        <div className="flex flex-col gap-1">
-            <span className="text-sm text-slate-500">{label}</span>
-            <span className="text-2xl font-semibold tracking-tight text-slate-300">
-                0
-            </span>
-        </div>
-    );
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm text-slate-500">{label}</span>
+      <span className="text-2xl font-semibold tracking-tight text-slate-300">
+        0
+      </span>
+    </div>
+  );
 }
 
 // Demo mode indicator badge
 function DemoIndicator() {
-    return (
-        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-            Demo Data
-        </span>
-    );
+  return (
+    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+      Demo Data
+    </span>
+  );
 }
 
 interface DriversPageProps {
-    onDriverClick?: (id: string) => void
+  onDriverClick?: (id: string) => void;
 }
 
 export function DriversPage({ onDriverClick }: DriversPageProps) {
-    const [searchQuery, setSearchQuery] = useState('')
-    const [showAddForm, setShowAddForm] = useState(false)
-    const [editingDriver, setEditingDriver] = useState<Driver | null>(null)
-    const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null)
-    const { isDemoMode, navigateTo } = useOnboarding()
-    const { currentOrganization } = useOrganization()
-    const queryClient = useQueryClient()
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
+  const { isDemoMode, navigateTo } = useOnboarding();
+  const { currentOrganization } = useOrganization();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
 
-    const { data: realDrivers, isLoading } = useQuery({
-        queryKey: ['drivers', currentOrganization?.id],
-        queryFn: async () => {
-            if (!currentOrganization) return []
+  const { data: realDrivers, isLoading } = useQuery({
+    queryKey: ["drivers", currentOrganization?.id],
+    queryFn: async () => {
+      if (!currentOrganization) return [];
 
-            const { data, error } = await supabase
-                .from('drivers')
-                .select('*')
-                .eq('org_id', currentOrganization.id)
-                .order('created_at', { ascending: false })
+      const { data, error } = await supabase
+        .from("drivers")
+        .select("*")
+        .eq("org_id", currentOrganization.id)
+        .order("created_at", { ascending: false });
 
-            if (error) throw error
+      if (error) throw error;
 
-            return data.map(d => ({
-                id: d.id,
-                name: d.full_name,
-                phone: d.phone || '',
-                email: d.email || '',
-                vehicleType: d.vehicle_info || 'Unknown',
-                licensePlate: d.license_number || 'Unknown',
-                rating: 5.0, // Mock for now
-                totalTrips: 0, // Mock for now
-                status: (d.status || 'available').toLowerCase() as 'available' | 'on-trip' | 'offline',
-                currentLocation: undefined, // Mock for now
-                custom_fields: d.custom_fields
-            } as Driver))
-        },
-        enabled: !!currentOrganization
-    })
+      return data.map(
+        (d) =>
+          ({
+            id: d.id,
+            name: d.full_name,
+            phone: d.phone || "",
+            email: d.email || "",
+            vehicleType: d.vehicle_info || "Unknown",
+            licensePlate: d.license_number || "Unknown",
+            rating: 5.0, // Mock for now
+            totalTrips: 0, // Mock for now
+            status: (d.status || "available").toLowerCase() as
+              | "available"
+              | "on-trip"
+              | "offline",
+            currentLocation: undefined, // Mock for now
+            custom_fields: d.custom_fields,
+          } as Driver)
+      );
+    },
+    enabled: !!currentOrganization,
+  });
 
-    const handleExport = () => {
-        if (!drivers.length) return
-        const exportData = drivers.map(d => ({
-            Name: d.name,
-            Email: d.email,
-            Phone: d.phone,
-            'Vehicle Type': d.vehicleType,
-            'License Plate': d.licensePlate,
-            Rating: d.rating,
-            'Total Trips': d.totalTrips,
-            Status: d.status
-        }))
-        exportToExcel(exportData, `drivers_${new Date().toISOString().split('T')[0]}`)
+  const handleExport = () => {
+    if (!drivers.length) return;
+    const exportData = drivers.map((d) => ({
+      Name: d.name,
+      Email: d.email,
+      Phone: d.phone,
+      "Vehicle Type": d.vehicleType,
+      "License Plate": d.licensePlate,
+      Rating: d.rating,
+      "Total Trips": d.totalTrips,
+      Status: d.status,
+    }));
+    exportToExcel(
+      exportData,
+      `drivers_${new Date().toISOString().split("T")[0]}`
+    );
+  };
+
+  const handleDeleteDriver = async () => {
+    if (!deleteId || isDemoMode) return;
+    setIsDeleting(true);
+
+    try {
+      const { error } = await supabase
+        .from("drivers")
+        .delete()
+        .eq("id", deleteId);
+      if (error) throw error;
+      queryClient.invalidateQueries({
+        queryKey: ["drivers", currentOrganization?.id],
+      });
+      setDeleteId(null);
+    } catch (err) {
+      console.error("Failed to delete driver:", err);
+    } finally {
+      setIsDeleting(false);
     }
+  };
 
-    const handleDeleteDriver = async (id: string, e?: React.MouseEvent) => {
-        e?.stopPropagation()
-        if (isDemoMode) return
-        if (!window.confirm('Are you sure you want to delete this driver?')) return
+  const hasRealData = realDrivers && realDrivers.length > 0;
+  const showData = hasRealData || isDemoMode;
+  const drivers = hasRealData ? realDrivers : isDemoMode ? demoDrivers : [];
 
-        try {
-            const { error } = await supabase.from('drivers').delete().eq('id', id)
-            if (error) throw error
-            queryClient.invalidateQueries({ queryKey: ['drivers', currentOrganization?.id] })
-        } catch (err) {
-            console.error('Failed to delete driver:', err)
-        }
+  const filteredDrivers = drivers.filter((driver) => {
+    const nameMatch = (driver.name || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const emailMatch = (driver.email || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const phoneMatch = (driver.phone || "").includes(searchQuery);
+    const plateMatch = (driver.licensePlate || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    return nameMatch || emailMatch || phoneMatch || plateMatch;
+  });
+
+  const availableCount = drivers.filter((d) => d.status === "available").length;
+  const onTripCount = drivers.filter((d) => d.status === "on-trip").length;
+  const avgRating =
+    drivers.length > 0
+      ? (
+          drivers.reduce((sum, d) => sum + d.rating, 0) / drivers.length
+        ).toFixed(1)
+      : "0.0";
+
+  const handleDriverSelect = (id: string) => {
+    if (onDriverClick) {
+      onDriverClick(id);
+    } else {
+      setSelectedDriverId(id);
     }
+  };
 
-    const hasRealData = realDrivers && realDrivers.length > 0
-    const showData = hasRealData || isDemoMode
-    const drivers = hasRealData ? realDrivers : (isDemoMode ? demoDrivers : [])
-
-    const filteredDrivers = drivers.filter(driver => {
-        const nameMatch = (driver.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-        const emailMatch = (driver.email || '').toLowerCase().includes(searchQuery.toLowerCase())
-        const phoneMatch = (driver.phone || '').includes(searchQuery)
-        const plateMatch = (driver.licensePlate || '').toLowerCase().includes(searchQuery.toLowerCase())
-        return nameMatch || emailMatch || phoneMatch || plateMatch
-    })
-
-    const availableCount = drivers.filter(d => d.status === 'available').length
-    const onTripCount = drivers.filter(d => d.status === 'on-trip').length
-    const avgRating = drivers.length > 0
-        ? (drivers.reduce((sum, d) => sum + d.rating, 0) / drivers.length).toFixed(1)
-        : '0.0'
-
-    const handleDriverSelect = (id: string) => {
-        if (onDriverClick) {
-            onDriverClick(id)
-        } else {
-            setSelectedDriverId(id)
-        }
-    }
-
-    if (selectedDriverId) {
-        return (
-            <DriverDetailsPage
-                id={selectedDriverId}
-                onBack={() => setSelectedDriverId(null)}
-            />
-        )
-    }
-
-    if (isLoading) {
-        return (
-            <div className="flex h-96 items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-            </div>
-        )
-    }
-
-    // Show empty state if no real data and not in demo mode
-    if (!showData) {
-        return (
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-semibold text-slate-900">Drivers</h1>
-                        <p className="text-sm text-slate-500">
-                            Manage driver fleet and availability
-                        </p>
-                    </div>
-                </div>
-
-                {/* Stats Row with zeros */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
-                        <div className="pl-0">
-                            <ZeroStat label="Total Drivers" />
-                        </div>
-                        <div className="pl-8">
-                            <ZeroStat label="Available Now" />
-                        </div>
-                        <div className="pl-8">
-                            <ZeroStat label="On Trip" />
-                        </div>
-                        <div className="pl-8">
-                            <ZeroStat label="Avg Rating" />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Empty State */}
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                    <DriversEmptyState
-                        onAddDriver={() => {
-                            setShowAddForm(true)
-                        }}
-                        onUpload={() => navigateTo('upload')}
-                    />
-                </div>
-
-                <DriverForm
-                    open={showAddForm}
-                    onOpenChange={setShowAddForm}
-                />
-            </div>
-        )
-    }
-
+  if (selectedDriverId) {
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                    <div className="flex items-center">
-                        <h1 className="text-2xl font-semibold text-slate-900">Drivers</h1>
-                        {isDemoMode && <DemoIndicator />}
-                    </div>
-                    <p className="text-sm text-slate-500">
-                        Manage driver fleet and availability
-                    </p>
+      <DriverDetailsPage
+        id={selectedDriverId}
+        onBack={() => setSelectedDriverId(null)}
+      />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  // Show empty state if no real data and not in demo mode
+  if (!showData) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold text-slate-900">Drivers</h1>
+            <p className="text-sm text-slate-500">
+              Manage driver fleet and availability
+            </p>
+          </div>
+        </div>
+
+        {/* Stats Row with zeros */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
+            <div className="pl-0">
+              <ZeroStat label="Total Drivers" />
+            </div>
+            <div className="pl-8">
+              <ZeroStat label="Available Now" />
+            </div>
+            <div className="pl-8">
+              <ZeroStat label="On Trip" />
+            </div>
+            <div className="pl-8">
+              <ZeroStat label="Avg Rating" />
+            </div>
+          </div>
+        </div>
+
+        {/* Empty State */}
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <DriversEmptyState
+            onAddDriver={() => {
+              setShowAddForm(true);
+            }}
+            onUpload={() => navigateTo("upload")}
+          />
+        </div>
+
+        <DriverForm open={showAddForm} onOpenChange={setShowAddForm} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center">
+            <h1 className="text-2xl font-semibold text-slate-900">Drivers</h1>
+            {isDemoMode && <DemoIndicator />}
+          </div>
+          <p className="text-sm text-slate-500">
+            Manage driver fleet and availability
+          </p>
+        </div>
+        <Button
+          onClick={() => setShowAddForm(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
+        >
+          <Plus size={18} weight="bold" />
+          Add Driver
+        </Button>
+      </div>
+
+      {/* Driver Form (Add/Edit) */}
+      <DriverForm
+        open={showAddForm || !!editingDriver}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowAddForm(false);
+            setEditingDriver(null);
+          }
+        }}
+        initialData={
+          editingDriver
+            ? {
+                id: editingDriver.id,
+                full_name: editingDriver.name,
+                email: editingDriver.email,
+                phone: editingDriver.phone,
+                license_number: editingDriver.licensePlate,
+                vehicle_info: editingDriver.vehicleType,
+                custom_fields: editingDriver.custom_fields,
+              }
+            : undefined
+        }
+      />
+      {isDemoMode && (
+        <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+              <CloudArrowUp
+                size={20}
+                weight="duotone"
+                className="text-amber-600"
+              />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-900">
+                Viewing demo driver data
+              </p>
+              <p className="text-xs text-amber-700">
+                Upload your own data or add drivers to see real records
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateTo("upload")}
+              className="border-amber-300 text-amber-700 hover:bg-amber-100"
+            >
+              Upload Data
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Stats Row - Inline like reference */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
+          <div className="pl-0">
+            <InlineStat label="Total Drivers" value={drivers.length} />
+          </div>
+          <div className="pl-8">
+            <InlineStat
+              label="Available Now"
+              value={availableCount}
+              valueColor="text-[#2E7D32]"
+            />
+          </div>
+          <div className="pl-8">
+            <InlineStat
+              label="On Trip"
+              value={onTripCount}
+              valueColor="text-[#1976D2]"
+            />
+          </div>
+          <div className="pl-8">
+            <InlineStat
+              label="Avg Rating"
+              value={avgRating}
+              valueColor="text-[#E65100]"
+              suffix={
+                <Star size={20} weight="fill" className="text-[#FFA726]" />
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex-1 relative">
+          <MagnifyingGlass
+            size={18}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+          <input
+            type="text"
+            placeholder="Search drivers by name, email, phone or license plate..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+          />
+        </div>
+        <Button
+          variant="outline"
+          className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
+        >
+          <Funnel size={16} />
+          Filters
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleExport}
+          className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
+        >
+          <DownloadSimple size={16} />
+          Export
+        </Button>
+      </div>
+
+      {/* Drivers Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {filteredDrivers.map((driver) => (
+          <div
+            key={driver.id}
+            onClick={() => handleDriverSelect(driver.id)}
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-[#3D5A3D] flex items-center justify-center text-white text-lg font-semibold">
+                  {(driver.name || "D")
+                    .split(" ")
+                    .filter(Boolean)
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()}
                 </div>
-                <Button
-                    onClick={() => setShowAddForm(true)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
-                >
-                    <Plus size={18} weight="bold" />
-                    Add Driver
-                </Button>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    {driver.name}
+                  </h3>
+                  <div className="flex items-center gap-1 mt-1">
+                    <Star size={14} weight="fill" className="text-[#FFA726]" />
+                    <span className="text-sm font-semibold text-slate-900">
+                      {driver.rating}
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      ({driver.totalTrips} trips)
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <span
+                className={cn(
+                  "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                  driver.status === "available" &&
+                    "bg-[#E8F5E9] text-[#2E7D32]",
+                  driver.status === "on-trip" && "bg-[#E3F2FD] text-[#1976D2]",
+                  driver.status === "offline" && "bg-slate-100 text-slate-600"
+                )}
+              >
+                {driver.status === "on-trip"
+                  ? "On Trip"
+                  : driver.status.charAt(0).toUpperCase() +
+                    driver.status.slice(1)}
+              </span>
             </div>
 
-            {/* Driver Form (Add/Edit) */}
-            <DriverForm
-                open={showAddForm || !!editingDriver}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setShowAddForm(false)
-                        setEditingDriver(null)
-                    }
-                }}
-                initialData={editingDriver ? {
-                    id: editingDriver.id,
-                    full_name: editingDriver.name,
-                    email: editingDriver.email,
-                    phone: editingDriver.phone,
-                    license_number: editingDriver.licensePlate,
-                    vehicle_info: editingDriver.vehicleType,
-                    custom_fields: editingDriver.custom_fields
-                } : undefined}
-            />
-            {isDemoMode && (
-                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-                            <CloudArrowUp size={20} weight="duotone" className="text-amber-600" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-sm font-medium text-amber-900">
-                                Viewing demo driver data
-                            </p>
-                            <p className="text-xs text-amber-700">
-                                Upload your own data or add drivers to see real records
-                            </p>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigateTo('upload')}
-                            className="border-amber-300 text-amber-700 hover:bg-amber-100"
-                        >
-                            Upload Data
-                        </Button>
-                    </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Phone
+                    size={14}
+                    weight="duotone"
+                    className="text-slate-400"
+                  />
+                  {driver.phone}
                 </div>
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Envelope
+                    size={14}
+                    weight="duotone"
+                    className="text-slate-400"
+                  />
+                  <span className="truncate">{driver.email}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Car size={14} weight="duotone" className="text-slate-400" />
+                  {driver.vehicleType}
+                </div>
+                <div className="text-sm text-slate-600">
+                  <span className="font-medium text-slate-500">Plate:</span>{" "}
+                  {driver.licensePlate}
+                </div>
+              </div>
+            </div>
+
+            {driver.currentLocation && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <NavigationArrow
+                  size={16}
+                  weight="duotone"
+                  className={cn(
+                    driver.status === "on-trip"
+                      ? "text-[#1976D2]"
+                      : "text-slate-400"
+                  )}
+                />
+                <span className="text-sm text-slate-600">
+                  {driver.currentLocation}
+                </span>
+              </div>
             )}
 
-            {/* Stats Row - Inline like reference */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
-                    <div className="pl-0">
-                        <InlineStat label="Total Drivers" value={drivers.length} />
-                    </div>
-                    <div className="pl-8">
-                        <InlineStat label="Available Now" value={availableCount} valueColor="text-[#2E7D32]" />
-                    </div>
-                    <div className="pl-8">
-                        <InlineStat label="On Trip" value={onTripCount} valueColor="text-[#1976D2]" />
-                    </div>
-                    <div className="pl-8">
-                        <InlineStat
-                            label="Avg Rating"
-                            value={avgRating}
-                            valueColor="text-[#E65100]"
-                            suffix={<Star size={20} weight="fill" className="text-[#FFA726]" />}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 relative">
-                    <MagnifyingGlass
-                        size={18}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Search drivers by name, email, phone or license plate..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
-                    />
-                </div>
-                <Button variant="outline" className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50">
-                    <Funnel size={16} />
-                    Filters
-                </Button>
-                <Button
+            <div
+              className="flex gap-2 mt-4 pt-4 border-t border-slate-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDriverSelect(driver.id)}
+                className="flex-1 rounded-lg border-slate-200 hover:bg-slate-50"
+              >
+                View Details
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
                     variant="outline"
-                    onClick={handleExport}
-                    className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
-                >
-                    <DownloadSimple size={16} />
-                    Export
-                </Button>
+                    size="sm"
+                    disabled={isDemoMode}
+                    className="rounded-lg border-slate-200 hover:bg-slate-50"
+                  >
+                    <DotsThreeVertical size={16} weight="bold" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem
+                    onClick={() => setEditingDriver(driver)}
+                    className="gap-2"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit Driver
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteId(driver.id);
+                    }}
+                    className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                  >
+                    <Trash className="h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+          </div>
+        ))}
+      </div>
 
-            {/* Drivers Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {filteredDrivers.map((driver) => (
-                    <div
-                        key={driver.id}
-                        onClick={() => handleDriverSelect(driver.id)}
-                        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
-                    >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-full bg-[#3D5A3D] flex items-center justify-center text-white text-lg font-semibold">
-                                    {(driver.name || 'D').split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase()}
-                                </div>
-                                <div>
-                                    <h3 className="text-base font-semibold text-slate-900">{driver.name}</h3>
-                                    <div className="flex items-center gap-1 mt-1">
-                                        <Star size={14} weight="fill" className="text-[#FFA726]" />
-                                        <span className="text-sm font-semibold text-slate-900">{driver.rating}</span>
-                                        <span className="text-sm text-slate-500">
-                                            ({driver.totalTrips} trips)
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <span className={cn(
-                                "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                                driver.status === 'available' && "bg-[#E8F5E9] text-[#2E7D32]",
-                                driver.status === 'on-trip' && "bg-[#E3F2FD] text-[#1976D2]",
-                                driver.status === 'offline' && "bg-slate-100 text-slate-600"
-                            )}>
-                                {driver.status === 'on-trip' ? 'On Trip' : driver.status.charAt(0).toUpperCase() + driver.status.slice(1)}
-                            </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <Phone size={14} weight="duotone" className="text-slate-400" />
-                                    {driver.phone}
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <Envelope size={14} weight="duotone" className="text-slate-400" />
-                                    <span className="truncate">{driver.email}</span>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <Car size={14} weight="duotone" className="text-slate-400" />
-                                    {driver.vehicleType}
-                                </div>
-                                <div className="text-sm text-slate-600">
-                                    <span className="font-medium text-slate-500">Plate:</span> {driver.licensePlate}
-                                </div>
-                            </div>
-                        </div>
-
-                        {driver.currentLocation && (
-                            <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                <NavigationArrow
-                                    size={16}
-                                    weight="duotone"
-                                    className={cn(
-                                        driver.status === 'on-trip' ? "text-[#1976D2]" : "text-slate-400"
-                                    )}
-                                />
-                                <span className="text-sm text-slate-600">
-                                    {driver.currentLocation}
-                                </span>
-                            </div>
-                        )}
-
-                        <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100" onClick={e => e.stopPropagation()}>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDriverSelect(driver.id)}
-                                className="flex-1 rounded-lg border-slate-200 hover:bg-slate-50"
-                            >
-                                View Details
-                            </Button>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={isDemoMode}
-                                        className="rounded-lg border-slate-200 hover:bg-slate-50"
-                                    >
-                                        <DotsThreeVertical size={16} weight="bold" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-40">
-                                    <DropdownMenuItem onClick={() => setEditingDriver(driver)} className="gap-2">
-                                        <Pencil className="h-4 w-4" />
-                                        Edit Driver
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={(e) => handleDeleteDriver(driver.id, e)}
-                                        className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
-                                    >
-                                        <Trash className="h-4 w-4" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Pagination */}
-            <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-500">
-                    Showing <span className="font-semibold text-slate-900">{filteredDrivers.length}</span> of <span className="font-semibold text-slate-900">{drivers.length}</span> drivers
-                </p>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled className="rounded-lg border-slate-200">
-                        Previous
-                    </Button>
-                    <Button variant="outline" size="sm" disabled className="rounded-lg border-slate-200">
-                        Next
-                    </Button>
-                </div>
-            </div>
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500">
+          Showing{" "}
+          <span className="font-semibold text-slate-900">
+            {filteredDrivers.length}
+          </span>{" "}
+          of{" "}
+          <span className="font-semibold text-slate-900">{drivers.length}</span>{" "}
+          drivers
+        </p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled
+            className="rounded-lg border-slate-200"
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled
+            className="rounded-lg border-slate-200"
+          >
+            Next
+          </Button>
         </div>
-    )
+      </div>
+
+      <DeleteConfirmationDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        onConfirm={handleDeleteDriver}
+        title="Delete Driver?"
+        description="This action cannot be undone. This will permanently delete the driver"
+        itemName={drivers.find((d) => d.id === deleteId)?.name}
+        isDeleting={isDeleting}
+      />
+    </div>
+  );
 }

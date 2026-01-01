@@ -11,8 +11,9 @@ import {
   FileText,
   Briefcase,
   CreditCard,
+  Trash,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,8 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { PatientForm } from "@/components/forms/patient-form";
 import { DocumentManager } from "@/components/document-manager";
 import { TripList } from "@/components/trips/TripList";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 
 interface PatientDetailsPageProps {
   id: string;
@@ -69,7 +72,11 @@ export function PatientDetailsPage({
     "overview" | "documents" | "trips"
   >("overview");
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { isAdmin, isOwner } = usePermissions();
+  const { isDemoMode } = useOnboarding();
+  const queryClient = useQueryClient();
 
   const canManagePatients = isAdmin || isOwner;
 
@@ -115,6 +122,21 @@ export function PatientDetailsPage({
       return count || 0;
     },
   });
+
+  const handleDelete = async () => {
+    if (isDemoMode) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("patients").delete().eq("id", id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      onBack();
+    } catch (err) {
+      console.error("Failed to delete patient:", err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (isLoadingPatient) {
     return (
@@ -170,6 +192,15 @@ export function PatientDetailsPage({
             >
               <Pencil size={16} />
               Edit Details
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={isDemoMode}
+              className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
+            >
+              <Trash size={16} />
+              Delete Patient
             </Button>
           </div>
         )}
@@ -514,6 +545,16 @@ export function PatientDetailsPage({
           vehicle_type_need: patient.vehicle_type_need || "",
           notes: patient.notes || "",
         }}
+      />
+
+      <DeleteConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDelete}
+        title="Delete Patient?"
+        description="This action cannot be undone. This will permanently delete the patient and all associated data"
+        itemName={patient.full_name}
+        isDeleting={isDeleting}
       />
     </div>
   );
