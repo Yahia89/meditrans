@@ -302,6 +302,19 @@ export function PatientDetailsPage({
                         </p>
                       </div>
                     </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-slate-50 rounded-lg">
+                        <MapPin className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                          Primary Address
+                        </p>
+                        <p className="text-slate-900 mt-0.5">
+                          {patient.primary_address || "Not specified"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">

@@ -593,29 +593,29 @@ export function DriverForm({
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5" />
                     <div>
-                      <span className="font-medium">Common Carrier</span> -
-                      Standard sedan for ambulatory
+                      <span className="font-medium">COMMON CARRIER</span> -
+                      Ambulatory / Standard
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5" />
                     <div>
-                      <span className="font-medium">Folded Wheelchair</span> -
+                      <span className="font-medium">FOLDED WHEELCHAIR</span> -
                       Can fold wheelchair
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5" />
                     <div>
-                      <span className="font-medium">Wheelchair</span> - Ramp or
-                      lift accessible
+                      <span className="font-medium">WHEELCHAIR</span> - Standard
+                      Wheelchair
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5" />
                     <div>
-                      <span className="font-medium">Van</span> - Full access
-                      including stretcher
+                      <span className="font-medium">VAN</span> - Van / Ramp
+                      Service
                     </div>
                   </div>
                 </div>

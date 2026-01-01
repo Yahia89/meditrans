@@ -19,12 +19,16 @@ import type { TripStatus } from "./types";
 
 // Trip type options (purpose-based)
 const TRIP_TYPES = [
-  { value: "ADD WOK", label: "Add Wok" },
+  { value: "WORK", label: "Work" },
   { value: "SCHOOL", label: "School" },
   { value: "PLEASURE", label: "Pleasure" },
   { value: "DENTIST", label: "Dentist" },
-  { value: "HOSPITAL APPOINTMENT", label: "Hospital Appointment" },
+  { value: "MEDICAL APPOINTMENT", label: "Medical Appointment" },
   { value: "CLINICS", label: "Clinics" },
+  { value: "METHADONE CLINICS", label: "Methadone Clinics" },
+  { value: "DIALYSIS", label: "Dialysis" },
+  { value: "REGULAR TRANSPORTATION", label: "Regular Transportation" },
+  { value: "OTHER", label: "Other" },
 ] as const;
 
 // Vehicle type compatibility matrix
@@ -67,7 +71,8 @@ export function CreateTripForm({
     dropoff_location: "",
     pickup_date: "",
     pickup_time: "",
-    trip_type: "HOSPITAL APPOINTMENT",
+    trip_type: "MEDICAL APPOINTMENT",
+    other_trip_type: "",
     notes: "",
     status: "pending" as TripStatus,
   });
@@ -99,7 +104,14 @@ export function CreateTripForm({
           dropoff_location: existingTrip.dropoff_location || "",
           pickup_date: date.toISOString().split("T")[0],
           pickup_time: date.toTimeString().split(" ")[0].substring(0, 5),
-          trip_type: existingTrip.trip_type || "hospital_appointment",
+          trip_type: TRIP_TYPES.some((t) => t.value === existingTrip.trip_type)
+            ? existingTrip.trip_type
+            : "OTHER",
+          other_trip_type: TRIP_TYPES.some(
+            (t) => t.value === existingTrip.trip_type
+          )
+            ? ""
+            : existingTrip.trip_type || "",
           notes: existingTrip.notes || "",
           status: existingTrip.status || "pending",
         });
@@ -244,7 +256,10 @@ export function CreateTripForm({
         pickup_location: formData.pickup_location,
         dropoff_location: formData.dropoff_location,
         pickup_time: pickupDateTime.toISOString(),
-        trip_type: formData.trip_type,
+        trip_type:
+          formData.trip_type === "OTHER"
+            ? formData.other_trip_type
+            : formData.trip_type,
         notes: formData.notes,
         status:
           formData.status === "pending" && finalDriverId
@@ -448,6 +463,21 @@ export function CreateTripForm({
                   </option>
                 ))}
               </select>
+              {formData.trip_type === "OTHER" && (
+                <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <Input
+                    placeholder="Please specify trip type"
+                    value={formData.other_trip_type}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        other_trip_type: e.target.value,
+                      })
+                    }
+                    className="h-10"
+                  />
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-2">

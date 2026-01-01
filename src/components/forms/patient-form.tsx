@@ -57,11 +57,15 @@ const REFERRAL_SOURCES = [
 ];
 
 const SERVICE_TYPES = [
-  "Medical Appointment",
-  "Regular Transport",
   "Work",
   "School",
+  "Pleasure",
+  "Dentist",
+  "Medical Appointment",
+  "Clinics",
+  "Methadone Clinics",
   "Dialysis",
+  "Regular Transportation",
   "Other",
 ];
 
@@ -167,6 +171,7 @@ export function PatientForm({
     reset,
     setValue,
     trigger,
+    watch,
     formState: { errors },
   } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -210,6 +215,31 @@ export function PatientForm({
           notes: "",
         },
   });
+
+  const watchedServiceType = watch("service_type");
+  const watchedReferralBy = watch("referral_by");
+
+  // Local state for 'Other' type-in fields
+  const [otherServiceType, setOtherServiceType] = useState("");
+  const [otherReferralBy, setOtherReferralBy] = useState("");
+
+  // Initialize other fields if editing
+  useEffect(() => {
+    if (
+      initialData?.service_type &&
+      !SERVICE_TYPES.includes(initialData.service_type)
+    ) {
+      setValue("service_type", "Other");
+      setOtherServiceType(initialData.service_type);
+    }
+    if (
+      initialData?.referral_by &&
+      !REFERRAL_SOURCES.includes(initialData.referral_by)
+    ) {
+      setValue("referral_by", "Other");
+      setOtherReferralBy(initialData.referral_by);
+    }
+  }, [initialData, setValue]);
 
   // Reset step when modal opens
   useEffect(() => {
@@ -259,10 +289,16 @@ export function PatientForm({
         primary_address: data.primary_address || null,
         county: data.county || null,
         waiver_type: data.waiver_type || null,
-        referral_by: data.referral_by || null,
+        referral_by:
+          data.referral_by === "Other"
+            ? otherReferralBy
+            : data.referral_by || null,
         referral_date: data.referral_date || null,
         referral_expiration_date: data.referral_expiration_date || null,
-        service_type: data.service_type || null,
+        service_type:
+          data.service_type === "Other"
+            ? otherServiceType
+            : data.service_type || null,
         case_manager: data.case_manager || null,
         case_manager_phone: data.case_manager_phone || null,
         monthly_credit: data.monthly_credit
@@ -573,6 +609,16 @@ export function PatientForm({
                       </option>
                     ))}
                   </select>
+                  {watchedServiceType === "Other" && (
+                    <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <Input
+                        placeholder="Please specify service type"
+                        value={otherServiceType}
+                        onChange={(e) => setOtherServiceType(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -584,29 +630,29 @@ export function PatientForm({
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5" />
                     <div>
-                      <span className="font-medium">Ambulatory</span> - Can walk
-                      independently
+                      <span className="font-medium">COMMON CARRIER</span> -
+                      Ambulatory / Standard
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5" />
                     <div>
-                      <span className="font-medium">Folded Wheelchair</span> -
+                      <span className="font-medium">FOLDED WHEELCHAIR</span> -
                       Can fold wheelchair
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5" />
                     <div>
-                      <span className="font-medium">Wheelchair</span> - Requires
-                      wheelchair access
+                      <span className="font-medium">WHEELCHAIR</span> - Standard
+                      Wheelchair
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5" />
                     <div>
-                      <span className="font-medium">Stretcher</span> - Requires
-                      stretcher transport
+                      <span className="font-medium">VAN</span> - Van / Ramp
+                      Service
                     </div>
                   </div>
                 </div>
@@ -654,6 +700,16 @@ export function PatientForm({
                       </option>
                     ))}
                   </select>
+                  {watchedReferralBy === "Other" && (
+                    <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <Input
+                        placeholder="Please specify source"
+                        value={otherReferralBy}
+                        onChange={(e) => setOtherReferralBy(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
