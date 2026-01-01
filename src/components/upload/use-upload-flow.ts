@@ -19,6 +19,7 @@ export function useUploadFlow() {
         sheets: [],
         selectedSheet: '',
         importSource: 'drivers',
+        importMode: 'append',
         isProcessing: false,
         error: null,
     })
@@ -270,6 +271,8 @@ export function useUploadFlow() {
 
             // Trigger navigation first to get off the upload page
             setUploadIdParam(uploadRecord.id)
+            // Add import_mode as a query param for the review page
+            window.history.pushState(null, '', `?page=review_import&upload_id=${uploadRecord.id}&mode=${state.importMode}`)
             setPage('review_import')
 
             // Perform refreshes in the background if still mounted, 
@@ -296,6 +299,7 @@ export function useUploadFlow() {
             sheets: [],
             selectedSheet: '',
             importSource: 'drivers',
+            importMode: 'append',
             isProcessing: false,
             error: null,
         })
@@ -313,12 +317,17 @@ export function useUploadFlow() {
         setState(s => ({ ...s, error: null }))
     }
 
+    const setImportMode = (mode: any) => {
+        setState(s => ({ ...s, importMode: mode }))
+    }
+
     return {
         state,
         handleFileSelect,
         handleConfirmAndStage,
         reset,
         setImportSource,
+        setImportMode,
         setSelectedSheet,
         clearError
     }

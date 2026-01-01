@@ -63,6 +63,11 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
   } | null>(null);
   const [showRawData, setShowRawData] = useState<string | null>(null);
 
+  const searchParams = new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : ""
+  );
+  const mode = (searchParams.get("mode") as "append" | "overwrite") || "append";
+
   useEffect(() => {
     if (uploadId && currentOrganization) {
       loadData(uploadId);
@@ -173,6 +178,20 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
       return null; // Could not parse
     };
 
+    // Helper to normalize vehicle types for database constraints
+    const normalizeVehicleType = (val: string | null): string | null => {
+      if (!val) return null;
+      const clean = val.trim().toUpperCase();
+
+      if (clean.includes("VAN")) return "VAN";
+      if (clean.includes("FOLDED")) return "FOLDED WHEELCHAIR";
+      if (clean.includes("WHEELCHAIR")) return "WHEELCHAIR";
+      if (clean.includes("CARRIER") || clean.includes("CAR"))
+        return "COMMON CARRIER";
+
+      return null;
+    };
+
     try {
       const rowsToCommit = stagingRows.filter((r) => selectedRows.has(r.id));
       const targetTable = uploadRec.source as
@@ -199,7 +218,9 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
             baseData.id_number = row.metadata?.id_number;
             baseData.address = row.metadata?.address;
             baseData.county = row.metadata?.county;
-            baseData.vehicle_type = row.metadata?.vehicle_type;
+            baseData.vehicle_type = normalizeVehicleType(
+              row.metadata?.vehicle_type
+            );
             baseData.vehicle_make = row.metadata?.vehicle_make;
             baseData.vehicle_model = row.metadata?.vehicle_model;
             baseData.vehicle_color = row.metadata?.vehicle_color;
@@ -249,7 +270,9 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
               ? parseFloat(row.metadata.monthly_credit)
               : null;
             baseData.credit_used_for = row.metadata?.credit_used_for;
-            baseData.vehicle_type_need = row.metadata?.vehicle_type_need;
+            baseData.vehicle_type_need = normalizeVehicleType(
+              row.metadata?.vehicle_type_need
+            );
             baseData.notes = row.metadata?.notes;
           } else if (targetTable === "employees") {
             baseData.role = row.metadata?.role;
@@ -314,12 +337,23 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
             }
           }
 
-          // Insert into target table
-          const { error: insertError } = await supabase
-            .from(targetTable)
-            .insert(baseData);
-
-          if (insertError) throw insertError;
+          // Insert or Upsert into target table
+          if (mode === "overwrite" && baseData.email) {
+            // Smart Overwrite: Update if email matches
+            const { error: upsertError } = await supabase
+              .from(targetTable)
+              .upsert(baseData, {
+                onConflict: "email",
+                ignoreDuplicates: false,
+              });
+            if (upsertError) throw upsertError;
+          } else {
+            // Default: Append
+            const { error: insertError } = await supabase
+              .from(targetTable)
+              .insert(baseData);
+            if (insertError) throw insertError;
+          }
 
           // Update staging row status
           await supabase
@@ -411,22 +445,36 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
                 <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full uppercase font-semibold">
                   {uploadRec.source}
                 </span>
+                <span
+                  className={cn(
+                    "text-xs px-2 py-0.5 rounded-full uppercase font-semibold",
+                    mode === "overwrite"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-blue-100 text-blue-700"
+                  )}
+                >
+                  Mode: {mode === "overwrite" ? "Smart Overwrite" : "Append"}
+                </span>
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" onClick={onBack}>
-              Cancel
+              {commitResult ? "Done" : "Cancel"}
             </Button>
             <Button
               onClick={handleCommit}
-              disabled={committing || selectedRows.size === 0}
+              disabled={committing || selectedRows.size === 0 || !!commitResult}
               className="bg-indigo-600 hover:bg-indigo-700"
             >
               {committing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />{" "}
                   Committing...
+                </>
+              ) : commitResult ? (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" /> Committed
                 </>
               ) : (
                 <>
