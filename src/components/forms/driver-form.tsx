@@ -31,10 +31,10 @@ import { cn, formatPhoneNumber } from "@/lib/utils";
 
 // Vehicle type options
 const VEHICLE_TYPES = [
-  { value: "common_carrier", label: "Common Carrier (Sedan)" },
-  { value: "folded_wheelchair", label: "Folded Wheelchair" },
-  { value: "wheelchair", label: "Wheelchair Accessible" },
-  { value: "van", label: "Van (Full Accessible)" },
+  { value: "COMMON CARRIER", label: "Common Carrier" },
+  { value: "FOLDED WHEELCHAIR", label: "Folded Wheelchair" },
+  { value: "WHEELCHAIR", label: "Wheelchair" },
+  { value: "VAN", label: "Van" },
 ] as const;
 
 // Schema for driver form
@@ -375,21 +375,23 @@ export function DriverForm({
                   >
                     <div
                       className={cn(
-                        "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium",
-                        isActive && "bg-white/20",
+                        "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all",
+                        isActive && "bg-white/20 scale-110",
                         isCompleted && "bg-[#3D5A3D] text-white",
                         !isActive && !isCompleted && "bg-slate-200"
                       )}
                     >
                       {isCompleted ? (
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-4 h-4" />
                       ) : (
-                        <Icon className="w-3.5 h-3.5" />
+                        <Icon className="w-4 h-4" />
                       )}
                     </div>
-                    <span className="text-xs font-medium hidden md:block">
-                      {step.title}
-                    </span>
+                    {isActive && (
+                      <span className="text-xs font-bold whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300">
+                        {step.title}
+                      </span>
+                    )}
                   </button>
                   {index < STEPS.length - 1 && (
                     <ChevronRight

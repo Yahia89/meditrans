@@ -32,11 +32,38 @@ import { cn, formatPhoneNumber } from "@/lib/utils";
 
 // Vehicle type need options for patients
 const VEHICLE_TYPE_NEEDS = [
-  { value: "ambulatory", label: "Ambulatory (Can walk)" },
-  { value: "folded_wheelchair", label: "Folded Wheelchair" },
-  { value: "wheelchair", label: "Wheelchair" },
-  { value: "stretcher", label: "Stretcher" },
+  { value: "COMMON CARRIER", label: "Common Carrier" },
+  { value: "FOLDED WHEELCHAIR", label: "Folded Wheelchair" },
+  { value: "WHEELCHAIR", label: "Wheelchair" },
+  { value: "VAN", label: "Van" },
 ] as const;
+
+// New constants for predefined options
+const WAIVER_TYPES = [
+  "Elderly Waiver (EW)",
+  "MSHO",
+  "CADD",
+  "BI Waiver",
+  "CAC Waiver",
+  "Other",
+];
+
+const REFERRAL_SOURCES = [
+  "Case Manager",
+  "Clinic",
+  "Social Worker",
+  "Internal",
+  "Other",
+];
+
+const SERVICE_TYPES = [
+  "Medical Appointment",
+  "Regular Transport",
+  "Work",
+  "School",
+  "Dialysis",
+  "Other",
+];
 
 // Schema for patient form
 const patientSchema = z.object({
@@ -370,21 +397,23 @@ export function PatientForm({
                   >
                     <div
                       className={cn(
-                        "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium",
-                        isActive && "bg-white/20",
+                        "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all",
+                        isActive && "bg-white/20 scale-110",
                         isCompleted && "bg-[#3D5A3D] text-white",
                         !isActive && !isCompleted && "bg-slate-200"
                       )}
                     >
                       {isCompleted ? (
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-4 h-4" />
                       ) : (
-                        <Icon className="w-3.5 h-3.5" />
+                        <Icon className="w-4 h-4" />
                       )}
                     </div>
-                    <span className="text-xs font-medium hidden md:block">
-                      {step.title}
-                    </span>
+                    {isActive && (
+                      <span className="text-xs font-bold whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300">
+                        {step.title}
+                      </span>
+                    )}
                   </button>
                   {index < STEPS.length - 1 && (
                     <ChevronRight
@@ -533,11 +562,17 @@ export function PatientForm({
                   <label className="text-sm font-medium text-slate-700">
                     Service Type
                   </label>
-                  <Input
+                  <select
                     {...register("service_type")}
-                    placeholder="e.g., Medical, Personal"
-                    className="h-9"
-                  />
+                    className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+                  >
+                    <option value="">Select service type</option>
+                    {SERVICE_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -592,21 +627,33 @@ export function PatientForm({
                   <label className="text-sm font-medium text-slate-700">
                     Waiver Type
                   </label>
-                  <Input
+                  <select
                     {...register("waiver_type")}
-                    placeholder="Waiver type"
-                    className="h-9"
-                  />
+                    className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+                  >
+                    <option value="">Select waiver type</option>
+                    {WAIVER_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
                     Referred By
                   </label>
-                  <Input
+                  <select
                     {...register("referral_by")}
-                    placeholder="Referral source"
-                    className="h-9"
-                  />
+                    className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+                  >
+                    <option value="">Select source</option>
+                    {REFERRAL_SOURCES.map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

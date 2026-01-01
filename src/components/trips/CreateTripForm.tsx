@@ -19,13 +19,12 @@ import type { TripStatus } from "./types";
 
 // Trip type options (purpose-based)
 const TRIP_TYPES = [
-  { value: "work", label: "Work" },
-  { value: "school", label: "School" },
-  { value: "pleasure", label: "Pleasure" },
-  { value: "dentist", label: "Dentist" },
-  { value: "hospital_appointment", label: "Hospital Appointment" },
-  { value: "clinic", label: "Clinic" },
-  { value: "other", label: "Other" },
+  { value: "ADD WOK", label: "Add Wok" },
+  { value: "SCHOOL", label: "School" },
+  { value: "PLEASURE", label: "Pleasure" },
+  { value: "DENTIST", label: "Dentist" },
+  { value: "HOSPITAL APPOINTMENT", label: "Hospital Appointment" },
+  { value: "CLINICS", label: "Clinics" },
 ] as const;
 
 // Vehicle type compatibility matrix
@@ -34,14 +33,14 @@ const canDriverServePatient = (
   driverVehicleType: string | null,
   patientNeed: string | null
 ): boolean => {
-  if (!patientNeed || patientNeed === "ambulatory") return true; // Any vehicle works
-  if (!driverVehicleType) return false; // No vehicle type set
+  if (!patientNeed || patientNeed === "COMMON CARRIER") return true;
+  if (!driverVehicleType) return false;
 
   const compatibility: Record<string, string[]> = {
-    common_carrier: ["ambulatory"],
-    folded_wheelchair: ["ambulatory", "folded_wheelchair"],
-    wheelchair: ["ambulatory", "folded_wheelchair", "wheelchair"],
-    van: ["ambulatory", "folded_wheelchair", "wheelchair", "stretcher"],
+    "COMMON CARRIER": ["COMMON CARRIER"],
+    "FOLDED WHEELCHAIR": ["COMMON CARRIER", "FOLDED WHEELCHAIR"],
+    WHEELCHAIR: ["COMMON CARRIER", "FOLDED WHEELCHAIR", "WHEELCHAIR"],
+    VAN: ["COMMON CARRIER", "FOLDED WHEELCHAIR", "WHEELCHAIR", "VAN"],
   };
 
   return compatibility[driverVehicleType]?.includes(patientNeed) || false;
@@ -68,7 +67,7 @@ export function CreateTripForm({
     dropoff_location: "",
     pickup_date: "",
     pickup_time: "",
-    trip_type: "hospital_appointment",
+    trip_type: "HOSPITAL APPOINTMENT",
     notes: "",
     status: "pending" as TripStatus,
   });
