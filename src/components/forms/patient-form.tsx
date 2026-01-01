@@ -70,32 +70,40 @@ const SERVICE_TYPES = [
 ];
 
 // Schema for patient form
+// Column mapping: CLIENT NAME, DOB, PHONE NUMBER, ADDRESS, WAIVER TYPE, COUNTY,
+// REFERRAL BY, MONTHLY CREDIT, CASE MANAGER NAME, SERVICE TYPE, CASE MANAGER PHONE,
+// CASE MANAGER EMAIL, VEHICLE NEED, REFERRAL EXPIRATION, NOTES
 const patientSchema = z.object({
-  full_name: z.string().min(2, "Name must be at least 2 characters"),
+  full_name: z.string().min(2, "Client name must be at least 2 characters"), // CLIENT NAME
   email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z
+  phone: z // PHONE NUMBER
     .string()
     .regex(/^\(\d{3}\) \d{3}-\d{4}$/, "Invalid phone format (555) 555-5555")
     .optional()
     .or(z.literal("")),
-  dob: z.string().optional(),
-  primary_address: z.string().optional(),
-  county: z.string().optional(),
+  dob: z.string().optional(), // DOB
+  primary_address: z.string().optional(), // ADDRESS
+  county: z.string().optional(), // COUNTY
   // Service & Referral
-  waiver_type: z.string().optional(),
-  referral_by: z.string().optional(),
+  waiver_type: z.string().optional(), // WAIVER TYPE
+  referral_by: z.string().optional(), // REFERRAL BY
   referral_date: z.string().optional(),
-  referral_expiration_date: z.string().optional(),
-  service_type: z.string().optional(),
+  referral_expiration_date: z.string().optional(), // REFERRAL EXPIRATION
+  service_type: z.string().optional(), // SERVICE TYPE
   // Case Management
-  case_manager: z.string().optional(),
-  case_manager_phone: z.string().optional(),
+  case_manager: z.string().optional(), // CASE MANAGER NAME
+  case_manager_phone: z.string().optional(), // CASE MANAGER PHONE (also labeled PHONE NUMBER)
+  case_manager_email: z
+    .string()
+    .email("Invalid email")
+    .optional()
+    .or(z.literal("")), // CASE MANAGER EMAIL
   // Billing
-  monthly_credit: z.string().optional(),
+  monthly_credit: z.string().optional(), // MONTHLY CREDIT
   credit_used_for: z.string().optional(),
   // Transportation
-  vehicle_type_need: z.string().optional(),
-  notes: z.string().optional(),
+  vehicle_type_need: z.string().optional(), // VEHICLE NEED
+  notes: z.string().optional(), // NOTES
   // Legacy
   date_of_birth: z.string().optional(),
 });
@@ -190,6 +198,7 @@ export function PatientForm({
           service_type: initialData.service_type || "",
           case_manager: initialData.case_manager || "",
           case_manager_phone: initialData.case_manager_phone || "",
+          case_manager_email: initialData.case_manager_email || "",
           monthly_credit: initialData.monthly_credit?.toString() || "",
           credit_used_for: initialData.credit_used_for || "",
           vehicle_type_need: initialData.vehicle_type_need || "",
@@ -209,6 +218,7 @@ export function PatientForm({
           service_type: "",
           case_manager: "",
           case_manager_phone: "",
+          case_manager_email: "",
           monthly_credit: "",
           credit_used_for: "",
           vehicle_type_need: "",
@@ -301,6 +311,7 @@ export function PatientForm({
             : data.service_type || null,
         case_manager: data.case_manager || null,
         case_manager_phone: data.case_manager_phone || null,
+        case_manager_email: data.case_manager_email || null,
         monthly_credit: data.monthly_credit
           ? parseFloat(data.monthly_credit)
           : null,
@@ -374,7 +385,11 @@ export function PatientForm({
         ];
         break;
       case 4:
-        fieldsToValidate = ["case_manager", "case_manager_phone"];
+        fieldsToValidate = [
+          "case_manager",
+          "case_manager_phone",
+          "case_manager_email",
+        ];
         break;
     }
 
@@ -767,6 +782,26 @@ export function PatientForm({
                     className="h-9"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  Case Manager Email
+                </label>
+                <Input
+                  {...register("case_manager_email")}
+                  type="email"
+                  placeholder="casemanager@example.com"
+                  className={cn(
+                    "h-9",
+                    errors.case_manager_email && "border-red-500"
+                  )}
+                />
+                {errors.case_manager_email && (
+                  <p className="text-xs text-red-500">
+                    {errors.case_manager_email.message}
+                  </p>
+                )}
               </div>
             </div>
           )}

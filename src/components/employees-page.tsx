@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   MagnifyingGlass,
   Plus,
@@ -11,13 +11,17 @@ import {
   Calendar,
   MapPin,
   CloudArrowUp,
+  GridFour,
+  List,
+  CaretLeft,
+  CaretRight,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { EmployeeForm } from "@/components/forms/employee-form";
-import { Loader2, Pencil, Trash } from "lucide-react";
+import { Loader2, Pencil, Trash, Check } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -33,6 +37,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { EmployeeDetailsPage } from "@/components/employee-details-page";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Employee {
   id: string;
@@ -48,7 +53,10 @@ interface Employee {
   custom_fields?: Record<string, string> | null;
 }
 
+const ITEMS_PER_PAGE = 5;
+
 // Demo data for preview mode
+
 const demoEmployees: Employee[] = [
   {
     id: "1",
@@ -177,6 +185,54 @@ export function EmployeesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
 
+  // View and pagination state
+  const [viewMode, setViewMode] = useState<"bento" | "list">("bento");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Multi-select state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0 || isDemoMode) return;
+    setIsDeleting(true);
+
+    try {
+      const { error } = await supabase
+        .from("employees")
+        .delete()
+        .in("id", Array.from(selectedIds));
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({
+        queryKey: ["employees", currentOrganization?.id],
+      });
+      setSelectedIds(new Set());
+      setShowBulkDeleteDialog(false);
+    } catch (err) {
+      console.error("Failed to delete employees:", err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectNone = () => {
+    setSelectedIds(new Set());
+  };
+
   const { data: realEmployees, isLoading } = useQuery({
     queryKey: ["employees", currentOrganization?.id],
     queryFn: async () => {
@@ -275,6 +331,26 @@ export function EmployeesPage() {
     const phoneMatch = (employee.phone || "").includes(searchQuery);
     return nameMatch || emailMatch || deptMatch || posMatch || phoneMatch;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+  const paginatedEmployees = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredEmployees.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredEmployees, currentPage]);
+
+  // Reset to page 1 when search changes
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const selectAll = () => {
+    setSelectedIds(new Set(paginatedEmployees.map((e) => e.id)));
+  };
+
+  const isAllSelected =
+    paginatedEmployees.length > 0 &&
+    paginatedEmployees.every((e) => selectedIds.has(e.id));
 
   const activeCount = employees.filter((e) => e.status === "active").length;
   const onLeaveCount = employees.filter((e) => e.status === "on-leave").length;
@@ -517,167 +593,463 @@ export function EmployeesPage() {
           <DownloadSimple size={16} />
           Export
         </Button>
+
+        {/* View Toggle */}
+        <div className="flex rounded-lg border border-slate-200 bg-white p-1">
+          <button
+            onClick={() => setViewMode("bento")}
+            className={cn(
+              "flex items-center justify-center p-2 rounded-md transition-colors",
+              viewMode === "bento"
+                ? "bg-[#3D5A3D] text-white"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+            )}
+          >
+            <GridFour
+              size={18}
+              weight={viewMode === "bento" ? "fill" : "regular"}
+            />
+          </button>
+          <button
+            onClick={() => setViewMode("list")}
+            className={cn(
+              "flex items-center justify-center p-2 rounded-md transition-colors",
+              viewMode === "list"
+                ? "bg-[#3D5A3D] text-white"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+            )}
+          >
+            <List size={18} weight={viewMode === "list" ? "fill" : "regular"} />
+          </button>
+        </div>
       </div>
 
-      {/* Employees Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filteredEmployees.map((employee) => (
-          <div
-            key={employee.id}
-            onClick={() => setSelectedEmployeeId(employee.id)}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+      {/* Multi-select actions - Persistent to prevent layout shift */}
+      <div
+        className={cn(
+          "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200",
+          selectedIds.size > 0
+            ? "bg-indigo-50 border-indigo-200 shadow-sm"
+            : "bg-slate-50 border-slate-200"
+        )}
+      >
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 ? (
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100">
+              <Check className="h-3 w-3 text-indigo-600" />
+            </div>
+          ) : (
+            <div className="h-5 w-5" /> // Spacer
+          )}
+          <span
+            className={cn(
+              "text-sm font-medium transition-colors",
+              selectedIds.size > 0 ? "text-indigo-900" : "text-slate-500"
+            )}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-lg font-semibold">
-                  {(employee.name || "E")
-                    .split(" ")
-                    .filter(Boolean)
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()}
+            {selectedIds.size} employee{selectedIds.size !== 1 ? "s" : ""}{" "}
+            selected
+          </span>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowBulkDeleteDialog(true)}
+            disabled={selectedIds.size === 0 || isDemoMode}
+            className={cn(
+              "transition-all duration-200",
+              selectedIds.size > 0
+                ? "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
+                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent"
+            )}
+          >
+            <Trash className="mr-2 h-3.5 w-3.5" />
+            Delete
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={selectNone}
+            disabled={selectedIds.size === 0}
+            className={cn(
+              "transition-all duration-200",
+              selectedIds.size > 0
+                ? "border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300"
+                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent"
+            )}
+          >
+            Clear Selection
+          </Button>
+        </div>
+      </div>
+
+      {/* Bento Cards View */}
+      {viewMode === "bento" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {paginatedEmployees.map((employee) => (
+            <div
+              key={employee.id}
+              onClick={() => setSelectedEmployeeId(employee.id)}
+              className={cn(
+                "rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer",
+                selectedIds.has(employee.id)
+                  ? "border-indigo-500 ring-2 ring-indigo-500/20"
+                  : "border-slate-200"
+              )}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <Checkbox
+                    checked={selectedIds.has(employee.id)}
+                    onCheckedChange={() => toggleSelect(employee.id)}
+                    className="mt-1"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-lg font-semibold">
+                    {(employee.name || "E")
+                      .split(" ")
+                      .filter(Boolean)
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      {employee.name}
+                    </h3>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Briefcase
+                        size={14}
+                        weight="duotone"
+                        className="text-slate-400"
+                      />
+                      <span className="text-sm text-slate-600">
+                        {employee.position}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">
-                    {employee.name}
-                  </h3>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Briefcase
+                <span
+                  className={cn(
+                    "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                    employee.status === "active"
+                      ? "bg-[#E8F5E9] text-[#2E7D32]"
+                      : employee.status === "on-leave"
+                      ? "bg-[#FFF3E0] text-[#E65100]"
+                      : "bg-slate-100 text-slate-600"
+                  )}
+                >
+                  {employee.status === "on-leave"
+                    ? "On Leave"
+                    : employee.status.charAt(0).toUpperCase() +
+                      employee.status.slice(1)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Phone
                       size={14}
                       weight="duotone"
                       className="text-slate-400"
                     />
-                    <span className="text-sm text-slate-600">
-                      {employee.position}
-                    </span>
+                    {employee.phone}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Envelope
+                      size={14}
+                      weight="duotone"
+                      className="text-slate-400"
+                    />
+                    <span className="truncate">{employee.email}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <MapPin
+                      size={14}
+                      weight="duotone"
+                      className="text-slate-400"
+                    />
+                    {employee.location}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Calendar
+                      size={14}
+                      weight="duotone"
+                      className="text-slate-400"
+                    />
+                    {formatDate(employee.hireDate)}
                   </div>
                 </div>
               </div>
-              <span
-                className={cn(
-                  "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                  employee.status === "active" && "bg-[#E8F5E9] text-[#2E7D32]",
-                  employee.status === "on-leave" &&
-                    "bg-[#FFF3E0] text-[#E65100]",
-                  employee.status === "inactive" &&
-                    "bg-slate-100 text-slate-600"
+
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <Briefcase
+                  size={16}
+                  weight="duotone"
+                  className="text-[#1976D2]"
+                />
+                <span className="text-sm text-slate-600">
+                  {employee.department}
+                </span>
+              </div>
+
+              <div
+                className="flex gap-2 mt-4 pt-4 border-t border-slate-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedEmployeeId(employee.id)}
+                  className="flex-1 rounded-lg border-slate-200 hover:bg-slate-50"
+                >
+                  View Details
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isDemoMode || !isAdmin}
+                      className="rounded-lg border-slate-200 hover:bg-slate-50"
+                    >
+                      <DotsThreeVertical size={16} weight="bold" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem
+                      onClick={() => setEditingEmployee(employee)}
+                      className="gap-2"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Edit Employee
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteId(employee.id);
+                      }}
+                      className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                    >
+                      <Trash className="h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === "list" && (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-4 text-left w-12">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={() => {
+                        if (isAllSelected) selectNone();
+                        else selectAll();
+                      }}
+                    />
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Employee
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Department
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Position
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginatedEmployees.length > 0 ? (
+                  paginatedEmployees.map((employee) => (
+                    <tr
+                      key={employee.id}
+                      onClick={() => setSelectedEmployeeId(employee.id)}
+                      className={cn(
+                        "group transition-all duration-200 hover:bg-slate-50 cursor-pointer",
+                        selectedIds.has(employee.id) &&
+                          "bg-indigo-50/50 hover:bg-indigo-50"
+                      )}
+                    >
+                      <td
+                        className="px-4 py-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          checked={selectedIds.has(employee.id)}
+                          onCheckedChange={() => toggleSelect(employee.id)}
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-sm font-semibold">
+                            {(employee.name || "E")
+                              .split(" ")
+                              .filter(Boolean)
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-medium text-slate-900">
+                              {employee.name}
+                            </div>
+                            <div className="text-sm text-slate-500">
+                              Joined {formatDate(employee.hireDate)}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <Phone size={14} className="text-slate-400" />
+                            {employee.phone}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <Envelope size={14} className="text-slate-400" />
+                            <span className="truncate max-w-[150px]">
+                              {employee.email}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Briefcase size={14} className="text-slate-400" />
+                          {employee.department}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-slate-600">
+                          {employee.position}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={cn(
+                            "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                            employee.status === "active"
+                              ? "bg-[#E8F5E9] text-[#2E7D32]"
+                              : employee.status === "on-leave"
+                              ? "bg-[#FFF3E0] text-[#E65100]"
+                              : "bg-slate-100 text-slate-600"
+                          )}
+                        >
+                          {employee.status === "on-leave"
+                            ? "On Leave"
+                            : employee.status.charAt(0).toUpperCase() +
+                              employee.status.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div
+                          className="flex items-center gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedEmployeeId(employee.id)}
+                            className="hidden group-hover:flex h-8 w-8 p-0"
+                          >
+                            <DotsThreeVertical size={16} />
+                            {/* Wait, design usually shows dropdown here. I'll just put dropdown straight. */}
+                          </Button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={isDemoMode || !isAdmin}
+                                className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                              >
+                                <DotsThreeVertical size={16} />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => setEditingEmployee(employee)}
+                                className="gap-2"
+                              >
+                                <Pencil className="h-4 w-4" />
+                                Edit Employee
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteId(employee.id);
+                                }}
+                                className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                              >
+                                <Trash className="h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-12 text-center text-slate-500"
+                    >
+                      No employees found matching your search.
+                    </td>
+                  </tr>
                 )}
-              >
-                {employee.status === "on-leave"
-                  ? "On Leave"
-                  : employee.status.charAt(0).toUpperCase() +
-                    employee.status.slice(1)}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Phone
-                    size={14}
-                    weight="duotone"
-                    className="text-slate-400"
-                  />
-                  {employee.phone}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Envelope
-                    size={14}
-                    weight="duotone"
-                    className="text-slate-400"
-                  />
-                  <span className="truncate">{employee.email}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <MapPin
-                    size={14}
-                    weight="duotone"
-                    className="text-slate-400"
-                  />
-                  {employee.location}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Calendar
-                    size={14}
-                    weight="duotone"
-                    className="text-slate-400"
-                  />
-                  {formatDate(employee.hireDate)}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <Briefcase
-                size={16}
-                weight="duotone"
-                className="text-[#1976D2]"
-              />
-              <span className="text-sm text-slate-600">
-                {employee.department}
-              </span>
-            </div>
-
-            <div
-              className="flex gap-2 mt-4 pt-4 border-t border-slate-100"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedEmployeeId(employee.id)}
-                className="flex-1 rounded-lg border-slate-200 hover:bg-slate-50"
-              >
-                View Details
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={isDemoMode || !isAdmin}
-                    className="rounded-lg border-slate-200 hover:bg-slate-50"
-                  >
-                    <DotsThreeVertical size={16} weight="bold" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuItem
-                    onClick={() => setEditingEmployee(employee)}
-                    className="gap-2"
-                  >
-                    <Pencil className="h-4 w-4" />
-                    Edit Employee
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteId(employee.id);
-                    }}
-                    className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
-                  >
-                    <Trash className="h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">
           Showing{" "}
           <span className="font-semibold text-slate-900">
-            {filteredEmployees.length}
+            {Math.min(
+              (currentPage - 1) * ITEMS_PER_PAGE + 1,
+              filteredEmployees.length
+            )}
+          </span>{" "}
+          -{" "}
+          <span className="font-semibold text-slate-900">
+            {Math.min(currentPage * ITEMS_PER_PAGE, filteredEmployees.length)}
           </span>{" "}
           of{" "}
           <span className="font-semibold text-slate-900">
-            {employees.length}
+            {filteredEmployees.length}
           </span>{" "}
           employees
         </p>
@@ -685,18 +1057,43 @@ export function EmployeesPage() {
           <Button
             variant="outline"
             size="sm"
-            disabled
-            className="rounded-lg border-slate-200"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            className="rounded-lg border-slate-200 gap-1"
           >
+            <CaretLeft size={16} />
             Previous
           </Button>
+
+          {/* Page numbers */}
+          <div className="hidden sm:flex gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={page === currentPage ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(page)}
+                className={cn(
+                  "rounded-lg w-9",
+                  page === currentPage
+                    ? "bg-[#3D5A3D] hover:bg-[#2E4A2E]"
+                    : "border-slate-200"
+                )}
+              >
+                {page}
+              </Button>
+            ))}
+          </div>
+
           <Button
             variant="outline"
             size="sm"
-            disabled
-            className="rounded-lg border-slate-200"
+            disabled={currentPage === totalPages || totalPages === 0}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            className="rounded-lg border-slate-200 gap-1"
           >
             Next
+            <CaretRight size={16} />
           </Button>
         </div>
       </div>
@@ -708,6 +1105,16 @@ export function EmployeesPage() {
         title="Delete Employee?"
         description="This action cannot be undone. This will permanently delete the employee"
         itemName={employees.find((e) => e.id === deleteId)?.name}
+        isDeleting={isDeleting}
+      />
+
+      <DeleteConfirmationDialog
+        open={showBulkDeleteDialog}
+        onOpenChange={setShowBulkDeleteDialog}
+        onConfirm={handleBulkDelete}
+        title="Delete Selected Employees?"
+        description="This action cannot be undone. This will permanently delete the selected employees"
+        itemName={`${selectedIds.size} employees`}
         isDeleting={isDeleting}
       />
     </div>

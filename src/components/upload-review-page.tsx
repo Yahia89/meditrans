@@ -266,6 +266,7 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
             baseData.service_type = row.metadata?.service_type;
             baseData.case_manager = row.metadata?.case_manager;
             baseData.case_manager_phone = row.metadata?.case_manager_phone;
+            baseData.case_manager_email = row.metadata?.case_manager_email;
             baseData.monthly_credit = row.metadata?.monthly_credit
               ? parseFloat(row.metadata.monthly_credit)
               : null;
@@ -317,6 +318,7 @@ export function UploadReviewPage({ onBack }: UploadReviewPageProps) {
             "service_type",
             "case_manager",
             "case_manager_phone",
+            "case_manager_email",
             "monthly_credit",
             "credit_used_for",
             "vehicle_type_need",
