@@ -31,10 +31,10 @@ import { cn, formatPhoneNumber } from "@/lib/utils";
 
 // Vehicle type options
 const VEHICLE_TYPES = [
-  { value: "COMMON CARRIER", label: "Common Carrier" },
-  { value: "FOLDED WHEELCHAIR", label: "Folded Wheelchair" },
-  { value: "WHEELCHAIR", label: "Wheelchair" },
-  { value: "VAN", label: "Van" },
+  { value: "common_carrier", label: "Common Carrier" },
+  { value: "folded_wheelchair", label: "Folded Wheelchair" },
+  { value: "wheelchair", label: "Wheelchair" },
+  { value: "van", label: "Van" },
 ] as const;
 
 // Schema for driver form

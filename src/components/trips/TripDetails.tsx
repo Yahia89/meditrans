@@ -869,6 +869,7 @@ export function TripDetails({
                   <Button
                     variant="link"
                     className="text-xs text-blue-600 font-bold p-0 h-auto mt-2"
+                    onClick={() => onEdit?.(tripId)}
                   >
                     Assign Now
                   </Button>

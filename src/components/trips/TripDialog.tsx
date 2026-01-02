@@ -31,7 +31,7 @@ export function TripDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-[95vw] max-h-[85vh] flex flex-col p-0 border-none shadow-2xl rounded-2xl bg-white overflow-hidden">
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[85vh] flex flex-col p-0 border-none shadow-2xl rounded-2xl bg-white overflow-hidden">
         {/* Header - Fixed at top */}
         <DialogHeader className="p-6 pb-4 border-b border-slate-100 bg-white shrink-0">
           <DialogTitle className="text-xl font-bold text-slate-900 tracking-tight">

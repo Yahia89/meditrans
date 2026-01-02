@@ -229,7 +229,15 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             name: d.full_name,
             phone: d.phone || "",
             email: d.email || "",
-            vehicleType: d.vehicle_info || "Unknown",
+            vehicleType: d.vehicle_type
+              ? d.vehicle_type
+                  .split("_")
+                  .map(
+                    (word: string) =>
+                      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                  )
+                  .join(" ")
+              : d.vehicle_info || "Unknown",
             licensePlate: d.license_number || "Unknown",
             rating: 5.0, // Mock for now
             totalTrips: 0, // Mock for now
