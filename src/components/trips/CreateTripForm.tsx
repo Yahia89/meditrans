@@ -23,6 +23,85 @@ import {
 import type { TripStatus } from "./types";
 import { cn } from "@/lib/utils";
 
+// --- Time Picker Component ---
+// Helper to parse "HH:mm" -> { hour, minute, period }
+const parseTime = (timeStr: string) => {
+  if (!timeStr) return { hour: "12", minute: "00", period: "AM" };
+  const [h, m] = timeStr.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return {
+    hour: hour.toString().padStart(2, "0"),
+    minute: m.toString().padStart(2, "0"),
+    period,
+  };
+};
+
+// Helper to format { hour, minute, period } -> "HH:mm"
+const formatTime = (hour: string, minute: string, period: string) => {
+  let h = parseInt(hour, 10);
+  if (period === "PM" && h !== 12) h += 12;
+  if (period === "AM" && h === 12) h = 0;
+  return `${h.toString().padStart(2, "0")}:${minute}`;
+};
+
+const TimePicker = ({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  className?: string;
+}) => {
+  const { hour, minute, period } = useMemo(() => parseTime(value), [value]);
+
+  const updateTime = (
+    newHour: string,
+    newMinute: string,
+    newPeriod: string
+  ) => {
+    onChange(formatTime(newHour, newMinute, newPeriod));
+  };
+
+  return (
+    <div className={cn("flex items-center gap-1", className)}>
+      <select
+        value={hour}
+        onChange={(e) => updateTime(e.target.value, minute, period)}
+        className="flex-1 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20"
+      >
+        {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+          <option key={h} value={h.toString().padStart(2, "0")}>
+            {h.toString().padStart(2, "0")}
+          </option>
+        ))}
+      </select>
+      <span className="text-slate-400 font-bold">:</span>
+      <select
+        value={minute}
+        onChange={(e) => updateTime(hour, e.target.value, period)}
+        className="flex-1 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20"
+      >
+        {/* 5 minute steps */}
+        {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
+          <option key={m} value={m.toString().padStart(2, "0")}>
+            {m.toString().padStart(2, "0")}
+          </option>
+        ))}
+      </select>
+      <select
+        value={period}
+        onChange={(e) => updateTime(hour, minute, e.target.value)}
+        className="w-20 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20"
+      >
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+};
+
 // Trip type options (purpose-based)
 const TRIP_TYPES = [
   { value: "WORK", label: "Work" },
@@ -85,6 +164,7 @@ export function CreateTripForm({
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [activeLegId, setActiveLegId] = useState<string>("leg-1");
+  const [conflictError, setConflictError] = useState<string | null>(null);
 
   // Initial state for a fresh form
   const createEmptyLeg = (id: string = `leg-${Date.now()}`): TripDraft => ({
@@ -273,6 +353,7 @@ export function CreateTripForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentOrganization) return;
+    setConflictError(null);
     toggleLoading(true);
 
     try {
@@ -281,10 +362,81 @@ export function CreateTripForm({
         (l) => !l.pickup_time || !l.pickup_location || !l.dropoff_location
       );
       if (invalidLeg) {
-        alert("Please fill in all required fields for every trip leg.");
+        setConflictError(
+          "Please fill in all required fields for every trip leg."
+        );
         setActiveLegId(invalidLeg.id);
         toggleLoading(false);
         return;
+      }
+
+      // Check for conflicts
+      for (const leg of tripLegs) {
+        const pickupDateTime = `${leg.pickup_date}T${leg.pickup_time}:00`;
+
+        // Check Patient Conflict
+        const { data: patientConflicts } = await supabase
+          .from("trips")
+          .select("id, pickup_time")
+          .eq("patient_id", leg.patient_id)
+          .eq("pickup_time", pickupDateTime)
+          .not("status", "in", '("cancelled")') // Explicit syntax for checking not in list if needed, or just neq cancelled
+          .neq("status", "cancelled")
+          .neq("status", "no_show");
+
+        if (patientConflicts && patientConflicts.length > 0) {
+          // Filter out self if editing
+          const realConflicts = patientConflicts.filter(
+            (c) => c.id !== leg.db_id && c.id !== tripId
+          );
+          if (realConflicts.length > 0) {
+            const patientName =
+              patients?.find((p) => p.id === leg.patient_id)?.full_name ||
+              "Patient";
+            setConflictError(
+              `Conflict detected: ${patientName} already has a trip at ${
+                parseTime(leg.pickup_time).hour
+              }:${parseTime(leg.pickup_time).minute} ${
+                parseTime(leg.pickup_time).period
+              } on this date.`
+            );
+            setActiveLegId(leg.id);
+            toggleLoading(false);
+            return;
+          }
+        }
+
+        // Check Driver Conflict
+        if (leg.driver_id) {
+          const { data: driverConflicts } = await supabase
+            .from("trips")
+            .select("id")
+            .eq("driver_id", leg.driver_id)
+            .eq("pickup_time", pickupDateTime)
+            .neq("status", "cancelled")
+            .neq("status", "no_show");
+
+          if (driverConflicts && driverConflicts.length > 0) {
+            const realDriverConflicts = driverConflicts.filter(
+              (c) => c.id !== leg.db_id && c.id !== tripId
+            );
+            if (realDriverConflicts.length > 0) {
+              const driverName =
+                allPotentialDrivers.find((d) => d.id === leg.driver_id)
+                  ?.full_name || "Driver";
+              setConflictError(
+                `Conflict detected: Driver ${driverName} is already assigned to a trip at ${
+                  parseTime(leg.pickup_time).hour
+                }:${parseTime(leg.pickup_time).minute} ${
+                  parseTime(leg.pickup_time).period
+                } on this date.`
+              );
+              setActiveLegId(leg.id);
+              toggleLoading(false);
+              return;
+            }
+          }
+        }
       }
 
       // Process each leg
@@ -364,7 +516,7 @@ export function CreateTripForm({
       onSuccess();
     } catch (error) {
       console.error("Error saving trip:", error);
-      alert("Failed to save trip(s)");
+      setConflictError("Failed to save trip(s). Please try again.");
     } finally {
       toggleLoading(false);
     }
@@ -663,6 +815,7 @@ export function CreateTripForm({
                 onChange={(e) =>
                   updateActiveLeg({ pickup_date: e.target.value })
                 }
+                className="bg-white"
               />
             </div>
             <div className="space-y-2">
@@ -670,13 +823,9 @@ export function CreateTripForm({
                 <Clock className="w-4 h-4 text-slate-500" />
                 Time
               </Label>
-              <Input
-                required
-                type="time"
+              <TimePicker
                 value={currentLeg.pickup_time}
-                onChange={(e) =>
-                  updateActiveLeg({ pickup_time: e.target.value })
-                }
+                onChange={(t) => updateActiveLeg({ pickup_time: t })}
               />
             </div>
             <div className="space-y-2">
@@ -744,6 +893,21 @@ export function CreateTripForm({
               onChange={(e) => updateActiveLeg({ notes: e.target.value })}
             />
           </div>
+
+          {/* Conflict / Error Message Area */}
+          {conflictError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-red-900 text-sm">
+                    Unable to Schedule Trip
+                  </h4>
+                  <p className="text-sm text-red-700 mt-1">{conflictError}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </div>

@@ -18,6 +18,8 @@ import {
   Car,
   User,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import type { Trip, TripStatus } from "./types";
 import { cn } from "@/lib/utils";
@@ -56,6 +58,25 @@ function getWeekDates(date: Date): Date[] {
   return dates;
 }
 
+// Generate dates for month view (shy calendar)
+function getMonthDates(date: Date): Date[] {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startDay = firstDay.getDay(); // 0 = Sunday
+
+  const dates: Date[] = [];
+  const curr = new Date(firstDay);
+  curr.setDate(curr.getDate() - startDay);
+
+  // 42 days for 6 weeks grid to cover all months fully
+  for (let i = 0; i < 42; i++) {
+    dates.push(new Date(curr));
+    curr.setDate(curr.getDate() + 1);
+  }
+  return dates;
+}
+
 export function TripsScheduler({
   onCreateClick,
   onTripClick,
@@ -72,6 +93,7 @@ export function TripsScheduler({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<TripStatus | "all">("all");
   const [isMobile, setIsMobile] = useState(false);
+  const [isMonthExpanded, setIsMonthExpanded] = useState(false);
 
   // Detect mobile
   useEffect(() => {
@@ -116,8 +138,12 @@ export function TripsScheduler({
     refetchInterval: 30000, // Auto refresh every 30 seconds
   });
 
-  // Week dates for navigation
-  const weekDates = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
+  // Dates for navigation (Week or Month)
+  const calendarDates = useMemo(() => {
+    return isMonthExpanded
+      ? getMonthDates(selectedDate)
+      : getWeekDates(selectedDate);
+  }, [selectedDate, isMonthExpanded]);
 
   // Filter trips
   const filteredTrips = useMemo(() => {
@@ -170,7 +196,7 @@ export function TripsScheduler({
     });
   }, [filteredTrips, selectedDate]);
 
-  // Count trips per day in week
+  // Count trips per day in week/month
   const tripCountByDay = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredTrips.forEach((trip) => {
@@ -187,15 +213,23 @@ export function TripsScheduler({
   );
 
   // Navigation handlers
-  const goToPreviousWeek = () => {
+  const goToPrevious = () => {
     const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - 7);
+    if (isMonthExpanded) {
+      newDate.setMonth(newDate.getMonth() - 1);
+    } else {
+      newDate.setDate(newDate.getDate() - 7);
+    }
     setSelectedDate(newDate);
   };
 
-  const goToNextWeek = () => {
+  const goToNext = () => {
     const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + 7);
+    if (isMonthExpanded) {
+      newDate.setMonth(newDate.getMonth() + 1);
+    } else {
+      newDate.setDate(newDate.getDate() + 7);
+    }
     setSelectedDate(newDate);
   };
 
@@ -300,14 +334,14 @@ export function TripsScheduler({
       </div>
 
       {/* Week Navigation & Filters */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
+      <div className="bg-white rounded-xl border border-slate-200 p-4 transition-all duration-300 ease-in-out relative">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Week navigation */}
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              onClick={goToPreviousWeek}
+              onClick={goToPrevious}
               className="h-8 w-8 p-0"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -318,12 +352,17 @@ export function TripsScheduler({
               onClick={goToToday}
               className="h-8 px-3 text-xs font-medium"
             >
-              Today
+              {isMonthExpanded
+                ? selectedDate.toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "Today"}
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={goToNextWeek}
+              onClick={goToNext}
               className="h-8 w-8 p-0"
             >
               <ChevronRight className="w-4 h-4" />
@@ -393,12 +432,18 @@ export function TripsScheduler({
           </div>
         </div>
 
-        {/* Week Days */}
-        <div className="grid grid-cols-7 gap-2 mt-4">
-          {weekDates.map((date) => {
+        {/* Calendar Grid (Week or Month) */}
+        <div
+          className={cn(
+            "grid grid-cols-7 gap-2 mt-4 transition-all duration-300",
+            isMonthExpanded ? "mb-6" : "mb-2"
+          )}
+        >
+          {calendarDates.map((date) => {
             const isSelected =
               date.toDateString() === selectedDate.toDateString();
             const isToday = date.toDateString() === new Date().toDateString();
+            const isCurrentMonth = date.getMonth() === selectedDate.getMonth();
             const tripCount = tripCountByDay[date.toDateString()] || 0;
 
             return (
@@ -406,12 +451,13 @@ export function TripsScheduler({
                 key={date.toISOString()}
                 onClick={() => setSelectedDate(date)}
                 className={cn(
-                  "relative flex flex-col items-center py-3 px-2 rounded-xl transition-all",
+                  "relative flex flex-col items-center py-3 px-2 rounded-xl transition-all border",
                   isSelected
-                    ? "bg-[#3D5A3D] text-white shadow-lg"
+                    ? "bg-[#3D5A3D] text-white shadow-lg border-[#3D5A3D] z-10 scale-105"
                     : isToday
-                    ? "bg-slate-100 text-slate-900"
-                    : "hover:bg-slate-50 text-slate-600"
+                    ? "bg-slate-100 text-slate-900 border-slate-200"
+                    : "bg-white hover:bg-slate-50 text-slate-600 border-transparent",
+                  !isCurrentMonth && isMonthExpanded && "opacity-40 grayscale"
                 )}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
@@ -435,6 +481,23 @@ export function TripsScheduler({
               </button>
             );
           })}
+        </div>
+
+        {/* Shy Toggle - Bottom Center */}
+        <div className="absolute bottom-0 left-0 right-0 flex justify-center translate-y-1/2 z-20">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsMonthExpanded(!isMonthExpanded)}
+            className="rounded-full w-8 h-8 p-0 bg-white shadow-sm border-slate-200 hover:bg-slate-50 transition-transform hover:scale-110"
+          >
+            {isMonthExpanded ? (
+              <ChevronUp className="w-4 h-4 text-slate-500" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-500" />
+            )}
+            <span className="sr-only">Toggle Month View</span>
+          </Button>
         </div>
       </div>
 
