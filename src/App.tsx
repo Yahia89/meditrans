@@ -78,6 +78,8 @@ function AppContent() {
   const [driverId, setDriverId] = useQueryState("driverId");
   const [tripId, setTripId] = useQueryState("tripId");
   const [modalType, setModalType] = useQueryState("modal");
+  const [fromPage, setFromPage] = useQueryState("from");
+  const [_, setSection] = useQueryState("section");
 
   // Show loading state while checking auth
   if (loading) {
@@ -198,6 +200,7 @@ function AppContent() {
             <PatientsPage
               onPatientClick={(id) => {
                 setPatientId(id);
+                setFromPage("patients");
                 setCurrentPage("patient-details");
               }}
             />
@@ -209,8 +212,9 @@ function AppContent() {
             <PatientDetailsPage
               id={patientId || ""}
               onBack={() => {
-                setCurrentPage("patients");
+                setCurrentPage((fromPage as Page) || "patients");
                 setPatientId(null);
+                setFromPage(null);
               }}
               onTripClick={(id) => {
                 setTripId(id);
@@ -225,6 +229,7 @@ function AppContent() {
             <DriversPage
               onDriverClick={(id) => {
                 setDriverId(id);
+                setFromPage("drivers");
                 setCurrentPage("driver-details");
               }}
             />
@@ -236,8 +241,9 @@ function AppContent() {
             <DriverDetailsPage
               id={driverId || ""}
               onBack={() => {
-                setCurrentPage("drivers");
+                setCurrentPage((fromPage as Page) || "drivers");
                 setDriverId(null);
+                setFromPage(null);
               }}
               onTripClick={(id) => {
                 setTripId(id);
@@ -312,8 +318,11 @@ function AppContent() {
               onEdit={() => setModalType("edit")}
               onDeleteSuccess={() => setCurrentPage("trips")}
               onBack={() => {
-                setCurrentPage("trips");
+                const target = fromPage || "trips";
+                setCurrentPage(target as Page);
                 setTripId(null);
+                setFromPage(null);
+                // section stays for the dashboard to pick up
               }}
               onNavigate={(id) => setTripId(id)}
             />
@@ -329,48 +338,55 @@ function AppContent() {
   };
 
   return (
-    <SidebarProvider>
-      <AppSidebar
-        currentPage={currentPage}
-        onNavigate={(page) => {
-          setCurrentPage(page as Page);
-          // Keep clear state when navigating between main modules
-          if (page !== "patient-details") setPatientId(null);
-          if (page !== "driver-details") setDriverId(null);
-          if (page !== "trip-details") {
-            setTripId(null);
-            setModalType(null);
-          }
-          if (page !== "trips") {
-            // Clear create modal when leaving trips page
-            if (modalType === "create") setModalType(null);
-          }
-        }}
-      />
-      <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
-        <ErrorBoundary fallbackTitle="Page Error">{renderPage()}</ErrorBoundary>
-      </main>
+    <OnboardingProvider onNavigate={(page) => setCurrentPage?.(page as Page)}>
+      <SidebarProvider>
+        <AppSidebar
+          currentPage={currentPage}
+          onNavigate={(page) => {
+            setCurrentPage(page as Page);
+            // Keep clear state when navigating between main modules
+            if (page !== "patient-details") setPatientId(null);
+            if (page !== "driver-details") setDriverId(null);
+            setFromPage(null);
+            setSection(null);
+            if (page !== "trip-details") {
+              setTripId(null);
+              setModalType(null);
+            }
+            if (page !== "trips") {
+              // Clear create modal when leaving trips page
+              if (modalType === "create") setModalType(null);
+            }
+          }}
+        />
+        <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
+          <ErrorBoundary fallbackTitle="Page Error">
+            {renderPage()}
+          </ErrorBoundary>
+        </main>
 
-      {/* Trip Dialogs rendered at App level to ensure they appear as proper overlays */}
-      {/* Only render when on trips-related pages to prevent query conflicts */}
-      {(currentPage === "trips" || currentPage === "trip-details") && (
-        <>
-          <TripDialog
-            key="create-dialog"
-            open={modalType === "create"}
-            onOpenChange={(open) => setModalType(open ? "create" : null)}
-            onSuccess={() => setModalType(null)}
-          />
-          <TripDialog
-            key={`edit-dialog-${tripId || "none"}`}
-            open={modalType === "edit"}
-            tripId={tripId || undefined}
-            onOpenChange={(open) => setModalType(open ? "edit" : null)}
-            onSuccess={() => setModalType(null)}
-          />
-        </>
-      )}
-    </SidebarProvider>
+        {/* Trip Dialogs rendered at App level to ensure they appear as proper overlays */}
+        {(currentPage === "dashboard" ||
+          currentPage === "trips" ||
+          currentPage === "trip-details") && (
+          <>
+            <TripDialog
+              key="create-dialog"
+              open={modalType === "create"}
+              onOpenChange={(open) => setModalType(open ? "create" : null)}
+              onSuccess={() => setModalType(null)}
+            />
+            <TripDialog
+              key={`edit-dialog-${tripId || "none"}`}
+              open={modalType === "edit"}
+              tripId={tripId || undefined}
+              onOpenChange={(open) => setModalType(open ? "edit" : null)}
+              onSuccess={() => setModalType(null)}
+            />
+          </>
+        )}
+      </SidebarProvider>
+    </OnboardingProvider>
   );
 }
 
@@ -378,9 +394,7 @@ function App() {
   return (
     <AuthProvider>
       <OrganizationProvider>
-        <OnboardingProvider>
-          <AppContent />
-        </OnboardingProvider>
+        <AppContent />
       </OrganizationProvider>
     </AuthProvider>
   );
