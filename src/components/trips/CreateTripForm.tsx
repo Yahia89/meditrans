@@ -363,7 +363,7 @@ export function CreateTripForm({
       );
       if (invalidLeg) {
         setConflictError(
-          "Please fill in all required fields for every trip leg."
+          "Please check the trip info, there's seems a conflict."
         );
         setActiveLegId(invalidLeg.id);
         toggleLoading(false);
