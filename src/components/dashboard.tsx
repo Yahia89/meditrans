@@ -2,7 +2,6 @@ import { useOnboarding } from "@/contexts/OnboardingContext";
 import { DemoModeBanner } from "./demo-mode-banner";
 import { SetupChecklist } from "./setup-checklist";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
-import { StatsGrid } from "./dashboard/StatsGrid";
 import { PerformanceChart } from "./dashboard/PerformanceChart";
 import { UpcomingSchedule } from "./dashboard/UpcomingSchedule";
 import { RecentActivity } from "./dashboard/RecentActivity";
