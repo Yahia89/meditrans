@@ -315,6 +315,7 @@ function AppContent() {
                 setCurrentPage("trips");
                 setTripId(null);
               }}
+              onNavigate={(id) => setTripId(id)}
             />
           </DashboardPage>
         );

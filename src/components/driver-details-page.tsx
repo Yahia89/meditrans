@@ -12,6 +12,7 @@ import {
   TrendingUp,
   FileText,
   Trash,
+  MapPin,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -36,8 +37,25 @@ interface Driver {
   full_name: string;
   email: string | null;
   phone: string | null;
+  address: string | null;
+  county: string | null;
   license_number: string | null;
   vehicle_info: string | null;
+  vehicle_type: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_color: string | null;
+  license_plate: string | null;
+  dot_medical_number: string | null;
+  dot_medical_expiration: string | null;
+  insurance_company: string | null;
+  insurance_policy_number: string | null;
+  insurance_start_date: string | null;
+  insurance_expiration_date: string | null;
+  inspection_date: string | null;
+  driver_record_issue_date: string | null;
+  driver_record_expiration: string | null;
+  notes: string | null;
   status: string;
   created_at: string;
   custom_fields: Record<string, any> | null;
@@ -276,40 +294,12 @@ export function DriverDetailsPage({
         <div className="lg:col-span-2 space-y-6">
           {activeTab === "overview" && (
             <div className="space-y-6">
-              {/* Fleet Information */}
+              {/* Personal Information */}
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                 <h3 className="text-lg font-semibold text-slate-900 mb-6">
-                  Fleet Information
+                  Personal Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-slate-50 rounded-lg">
-                        <ScanEye className="w-5 h-5 text-slate-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
-                          License Number
-                        </p>
-                        <p className="text-slate-900 mt-0.5">
-                          {driver.license_number || "Not specified"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-slate-50 rounded-lg">
-                        <Car className="w-5 h-5 text-slate-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
-                          Vehicle Info
-                        </p>
-                        <p className="text-slate-900 mt-0.5">
-                          {driver.vehicle_info || "Not registered"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <div className="p-2 bg-slate-50 rounded-lg">
@@ -338,6 +328,173 @@ export function DriverDetailsPage({
                       </div>
                     </div>
                   </div>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-slate-50 rounded-lg">
+                        <MapPin className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                          Address
+                        </p>
+                        <p className="text-slate-900 mt-0.5">
+                          {driver.address || "Not specified"}
+                        </p>
+                        {driver.county && (
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {driver.county} County
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-slate-50 rounded-lg">
+                        <ScanEye className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                          License Number
+                        </p>
+                        <p className="text-slate-900 mt-0.5">
+                          {driver.license_number || "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fleet Information */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-slate-900 mb-6">
+                  Fleet Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-slate-50 rounded-lg">
+                        <Car className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                          Vehicle
+                        </p>
+                        <p className="text-slate-900 mt-0.5 font-medium">
+                          {driver.vehicle_make} {driver.vehicle_model}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {driver.vehicle_color || "No color"} •{" "}
+                          {driver.vehicle_type ||
+                            driver.vehicle_info ||
+                            "Standard"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                        License Plate
+                      </p>
+                      <div className="mt-1 inline-block px-3 py-1 bg-slate-100 rounded border border-slate-200 font-mono text-sm font-bold text-slate-700">
+                        {driver.license_plate || "NO PLATE"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Compliance & Insurance */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-slate-900 mb-6">
+                  Compliance & Insurance
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                        DOT Medical Info
+                      </p>
+                      <p className="text-slate-900 mt-1">
+                        <span className="font-semibold">
+                          {driver.dot_medical_number || "N/A"}
+                        </span>
+                        {driver.dot_medical_expiration && (
+                          <span className="block text-xs text-slate-500 mt-0.5">
+                            Expires: {formatDate(driver.dot_medical_expiration)}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                        Insurance
+                      </p>
+                      <p className="text-slate-900 mt-1">
+                        {driver.insurance_company || "Unknown Provider"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Policy: {driver.insurance_policy_number || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                        Insurance Period
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 text-sm text-slate-900">
+                        <span>
+                          {driver.insurance_start_date
+                            ? formatDate(driver.insurance_start_date)
+                            : "Start"}
+                        </span>
+                        <span className="text-slate-400">→</span>
+                        <span
+                          className={cn(
+                            driver.insurance_expiration_date &&
+                              new Date(driver.insurance_expiration_date) <
+                                new Date()
+                              ? "text-red-600 font-bold"
+                              : ""
+                          )}
+                        >
+                          {driver.insurance_expiration_date
+                            ? formatDate(driver.insurance_expiration_date)
+                            : "End"}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                        Last Inspection
+                      </p>
+                      <p className="text-slate-900 mt-1">
+                        {formatDate(driver.inspection_date)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Notes
+                  </h3>
+                  <FileText className="w-5 h-5 text-slate-300" />
+                </div>
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 min-h-[80px]">
+                  {driver.notes ? (
+                    <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                      {driver.notes}
+                    </p>
+                  ) : (
+                    <p className="text-slate-400 italic">
+                      No notes recorded for this driver.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -447,6 +604,19 @@ export function DriverDetailsPage({
                 <span className="text-sm text-slate-500">Last Active</span>
                 <span className="text-sm text-slate-900">Never</span>
               </div>
+              <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                <span className="text-sm text-slate-500">Status</span>
+                <span
+                  className={cn(
+                    "text-sm font-semibold",
+                    driver.status.toLowerCase() === "available"
+                      ? "text-emerald-600"
+                      : "text-slate-600"
+                  )}
+                >
+                  {driver.status.toUpperCase()}
+                </span>
+              </div>
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-slate-500">Member Since</span>
                 <span className="text-sm text-slate-900">
@@ -482,7 +652,24 @@ export function DriverDetailsPage({
           email: driver.email || "",
           phone: driver.phone || "",
           license_number: driver.license_number || "",
+          address: driver.address || "",
+          county: driver.county || "",
           vehicle_info: driver.vehicle_info || "",
+          vehicle_type: driver.vehicle_type || "",
+          vehicle_make: driver.vehicle_make || "",
+          vehicle_model: driver.vehicle_model || "",
+          vehicle_color: driver.vehicle_color || "",
+          license_plate: driver.license_plate || "",
+          dot_medical_number: driver.dot_medical_number || "",
+          dot_medical_expiration: driver.dot_medical_expiration || "",
+          insurance_company: driver.insurance_company || "",
+          insurance_policy_number: driver.insurance_policy_number || "",
+          insurance_start_date: driver.insurance_start_date || "",
+          insurance_expiration_date: driver.insurance_expiration_date || "",
+          inspection_date: driver.inspection_date || "",
+          driver_record_issue_date: driver.driver_record_issue_date || "",
+          driver_record_expiration: driver.driver_record_expiration || "",
+          notes: driver.notes || "",
           custom_fields: driver.custom_fields,
         }}
       />

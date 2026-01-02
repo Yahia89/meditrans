@@ -54,6 +54,148 @@ interface TripDetailsProps {
   onEdit?: (id: string) => void;
   onDeleteSuccess?: () => void;
   onBack?: () => void;
+  onNavigate?: (id: string) => void;
+}
+
+function RelatedTripsTimeline({
+  currentTripId,
+  patientId,
+  date,
+  onNavigate,
+}: {
+  currentTripId: string;
+  patientId: string;
+  date: string;
+  onNavigate: (id: string) => void;
+}) {
+  const { data: trips } = useQuery({
+    queryKey: ["patient-daily-trips", patientId, date],
+    queryFn: async () => {
+      // Use start/end of day logic
+      const d = new Date(date);
+      const start = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate(),
+        0,
+        0,
+        0
+      ).toISOString();
+      const end = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate(),
+        23,
+        59,
+        59
+      ).toISOString();
+
+      const { data, error } = await supabase
+        .from("trips")
+        .select("*")
+        .eq("patient_id", patientId)
+        .gte("pickup_time", start)
+        .lte("pickup_time", end)
+        .order("pickup_time", { ascending: true });
+
+      if (error) throw error;
+      return data as Trip[];
+    },
+    enabled: !!patientId && !!date,
+  });
+
+  if (!trips || trips.length <= 1) return null;
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+      <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">
+        Journey Timeline
+      </h3>
+      <div className="relative">
+        {/* Connector Line */}
+        <div className="absolute left-[15px] top-6 bottom-6 w-0.5 bg-slate-100" />
+
+        <div className="space-y-6">
+          {trips.map((trip, idx) => {
+            const isCurrent = trip.id === currentTripId;
+            return (
+              <div key={trip.id} className="relative pl-10 group">
+                {/* Visual Node */}
+                <div
+                  className={cn(
+                    "absolute left-0 top-1 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all duration-300 z-10",
+                    isCurrent
+                      ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200"
+                      : "bg-white border-slate-200 text-slate-400 group-hover:border-blue-300 group-hover:text-blue-400"
+                  )}
+                >
+                  <span className="text-xs font-bold">{idx + 1}</span>
+                </div>
+
+                {/* Content */}
+                <div
+                  onClick={() => !isCurrent && onNavigate(trip.id)}
+                  className={cn(
+                    "rounded-xl border p-3 transition-all cursor-pointer",
+                    isCurrent
+                      ? "bg-blue-50 border-blue-200 ring-1 ring-blue-100 pointer-events-none"
+                      : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-md"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className={cn(
+                        "text-sm font-bold",
+                        isCurrent ? "text-blue-900" : "text-slate-700"
+                      )}
+                    >
+                      {new Date(trip.pickup_time).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border",
+                        trip.status === "completed"
+                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                          : trip.status === "in_progress"
+                          ? "bg-blue-100 text-blue-700 border-blue-200"
+                          : "bg-slate-100 text-slate-600 border-slate-200"
+                      )}
+                    >
+                      {trip.status.replace("_", " ")}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
+                      <span
+                        className="text-xs text-slate-600 line-clamp-1"
+                        title={trip.pickup_location}
+                      >
+                        {trip.pickup_location}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
+                      <span
+                        className="text-xs text-slate-600 line-clamp-1"
+                        title={trip.dropoff_location}
+                      >
+                        {trip.dropoff_location}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function TripDetails({
@@ -61,6 +203,7 @@ export function TripDetails({
   onEdit,
   onDeleteSuccess,
   onBack,
+  onNavigate,
 }: TripDetailsProps) {
   const { user, profile } = useAuth();
   const { isAdmin, isOwner } = usePermissions();
@@ -635,6 +778,16 @@ export function TripDetails({
 
         {/* Side Information */}
         <div className="flex flex-col gap-6">
+          {/* Related Trips / Journey Timeline */}
+          {trip.patient_id && (
+            <RelatedTripsTimeline
+              currentTripId={trip.id}
+              patientId={trip.patient_id}
+              date={trip.pickup_time}
+              onNavigate={(id) => onNavigate?.(id)}
+            />
+          )}
+
           {/* Patient Profile */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">
