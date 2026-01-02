@@ -372,20 +372,21 @@ export function CreateTripForm({
 
       // Check for conflicts
       for (const leg of tripLegs) {
-        const pickupDateTime = `${leg.pickup_date}T${leg.pickup_time}:00`;
+        // Create a proper Date object and get ISO string for consistent DB comparison
+        const pickupDateTimeUTC = new Date(
+          `${leg.pickup_date}T${leg.pickup_time}`
+        ).toISOString();
 
         // Check Patient Conflict
         const { data: patientConflicts } = await supabase
           .from("trips")
           .select("id, pickup_time")
           .eq("patient_id", leg.patient_id)
-          .eq("pickup_time", pickupDateTime)
-          .not("status", "in", '("cancelled")') // Explicit syntax for checking not in list if needed, or just neq cancelled
-          .neq("status", "cancelled")
-          .neq("status", "no_show");
+          .eq("pickup_time", pickupDateTimeUTC)
+          .not("status", "in", '("cancelled", "no_show")');
 
         if (patientConflicts && patientConflicts.length > 0) {
-          // Filter out self if editing
+          // Filter out self and the primary trip being edited
           const realConflicts = patientConflicts.filter(
             (c) => c.id !== leg.db_id && c.id !== tripId
           );
@@ -393,16 +394,14 @@ export function CreateTripForm({
             const patientName =
               patients?.find((p) => p.id === leg.patient_id)?.full_name ||
               "Patient";
-            setConflictError(
-              `Conflict detected: ${patientName} already has a trip at ${
-                parseTime(leg.pickup_time).hour
-              }:${parseTime(leg.pickup_time).minute} ${
-                parseTime(leg.pickup_time).period
-              } on this date.`
-            );
-            setActiveLegId(leg.id);
-            toggleLoading(false);
-            return;
+
+            const confirmMessage = `Conflict detected: ${patientName} already has a trip scheduled at this exact time.\n\nDo you want to proceed with scheduling this additional trip anyway?`;
+
+            if (!window.confirm(confirmMessage)) {
+              setActiveLegId(leg.id);
+              toggleLoading(false);
+              return;
+            }
           }
         }
 
@@ -410,30 +409,36 @@ export function CreateTripForm({
         if (leg.driver_id) {
           const { data: driverConflicts } = await supabase
             .from("trips")
-            .select("id")
+            .select("id, patient_id, patients(full_name)")
             .eq("driver_id", leg.driver_id)
-            .eq("pickup_time", pickupDateTime)
-            .neq("status", "cancelled")
-            .neq("status", "no_show");
+            .eq("pickup_time", pickupDateTimeUTC)
+            .not("status", "in", '("cancelled", "no_show")');
 
           if (driverConflicts && driverConflicts.length > 0) {
             const realDriverConflicts = driverConflicts.filter(
-              (c) => c.id !== leg.db_id && c.id !== tripId
+              (c) =>
+                c.id !== leg.db_id &&
+                c.id !== tripId &&
+                c.patient_id !== leg.patient_id // ALLOW if same patient (multi-leg/loose trip)
             );
+
             if (realDriverConflicts.length > 0) {
               const driverName =
                 allPotentialDrivers.find((d) => d.id === leg.driver_id)
                   ?.full_name || "Driver";
-              setConflictError(
-                `Conflict detected: Driver ${driverName} is already assigned to a trip at ${
-                  parseTime(leg.pickup_time).hour
-                }:${parseTime(leg.pickup_time).minute} ${
-                  parseTime(leg.pickup_time).period
-                } on this date.`
-              );
-              setActiveLegId(leg.id);
-              toggleLoading(false);
-              return;
+
+              // Get the names of other patients for the conflict message
+              const otherPatientNames = realDriverConflicts
+                .map((c: any) => c.patients?.full_name || "another patient")
+                .join(", ");
+
+              const confirmMessage = `Conflict detected: Driver ${driverName} is already assigned to a trip for ${otherPatientNames} at this time. \n\nDo you want to proceed with this assignment anyway (e.g., for a group ride)?`;
+
+              if (!window.confirm(confirmMessage)) {
+                setActiveLegId(leg.id);
+                toggleLoading(false);
+                return;
+              }
             }
           }
         }
