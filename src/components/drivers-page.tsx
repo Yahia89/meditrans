@@ -5,7 +5,6 @@ import {
   DotsThreeVertical,
   Phone,
   Envelope,
-  Star,
   Funnel,
   DownloadSimple,
   NavigationArrow,
@@ -44,11 +43,28 @@ interface Driver {
   email: string;
   vehicleType: string;
   licensePlate: string;
-  rating: number;
   totalTrips: number;
   status: "available" | "on-trip" | "offline";
   currentLocation?: string;
   custom_fields?: Record<string, string> | null;
+  // Additional fields for editing
+  address?: string;
+  county?: string;
+  license_number?: string;
+  vehicle_type?: string;
+  vehicle_make?: string;
+  vehicle_model?: string;
+  vehicle_color?: string;
+  dot_medical_number?: string;
+  dot_medical_expiration?: string;
+  insurance_company?: string;
+  insurance_policy_number?: string;
+  insurance_start_date?: string;
+  insurance_expiration_date?: string;
+  inspection_date?: string;
+  driver_record_issue_date?: string;
+  driver_record_expiration?: string;
+  notes?: string;
 }
 
 // Demo data for preview mode
@@ -60,7 +76,6 @@ const demoDrivers: Driver[] = [
     email: "michael.chen@meditrans.com",
     vehicleType: "Van",
     licensePlate: "ABC-1234",
-    rating: 4.9,
     totalTrips: 342,
     status: "available",
     currentLocation: "Downtown District",
@@ -72,7 +87,6 @@ const demoDrivers: Driver[] = [
     email: "david.wilson@meditrans.com",
     vehicleType: "Sedan",
     licensePlate: "XYZ-5678",
-    rating: 4.8,
     totalTrips: 298,
     status: "on-trip",
     currentLocation: "En route to City Medical",
@@ -84,7 +98,6 @@ const demoDrivers: Driver[] = [
     email: "james.davis@meditrans.com",
     vehicleType: "SUV",
     licensePlate: "LMN-9012",
-    rating: 4.7,
     totalTrips: 256,
     status: "available",
     currentLocation: "West Side",
@@ -96,7 +109,6 @@ const demoDrivers: Driver[] = [
     email: "robert.m@meditrans.com",
     vehicleType: "Van",
     licensePlate: "PQR-3456",
-    rating: 4.9,
     totalTrips: 412,
     status: "on-trip",
     currentLocation: "Highway 101",
@@ -108,7 +120,6 @@ const demoDrivers: Driver[] = [
     email: "thomas.a@meditrans.com",
     vehicleType: "Sedan",
     licensePlate: "STU-7890",
-    rating: 4.6,
     totalTrips: 189,
     status: "offline",
   },
@@ -238,8 +249,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                   )
                   .join(" ")
               : d.vehicle_info || "Unknown",
-            licensePlate: d.license_number || "Unknown",
-            rating: 5.0, // Mock for now
+            licensePlate: d.license_plate || "Unknown",
             totalTrips: 0, // Mock for now
             status: (d.status || "available").toLowerCase() as
               | "available"
@@ -247,6 +257,24 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
               | "offline",
             currentLocation: undefined, // Mock for now
             custom_fields: d.custom_fields,
+            // Preserve all fields for editing
+            address: d.address || "",
+            county: d.county || "",
+            license_number: d.license_number || "",
+            vehicle_type: d.vehicle_type || "",
+            vehicle_make: d.vehicle_make || "",
+            vehicle_model: d.vehicle_model || "",
+            vehicle_color: d.vehicle_color || "",
+            dot_medical_number: d.dot_medical_number || "",
+            dot_medical_expiration: d.dot_medical_expiration || "",
+            insurance_company: d.insurance_company || "",
+            insurance_policy_number: d.insurance_policy_number || "",
+            insurance_start_date: d.insurance_start_date || "",
+            insurance_expiration_date: d.insurance_expiration_date || "",
+            inspection_date: d.inspection_date || "",
+            driver_record_issue_date: d.driver_record_issue_date || "",
+            driver_record_expiration: d.driver_record_expiration || "",
+            notes: d.notes || "",
           } as Driver)
       );
     },
@@ -261,7 +289,6 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
       Phone: d.phone,
       "Vehicle Type": d.vehicleType,
       "License Plate": d.licensePlate,
-      Rating: d.rating,
       "Total Trips": d.totalTrips,
       Status: d.status,
     }));
@@ -331,12 +358,6 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
 
   const availableCount = drivers.filter((d) => d.status === "available").length;
   const onTripCount = drivers.filter((d) => d.status === "on-trip").length;
-  const avgRating =
-    drivers.length > 0
-      ? (
-          drivers.reduce((sum, d) => sum + d.rating, 0) / drivers.length
-        ).toFixed(1)
-      : "0.0";
 
   const handleDriverSelect = (id: string) => {
     if (onDriverClick) {
@@ -473,8 +494,29 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                 full_name: editingDriver.name,
                 email: editingDriver.email,
                 phone: editingDriver.phone,
-                license_number: editingDriver.licensePlate,
-                vehicle_info: editingDriver.vehicleType,
+                address: editingDriver.address || "",
+                county: editingDriver.county || "",
+                license_number: editingDriver.license_number || "",
+                vehicle_type: editingDriver.vehicle_type || "",
+                vehicle_make: editingDriver.vehicle_make || "",
+                vehicle_model: editingDriver.vehicle_model || "",
+                vehicle_color: editingDriver.vehicle_color || "",
+                license_plate: editingDriver.licensePlate,
+                dot_medical_number: editingDriver.dot_medical_number || "",
+                dot_medical_expiration:
+                  editingDriver.dot_medical_expiration || "",
+                insurance_company: editingDriver.insurance_company || "",
+                insurance_policy_number:
+                  editingDriver.insurance_policy_number || "",
+                insurance_start_date: editingDriver.insurance_start_date || "",
+                insurance_expiration_date:
+                  editingDriver.insurance_expiration_date || "",
+                inspection_date: editingDriver.inspection_date || "",
+                driver_record_issue_date:
+                  editingDriver.driver_record_issue_date || "",
+                driver_record_expiration:
+                  editingDriver.driver_record_expiration || "",
+                notes: editingDriver.notes || "",
                 custom_fields: editingDriver.custom_fields,
               }
             : undefined
@@ -512,7 +554,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
 
       {/* Stats Row - Inline like reference */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-3 divide-x divide-slate-100">
           <div className="pl-0">
             <InlineStat label="Total Drivers" value={drivers.length} />
           </div>
@@ -528,16 +570,6 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
               label="On Trip"
               value={onTripCount}
               valueColor="text-[#1976D2]"
-            />
-          </div>
-          <div className="pl-8">
-            <InlineStat
-              label="Avg Rating"
-              value={avgRating}
-              valueColor="text-[#E65100]"
-              suffix={
-                <Star size={20} weight="fill" className="text-[#FFA726]" />
-              }
             />
           </div>
         </div>
@@ -705,19 +737,9 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                     <h3 className="text-base font-semibold text-slate-900">
                       {driver.name}
                     </h3>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Star
-                        size={14}
-                        weight="fill"
-                        className="text-[#FFA726]"
-                      />
-                      <span className="text-sm font-semibold text-slate-900">
-                        {driver.rating}
-                      </span>
-                      <span className="text-sm text-slate-500">
-                        ({driver.totalTrips} trips)
-                      </span>
-                    </div>
+                    <span className="text-sm text-slate-500">
+                      {driver.totalTrips} trips
+                    </span>
                   </div>
                 </div>
                 <span
@@ -867,7 +889,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                     Vehicle
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Rating
+                    Trips
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Status
@@ -947,19 +969,10 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1">
-                        <Star
-                          size={14}
-                          weight="fill"
-                          className="text-[#FFA726]"
-                        />
-                        <span className="text-sm font-semibold">
-                          {driver.rating}
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          ({driver.totalTrips})
-                        </span>
-                      </div>
+                      <span className="text-sm font-semibold text-slate-700">
+                        {driver.totalTrips}
+                      </span>
+                      <span className="text-xs text-slate-500 ml-1">trips</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span

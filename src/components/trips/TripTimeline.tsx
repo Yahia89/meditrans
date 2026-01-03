@@ -353,13 +353,13 @@ export function TripTimeline({
   );
 }
 
-// Mobile-optimized vertical timeline
+// Mobile-optimized vertical timeline - Groups by patient for clarity
 export function TripTimelineVertical({
   trips,
   onTripClick,
   selectedDate = new Date(),
 }: TripTimelineProps) {
-  // Filter and sort trips for selected date
+  // Filter trips for selected date
   const filteredTrips = useMemo(() => {
     const startOfDay = new Date(selectedDate);
     startOfDay.setHours(0, 0, 0, 0);
@@ -377,22 +377,25 @@ export function TripTimelineVertical({
       );
   }, [trips, selectedDate]);
 
-  // Group by hour for visual organization
-  const hourGroups = useMemo(() => {
-    const groups: Map<number, Trip[]> = new Map();
+  // Group by patient for clear mobile organization
+  const patientGroups = useMemo(() => {
+    const groups: Map<string, { patient: Trip["patient"]; trips: Trip[] }> =
+      new Map();
     filteredTrips.forEach((trip) => {
-      const hour = new Date(trip.pickup_time).getHours();
-      if (!groups.has(hour)) {
-        groups.set(hour, []);
+      const patientId = trip.patient_id || "unknown";
+      if (!groups.has(patientId)) {
+        groups.set(patientId, { patient: trip.patient, trips: [] });
       }
-      groups.get(hour)!.push(trip);
+      groups.get(patientId)!.trips.push(trip);
     });
-    return groups;
-  }, [filteredTrips]);
 
-  const now = new Date();
-  const isToday = now.toDateString() === selectedDate.toDateString();
-  const currentHour = now.getHours();
+    // Sort groups by earliest pickup time
+    return Array.from(groups.entries()).sort(([, a], [, b]) => {
+      const timeA = new Date(a.trips[0]?.pickup_time || 0).getTime();
+      const timeB = new Date(b.trips[0]?.pickup_time || 0).getTime();
+      return timeA - timeB;
+    });
+  }, [filteredTrips]);
 
   if (filteredTrips.length === 0) {
     return (
@@ -426,134 +429,143 @@ export function TripTimelineVertical({
         </span>
       </div>
 
-      {/* Timeline */}
-      <div className="relative">
-        {/* Vertical line */}
-        <div className="absolute left-[23px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-slate-200 via-slate-200 to-transparent" />
+      {/* Patient-grouped timeline */}
+      <div className="space-y-6">
+        {patientGroups.map(([patientId, { patient, trips: patientTrips }]) => (
+          <div
+            key={patientId}
+            className="bg-gradient-to-b from-slate-50/80 to-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
+          >
+            {/* Patient Header - sticky and prominent */}
+            <div className="bg-white border-b border-slate-100 p-4 sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-[#3D5A3D] flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm">
+                  {(patient?.full_name || "U")
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-slate-900 truncate">
+                    {patient?.full_name || "Unknown Patient"}
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    {patientTrips.length} trip
+                    {patientTrips.length !== 1 ? "s" : ""} scheduled
+                  </p>
+                </div>
+              </div>
+            </div>
 
-        {/* Time slots */}
-        <div className="space-y-1">
-          {Array.from(hourGroups.entries())
-            .sort(([a], [b]) => a - b)
-            .map(([hour, hourTrips]) => {
-              const isPast = isToday && hour < currentHour;
-              const isCurrent = isToday && hour === currentHour;
+            {/* Patient's Trips Timeline */}
+            <div className="p-4 space-y-0 relative">
+              {/* Vertical timeline connector */}
+              {patientTrips.length > 1 && (
+                <div className="absolute left-[31px] top-4 bottom-12 w-0.5 bg-gradient-to-b from-slate-200 via-slate-200 to-transparent" />
+              )}
 
-              return (
-                <div key={hour} className="relative">
-                  {/* Hour marker */}
-                  <div className="flex items-center gap-3 mb-2">
+              {patientTrips.map((trip, index) => {
+                const config = statusConfig[trip.status];
+                const tripTime = new Date(trip.pickup_time);
+
+                return (
+                  <div key={trip.id} className="relative pl-10 pb-5 last:pb-0">
+                    {/* Timeline node */}
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 z-10",
-                        isCurrent
-                          ? "bg-[#3D5A3D] text-white shadow-lg shadow-[#3D5A3D]/20"
-                          : isPast
-                          ? "bg-slate-100 text-slate-400"
-                          : "bg-white border-2 border-slate-200 text-slate-700"
+                        "absolute left-0 top-1 w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold bg-white z-10 transition-all",
+                        trip.status === "completed"
+                          ? "border-emerald-500 text-emerald-600"
+                          : trip.status === "in_progress"
+                          ? "border-blue-500 text-blue-600 ring-4 ring-blue-100"
+                          : trip.status === "cancelled"
+                          ? "border-red-300 text-red-400"
+                          : "border-slate-300 text-slate-500"
                       )}
                     >
-                      {formatHour(hour)}
+                      {index + 1}
                     </div>
-                    {isCurrent && (
-                      <span className="text-xs font-semibold text-[#3D5A3D] uppercase tracking-wide">
-                        Now
-                      </span>
-                    )}
-                  </div>
 
-                  {/* Trips at this hour */}
-                  <div className="ml-16 space-y-2">
-                    {hourTrips.map((trip) => {
-                      const config = statusConfig[trip.status];
-                      const tripTime = new Date(trip.pickup_time);
-
-                      return (
-                        <button
-                          key={trip.id}
-                          onClick={() => onTripClick(trip.id)}
+                    {/* Trip Card */}
+                    <button
+                      onClick={() => onTripClick(trip.id)}
+                      className={cn(
+                        "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group",
+                        config.bg,
+                        config.border,
+                        "hover:shadow-md active:scale-[0.99]"
+                      )}
+                    >
+                      {/* Header row with status and time */}
+                      <div className="flex items-center justify-between mb-2">
+                        <span
                           className={cn(
-                            "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group",
+                            "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide",
                             config.bg,
-                            config.border,
-                            "hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
+                            config.text,
+                            "border",
+                            config.border
                           )}
                         >
-                          {/* Status badge */}
-                          <div className="flex items-center justify-between mb-2">
-                            <span
-                              className={cn(
-                                "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide",
-                                config.bg,
-                                config.text,
-                                "border",
-                                config.border
-                              )}
-                            >
-                              {trip.status.replace("_", " ")}
-                            </span>
-                            <span className="text-xs font-medium text-slate-500">
-                              {tripTime.toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </div>
+                          {trip.status.replace("_", " ")}
+                        </span>
+                        <span className="text-sm font-bold text-slate-700 font-mono">
+                          {tripTime.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
 
-                          {/* Trip type */}
-                          <h4 className="font-semibold text-slate-900 mb-2">
-                            {trip.trip_type}
-                          </h4>
+                      {/* Trip type */}
+                      <h5 className="font-semibold text-slate-900 mb-3 text-sm">
+                        {trip.trip_type}
+                      </h5>
 
-                          {/* Patient */}
-                          <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
-                            <User className="w-4 h-4" />
-                            <span className="truncate">
-                              {trip.patient?.full_name || "Unknown Patient"}
-                            </span>
+                      {/* Locations */}
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center shrink-0 mt-0.5">
+                            <MapPin className="w-3 h-3 text-red-500" />
                           </div>
+                          <span className="text-xs text-slate-700 line-clamp-2 leading-relaxed">
+                            {trip.pickup_location}
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                            <MapPin className="w-3 h-3 text-emerald-500" />
+                          </div>
+                          <span className="text-xs text-slate-700 line-clamp-2 leading-relaxed">
+                            {trip.dropoff_location}
+                          </span>
+                        </div>
+                      </div>
 
-                          {/* Locations */}
-                          <div className="space-y-1.5">
-                            <div className="flex items-start gap-2 text-xs">
-                              <MapPin className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-                              <span className="text-slate-600 line-clamp-1">
-                                {trip.pickup_location}
-                              </span>
-                            </div>
-                            <div className="flex items-start gap-2 text-xs">
-                              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                              <span className="text-slate-600 line-clamp-1">
-                                {trip.dropoff_location}
-                              </span>
-                            </div>
+                      {/* Driver footer */}
+                      <div className="mt-3 pt-3 border-t border-slate-100/80 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <Car className="w-3.5 h-3.5" />
+                          <span className="font-medium">
+                            {trip.driver?.full_name || "Unassigned"}
+                          </span>
+                        </div>
+                        {trip.status === "in_progress" && (
+                          <div className="flex items-center gap-1.5 text-blue-600">
+                            <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                            <span className="text-xs font-bold">Active</span>
                           </div>
-
-                          {/* Driver */}
-                          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-xs text-slate-500">
-                              <Car className="w-3.5 h-3.5" />
-                              <span>
-                                {trip.driver?.full_name || "Unassigned"}
-                              </span>
-                            </div>
-                            {trip.status === "in_progress" && (
-                              <div className="flex items-center gap-1 text-blue-600">
-                                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                                <span className="text-xs font-semibold">
-                                  Active
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
+                        )}
+                      </div>
+                    </button>
                   </div>
-                </div>
-              );
-            })}
-        </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

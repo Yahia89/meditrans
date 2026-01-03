@@ -8,7 +8,6 @@ import {
   ShieldAlert,
   Car,
   ScanEye,
-  Star,
   TrendingUp,
   FileText,
   Trash,
@@ -39,6 +38,7 @@ interface Driver {
   phone: string | null;
   address: string | null;
   county: string | null;
+  id_number: string | null;
   license_number: string | null;
   vehicle_info: string | null;
   vehicle_type: string | null;
@@ -356,7 +356,9 @@ export function DriverDetailsPage({
                           License Number
                         </p>
                         <p className="text-slate-900 mt-0.5">
-                          {driver.license_number || "Not specified"}
+                          {driver.id_number ||
+                            driver.license_number ||
+                            "Not specified"}
                         </p>
                       </div>
                     </div>
@@ -525,47 +527,25 @@ export function DriverDetailsPage({
                   </div>
                 )}
 
-              {/* Performance Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
-                      Current Rating
-                    </h3>
-                    <Star
-                      className="w-5 h-5 text-amber-400"
-                      fill="currentColor"
-                    />
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-slate-900">
-                      5.0
-                    </span>
-                    <span className="text-slate-500 text-sm">Target Score</span>
-                  </div>
-                  <div className="mt-4 h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-400 w-full rounded-full" />
-                  </div>
+              {/* Performance */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+                    Total Trips
+                  </h3>
+                  <TrendingUp className="w-5 h-5 text-[#3D5A3D]" />
                 </div>
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
-                      Total Trips
-                    </h3>
-                    <TrendingUp className="w-5 h-5 text-[#3D5A3D]" />
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-slate-900">
-                      {tripCount}
-                    </span>
-                    <span className="text-slate-500 text-sm">Transports</span>
-                  </div>
-                  <p className="mt-2 text-xs text-slate-400 italic">
-                    {tripCount > 0
-                      ? `${tripCount} trips successfully managed.`
-                      : "No trip history recorded yet."}
-                  </p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-slate-900">
+                    {tripCount}
+                  </span>
+                  <span className="text-slate-500 text-sm">Transports</span>
                 </div>
+                <p className="mt-2 text-xs text-slate-400 italic">
+                  {tripCount > 0
+                    ? `${tripCount} trips successfully managed.`
+                    : "No trip history recorded yet."}
+                </p>
               </div>
             </div>
           )}
@@ -649,6 +629,7 @@ export function DriverDetailsPage({
         initialData={{
           id: driver.id,
           full_name: driver.full_name,
+          id_number: driver.id_number || "",
           email: driver.email || "",
           phone: driver.phone || "",
           license_number: driver.license_number || "",

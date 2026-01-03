@@ -51,8 +51,15 @@ interface Patient {
   custom_fields?: Record<string, string> | null;
   county?: string | null;
   waiver_type?: string | null;
+  referral_by?: string | null;
+  referral_date?: string | null;
+  referral_expiration_date?: string | null;
   service_type?: string | null;
   case_manager?: string | null;
+  case_manager_phone?: string | null;
+  case_manager_email?: string | null;
+  monthly_credit?: number | null;
+  credit_used_for?: string | null;
   vehicle_type_need?: string | null;
 }
 
@@ -242,8 +249,15 @@ export function PatientsPage({
           custom_fields: p.custom_fields,
           county: p.county,
           waiver_type: p.waiver_type,
+          referral_by: p.referral_by,
+          referral_date: p.referral_date,
+          referral_expiration_date: p.referral_expiration_date,
           service_type: p.service_type,
           case_manager: p.case_manager,
+          case_manager_phone: p.case_manager_phone,
+          case_manager_email: p.case_manager_email,
+          monthly_credit: p.monthly_credit,
+          credit_used_for: p.credit_used_for,
           vehicle_type_need: p.vehicle_type_need,
         } as Patient;
       });
@@ -388,7 +402,21 @@ export function PatientsPage({
                   email: editingPatient.email,
                   phone: editingPatient.phone,
                   primary_address: editingPatient.address,
-                  date_of_birth: editingPatient.date_of_birth || "",
+                  dob: editingPatient.date_of_birth || "",
+                  county: editingPatient.county || "",
+                  waiver_type: editingPatient.waiver_type || "",
+                  referral_by: editingPatient.referral_by || "",
+                  referral_date: editingPatient.referral_date || "",
+                  referral_expiration_date:
+                    editingPatient.referral_expiration_date || "",
+                  service_type: editingPatient.service_type || "",
+                  case_manager: editingPatient.case_manager || "",
+                  case_manager_phone: editingPatient.case_manager_phone || "",
+                  case_manager_email: editingPatient.case_manager_email || "",
+                  monthly_credit:
+                    editingPatient.monthly_credit?.toString() || "",
+                  credit_used_for: editingPatient.credit_used_for || "",
+                  vehicle_type_need: editingPatient.vehicle_type_need || "",
                   notes: editingPatient.notes || "",
                   custom_fields: editingPatient.custom_fields,
                 }
@@ -476,7 +504,20 @@ export function PatientsPage({
                 email: editingPatient.email,
                 phone: editingPatient.phone,
                 primary_address: editingPatient.address,
-                date_of_birth: editingPatient.date_of_birth || "",
+                dob: editingPatient.date_of_birth || "",
+                county: editingPatient.county || "",
+                waiver_type: editingPatient.waiver_type || "",
+                referral_by: editingPatient.referral_by || "",
+                referral_date: editingPatient.referral_date || "",
+                referral_expiration_date:
+                  editingPatient.referral_expiration_date || "",
+                service_type: editingPatient.service_type || "",
+                case_manager: editingPatient.case_manager || "",
+                case_manager_phone: editingPatient.case_manager_phone || "",
+                case_manager_email: editingPatient.case_manager_email || "",
+                monthly_credit: editingPatient.monthly_credit?.toString() || "",
+                credit_used_for: editingPatient.credit_used_for || "",
+                vehicle_type_need: editingPatient.vehicle_type_need || "",
                 notes: editingPatient.notes || "",
                 custom_fields: editingPatient.custom_fields,
               }

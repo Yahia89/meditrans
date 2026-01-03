@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   UsersThree,
   CarProfile,
@@ -9,10 +9,9 @@ import {
   UserList,
   Shield,
   MapTrifold,
-} from "@phosphor-icons/react"
+} from "@phosphor-icons/react";
 
-
-import { NavUser } from "@/components/nav-user"
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -21,14 +20,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 // Page type must match the pages defined in App.tsx
-import { type Page } from "@/App"
+import { type Page } from "@/App";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  currentPage: Page
-  onNavigate: (page: Page) => void
+  currentPage: Page;
+  onNavigate: (page: Page) => void;
 }
 
 const data = {
@@ -64,34 +63,42 @@ const data = {
       icon: UploadSimple,
     },
   ],
-}
+};
 
-import { usePermissions } from "@/hooks/usePermissions"
+import { usePermissions } from "@/hooks/usePermissions";
 
-export function AppSidebar({ currentPage, onNavigate, ...props }: AppSidebarProps) {
-  const { isSuperAdmin } = usePermissions()
+export function AppSidebar({
+  currentPage,
+  onNavigate,
+  ...props
+}: AppSidebarProps) {
+  const { isSuperAdmin } = usePermissions();
 
-  const navItems = [...data.navMain]
+  const navItems = [...data.navMain];
   if (isSuperAdmin) {
     navItems.push({
       title: "Founder Tool",
       url: "founder" as Page,
       icon: Shield,
-    })
+    });
   }
 
   return (
-
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
               {/* <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
                 <Heartbeat weight="duotone" className="size-5" />
               </div> */}
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">Future Transportation</span>
+                <span className="truncate font-semibold">
+                  Future Transportation
+                </span>
                 <span className="truncate text-xs">CRM System</span>
               </div>
             </SidebarMenuButton>
@@ -101,9 +108,12 @@ export function AppSidebar({ currentPage, onNavigate, ...props }: AppSidebarProp
       <SidebarContent>
         <SidebarMenu className="flex flex-col gap-2 p-2">
           {navItems.map((item) => {
-
-            const Icon = item.icon
-            const isActive = currentPage === item.url || (item.url === 'patients' && currentPage === 'patient-details')
+            const Icon = item.icon;
+            const isActive =
+              currentPage === item.url ||
+              (item.url === "patients" && currentPage === "patient-details") ||
+              (item.url === "drivers" && currentPage === "driver-details") ||
+              (item.url === "trips" && currentPage === "trip-details");
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
@@ -116,7 +126,7 @@ export function AppSidebar({ currentPage, onNavigate, ...props }: AppSidebarProp
                   <span>{item.title}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            )
+            );
           })}
         </SidebarMenu>
       </SidebarContent>
@@ -124,5 +134,5 @@ export function AppSidebar({ currentPage, onNavigate, ...props }: AppSidebarProp
         <NavUser />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
