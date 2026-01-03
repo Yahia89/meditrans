@@ -25,6 +25,7 @@ import type { Trip, TripStatus } from "./types";
 import { cn } from "@/lib/utils";
 import { TripTimeline, TripTimelineVertical } from "./TripTimeline";
 import { Input } from "@/components/ui/input";
+import { QuickAddLegDialog } from "./QuickAddLegDialog";
 
 interface TripsSchedulerProps {
   onCreateClick?: () => void;
@@ -94,6 +95,11 @@ export function TripsScheduler({
   const [statusFilter, setStatusFilter] = useState<TripStatus | "all">("all");
   const [isMobile, setIsMobile] = useState(false);
   const [isMonthExpanded, setIsMonthExpanded] = useState(false);
+  const [quickAddData, setQuickAddData] = useState<{
+    patientId: string;
+    patientName: string;
+    date: Date;
+  } | null>(null);
 
   // Detect mobile
   useEffect(() => {
@@ -521,6 +527,9 @@ export function TripsScheduler({
             trips={tripsForDate}
             onTripClick={onTripClick}
             statusColors={statusColors}
+            onQuickAdd={(patientId, patientName, date) =>
+              setQuickAddData({ patientId, patientName, date })
+            }
           />
         ) : (
           <TripListView
@@ -530,20 +539,32 @@ export function TripsScheduler({
           />
         )}
       </div>
+
+      {quickAddData && (
+        <QuickAddLegDialog
+          open={!!quickAddData}
+          onOpenChange={(open) => !open && setQuickAddData(null)}
+          patientId={quickAddData.patientId}
+          patientName={quickAddData.patientName}
+          date={quickAddData.date}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
   );
 }
 
 // Cards view component
-// Cards view component
 function TripCardsView({
   trips,
   onTripClick,
   statusColors,
+  onQuickAdd,
 }: {
   trips: Trip[];
   onTripClick: (id: string) => void;
   statusColors: Record<TripStatus, string>;
+  onQuickAdd: (patientId: string, patientName: string, date: Date) => void;
 }) {
   const groupedTrips = useMemo(() => {
     const groups: Record<string, Trip[]> = {};
@@ -681,6 +702,30 @@ function TripCardsView({
                   </div>
                 </div>
               ))}
+
+              {/* Quick Add Leg Button */}
+              <div className="relative pl-8 pt-2">
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const date = new Date(sortedGroup[0].pickup_time);
+                    onQuickAdd(
+                      sortedGroup[0].patient_id,
+                      patient?.full_name || "Patient",
+                      date
+                    );
+                  }}
+                  variant="ghost"
+                  className="w-full h-11 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 group"
+                >
+                  <div className="w-7 h-7 rounded-full bg-white border-2 border-slate-100 flex items-center justify-center group-hover:border-blue-400 group-hover:text-blue-400 transition-colors">
+                    <Plus className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    Add Leg
+                  </span>
+                </Button>
+              </div>
             </div>
           </div>
         );

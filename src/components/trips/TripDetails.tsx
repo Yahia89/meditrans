@@ -368,37 +368,16 @@ export function TripDetails({
       });
     }
 
-    // Add synthetic events from trip state if no history exists for them
+    // Current status event - only show if history doesn't already capture the latest change
     const hasHistoryForStatus = (status: string) =>
       events.some((e) => e.status.toLowerCase().includes(status.toLowerCase()));
 
-    // Current status event (if not already in history)
     if (trip.status && !hasHistoryForStatus(trip.status)) {
       events.push({
         id: `current-${trip.status}`,
         status: trip.status.toUpperCase(),
         actor_name: trip.driver?.full_name || "System",
         created_at: trip.updated_at || trip.created_at,
-      });
-    }
-
-    // Assigned event
-    if (trip.driver && !hasHistoryForStatus("assigned")) {
-      events.push({
-        id: "assigned-event",
-        status: `Assigned to ${trip.driver.full_name}`,
-        actor_name: "Admin",
-        created_at: trip.created_at,
-      });
-    }
-
-    // Created event
-    if (!hasHistoryForStatus("created")) {
-      events.push({
-        id: "created-event",
-        status: "TRIP CREATED",
-        actor_name: "System",
-        created_at: trip.created_at,
       });
     }
 

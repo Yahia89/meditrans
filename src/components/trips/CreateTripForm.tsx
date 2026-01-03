@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useAuth } from "@/contexts/auth-context";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -23,98 +24,7 @@ import {
 import type { TripStatus } from "./types";
 import { cn } from "@/lib/utils";
 
-// --- Time Picker Component ---
-// Helper to parse "HH:mm" -> { hour, minute, period }
-const parseTime = (timeStr: string) => {
-  if (!timeStr) return { hour: "12", minute: "00", period: "AM" };
-  const [h, m] = timeStr.split(":").map(Number);
-  const period = h >= 12 ? "PM" : "AM";
-  const hour = h % 12 === 0 ? 12 : h % 12;
-  return {
-    hour: hour.toString().padStart(2, "0"),
-    minute: m.toString().padStart(2, "0"),
-    period,
-  };
-};
-
-// Helper to format { hour, minute, period } -> "HH:mm"
-const formatTime = (hour: string, minute: string, period: string) => {
-  let h = parseInt(hour, 10);
-  if (period === "PM" && h !== 12) h += 12;
-  if (period === "AM" && h === 12) h = 0;
-  return `${h.toString().padStart(2, "0")}:${minute}`;
-};
-
-const TimePicker = ({
-  value,
-  onChange,
-  className,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  className?: string;
-}) => {
-  const { hour, minute, period } = useMemo(() => parseTime(value), [value]);
-
-  const updateTime = (
-    newHour: string,
-    newMinute: string,
-    newPeriod: string
-  ) => {
-    onChange(formatTime(newHour, newMinute, newPeriod));
-  };
-
-  return (
-    <div className={cn("flex items-center gap-1", className)}>
-      <select
-        value={hour}
-        onChange={(e) => updateTime(e.target.value, minute, period)}
-        className="flex-1 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20"
-      >
-        {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-          <option key={h} value={h.toString().padStart(2, "0")}>
-            {h.toString().padStart(2, "0")}
-          </option>
-        ))}
-      </select>
-      <span className="text-slate-400 font-bold">:</span>
-      <select
-        value={minute}
-        onChange={(e) => updateTime(hour, e.target.value, period)}
-        className="flex-1 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20"
-      >
-        {/* 5 minute steps */}
-        {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
-          <option key={m} value={m.toString().padStart(2, "0")}>
-            {m.toString().padStart(2, "0")}
-          </option>
-        ))}
-      </select>
-      <select
-        value={period}
-        onChange={(e) => updateTime(hour, minute, e.target.value)}
-        className="w-20 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20"
-      >
-        <option value="AM">AM</option>
-        <option value="PM">PM</option>
-      </select>
-    </div>
-  );
-};
-
-// Trip type options (purpose-based)
-const TRIP_TYPES = [
-  { value: "WORK", label: "Work" },
-  { value: "SCHOOL", label: "School" },
-  { value: "PLEASURE", label: "Pleasure" },
-  { value: "DENTIST", label: "Dentist" },
-  { value: "MEDICAL APPOINTMENT", label: "Medical Appointment" },
-  { value: "CLINICS", label: "Clinics" },
-  { value: "METHADONE CLINICS", label: "Methadone Clinics" },
-  { value: "DIALYSIS", label: "Dialysis" },
-  { value: "REGULAR TRANSPORTATION", label: "Regular Transportation" },
-  { value: "OTHER", label: "Other" },
-] as const;
+import { TimePicker, TRIP_TYPES } from "./trip-utils";
 
 // Vehicle type compatibility matrix
 const canDriverServePatient = (
@@ -162,6 +72,7 @@ export function CreateTripForm({
   tripId, // If provided, we are in "Edit Mode" (for at least the primary trip)
 }: CreateTripFormProps) {
   const { currentOrganization } = useOrganization();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [activeLegId, setActiveLegId] = useState<string>("leg-1");
   const [conflictError, setConflictError] = useState<string | null>(null);
@@ -363,7 +274,7 @@ export function CreateTripForm({
       );
       if (invalidLeg) {
         setConflictError(
-          "Please check the trip info, there's seems a conflict."
+          "Missing trip details. Please ensure pickup time, origin, and destination are all set."
         );
         setActiveLegId(invalidLeg.id);
         toggleLoading(false);
@@ -395,13 +306,12 @@ export function CreateTripForm({
               patients?.find((p) => p.id === leg.patient_id)?.full_name ||
               "Patient";
 
-            const confirmMessage = `Conflict detected: ${patientName} already has a trip scheduled at this exact time.\n\nDo you want to proceed with scheduling this additional trip anyway?`;
-
-            if (!window.confirm(confirmMessage)) {
-              setActiveLegId(leg.id);
-              toggleLoading(false);
-              return;
-            }
+            setConflictError(
+              `Unable to Schedule: ${patientName} already has another trip scheduled at this exact time.`
+            );
+            setActiveLegId(leg.id);
+            toggleLoading(false);
+            return;
           }
         }
 
@@ -419,7 +329,7 @@ export function CreateTripForm({
               (c) =>
                 c.id !== leg.db_id &&
                 c.id !== tripId &&
-                c.patient_id !== leg.patient_id // ALLOW if same patient (multi-leg/loose trip)
+                c.patient_id !== leg.patient_id // ALLOW if same patient (multi-leg sequence)
             );
 
             if (realDriverConflicts.length > 0) {
@@ -432,13 +342,12 @@ export function CreateTripForm({
                 .map((c: any) => c.patients?.full_name || "another patient")
                 .join(", ");
 
-              const confirmMessage = `Conflict detected: Driver ${driverName} is already assigned to a trip for ${otherPatientNames} at this time. \n\nDo you want to proceed with this assignment anyway (e.g., for a group ride)?`;
-
-              if (!window.confirm(confirmMessage)) {
-                setActiveLegId(leg.id);
-                toggleLoading(false);
-                return;
-              }
+              setConflictError(
+                `Driver Conflict: ${driverName} is already assigned to a trip for ${otherPatientNames} at this time.`
+              );
+              setActiveLegId(leg.id);
+              toggleLoading(false);
+              return;
             }
           }
         }
@@ -484,6 +393,22 @@ export function CreateTripForm({
           }
         }
 
+        // Determine final status
+        let finalStatus = leg.status;
+        if (leg.db_id && existingTrip) {
+          // Logic for existing trips (edit mode)
+          if (existingTrip.status === "assigned" && !finalDriverId) {
+            finalStatus = "pending"; // Revert to pending if driver removed
+          } else if (existingTrip.status === "pending" && finalDriverId) {
+            finalStatus = "assigned"; // Auto-assign if driver added
+          }
+        } else {
+          // Logic for new trips (create mode)
+          if (finalStatus === "pending" && finalDriverId) {
+            finalStatus = "assigned";
+          }
+        }
+
         const payload = {
           org_id: currentOrganization.id,
           patient_id: leg.patient_id,
@@ -494,21 +419,64 @@ export function CreateTripForm({
           trip_type:
             leg.trip_type === "OTHER" ? leg.other_trip_type : leg.trip_type,
           notes: leg.notes,
-          status:
-            leg.status === "pending" && finalDriverId ? "assigned" : leg.status,
+          status: finalStatus,
         };
 
         if (leg.db_id) {
-          // Edit mode: update specific known record
+          // Edit mode: determine what exactly changed for history
+          const changes: string[] = [];
+          if (existingTrip) {
+            if (existingTrip.pickup_time !== payload.pickup_time)
+              changes.push("Time");
+            if (existingTrip.pickup_location !== payload.pickup_location)
+              changes.push("Pickup Location");
+            if (existingTrip.dropoff_location !== payload.dropoff_location)
+              changes.push("Dropoff Location");
+            if (existingTrip.driver_id !== payload.driver_id) {
+              if (!payload.driver_id) {
+                changes.push("Unassigned Driver");
+              } else {
+                const driverName =
+                  allPotentialDrivers.find((d) => d.id === payload.driver_id)
+                    ?.full_name || "Driver";
+                changes.push(`Assigned to ${driverName}`);
+              }
+            }
+            if (existingTrip.notes !== payload.notes) changes.push("Notes");
+          }
+
           const { error } = await supabase
             .from("trips")
             .update(payload)
             .eq("id", leg.db_id);
           if (error) throw error;
+
+          // Log history with detailed changes
+          await supabase.from("trip_status_history").insert({
+            trip_id: leg.db_id,
+            status:
+              changes.length > 0
+                ? `UPDATED: ${changes.join(", ")}`
+                : "UPDATED (No major changes)",
+            actor_id: user?.id,
+            actor_name: profile?.full_name || user?.email || "Unknown User",
+          });
         } else {
           // Create mode: inserting new trip(s)
-          const { error } = await supabase.from("trips").insert(payload);
+          const { data: newTrip, error } = await supabase
+            .from("trips")
+            .insert(payload)
+            .select()
+            .single();
           if (error) throw error;
+
+          // Log history
+          await supabase.from("trip_status_history").insert({
+            trip_id: newTrip.id,
+            status: payload.driver_id ? "CREATED AND ASSIGNED" : "TRIP CREATED",
+            actor_id: user?.id,
+            actor_name: profile?.full_name || user?.email || "Unknown User",
+          });
         }
       }
 
