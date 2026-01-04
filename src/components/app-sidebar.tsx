@@ -9,6 +9,7 @@ import {
   UserList,
   Shield,
   MapTrifold,
+  Coins,
 } from "@phosphor-icons/react";
 
 import { NavUser } from "@/components/nav-user";
@@ -72,9 +73,19 @@ export function AppSidebar({
   onNavigate,
   ...props
 }: AppSidebarProps) {
-  const { isSuperAdmin } = usePermissions();
+  const { isSuperAdmin, isOwner, isAdmin } = usePermissions();
 
   const navItems = [...data.navMain];
+
+  // Add Client Credits to owners and admins only
+  if (isOwner || isAdmin) {
+    navItems.push({
+      title: "Client Credits",
+      url: "client-credits" as Page,
+      icon: Coins,
+    });
+  }
+
   if (isSuperAdmin) {
     navItems.push({
       title: "Founder Tool",
@@ -113,7 +124,9 @@ export function AppSidebar({
               currentPage === item.url ||
               (item.url === "patients" && currentPage === "patient-details") ||
               (item.url === "drivers" && currentPage === "driver-details") ||
-              (item.url === "trips" && currentPage === "trip-details");
+              (item.url === "trips" && currentPage === "trip-details") ||
+              (item.url === "client-credits" &&
+                currentPage === "client-credits");
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton

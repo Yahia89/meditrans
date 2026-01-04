@@ -6,13 +6,18 @@ import { PerformanceChart } from "./dashboard/PerformanceChart";
 import { UpcomingSchedule } from "./dashboard/UpcomingSchedule";
 import { RecentActivity } from "./dashboard/RecentActivity";
 import { QuickActions } from "./dashboard/QuickActions";
+import { LowBalanceAlerts } from "./credits/LowBalanceAlerts";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Warning, GasPump, Trophy } from "@phosphor-icons/react";
 
 import { useEffect } from "react";
 import { useQueryState } from "nuqs";
 
-export function Dashboard() {
+interface DashboardProps {
+  onNavigateToCredits?: () => void;
+}
+
+export function Dashboard({ onNavigateToCredits }: DashboardProps) {
   const { dataState, isDemoMode } = useOnboarding();
   const { isAdmin, isEmployee } = usePermissions();
   const [section] = useQueryState("section");
@@ -101,7 +106,10 @@ export function Dashboard() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:shadow-md cursor-pointer group">
+                  {/* Low Balance Alerts - Dynamic */}
+                  <LowBalanceAlerts onNavigate={onNavigateToCredits} />
+
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:border-slate-200 cursor-pointer group">
                     <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-600 group-hover:text-white transition-colors">
                       <Warning size={20} weight="fill" />
                     </div>
@@ -115,7 +123,7 @@ export function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:shadow-md cursor-pointer group">
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:border-slate-200 cursor-pointer group">
                     <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                       <GasPump size={20} weight="fill" />
                     </div>
@@ -129,7 +137,7 @@ export function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:shadow-md cursor-pointer group">
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:border-slate-200 cursor-pointer group">
                     <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                       <Trophy size={20} weight="fill" />
                     </div>

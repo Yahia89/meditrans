@@ -42,6 +42,7 @@ export const pages = [
   "accept-invite",
   "trips",
   "trip-details",
+  "client-credits",
 ] as const;
 
 export type Page = (typeof pages)[number];
@@ -52,12 +53,13 @@ import { DriverDetailsPage } from "./components/driver-details-page";
 import { TripDetails } from "./components/trips/TripDetails";
 import { TripDialog } from "./components/trips/TripDialog";
 import { TripsScheduler } from "./components/trips/TripsScheduler";
+import { ClientCreditsPage } from "./components/client-credits-page";
 import { ErrorBoundary } from "./components/error-boundary";
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
   const { loading: orgLoading } = useOrganization();
-  const { isSuperAdmin } = usePermissions();
+  const { isSuperAdmin, isAdmin, isOwner } = usePermissions();
 
   const loading = authLoading || (user && orgLoading);
 
@@ -191,7 +193,9 @@ function AppContent() {
       case "dashboard":
         return (
           <DashboardPage title="Dashboard">
-            <Dashboard />
+            <Dashboard
+              onNavigateToCredits={() => setCurrentPage("client-credits")}
+            />
           </DashboardPage>
         );
       case "patients":
@@ -328,10 +332,22 @@ function AppContent() {
             />
           </DashboardPage>
         );
+      case "client-credits":
+        if (!isAdmin && !isOwner) {
+          setCurrentPage("dashboard");
+          return null;
+        }
+        return (
+          <DashboardPage title="Client Credits">
+            <ClientCreditsPage />
+          </DashboardPage>
+        );
       default:
         return (
           <DashboardPage title="Dashboard">
-            <Dashboard />
+            <Dashboard
+              onNavigateToCredits={() => setCurrentPage("client-credits")}
+            />
           </DashboardPage>
         );
     }

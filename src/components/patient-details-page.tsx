@@ -20,6 +20,7 @@ import {
   CaretRight,
   CalendarBlank,
   Funnel,
+  Coins,
 } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -30,6 +31,7 @@ import { PatientForm } from "@/components/forms/patient-form";
 import { DocumentManager } from "@/components/document-manager";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { useOnboarding } from "@/contexts/OnboardingContext";
+import { PatientCreditTab } from "@/components/credits/PatientCreditTab";
 import type { Trip, TripStatus } from "@/components/trips/types";
 
 interface PatientDetailsPageProps {
@@ -90,7 +92,7 @@ export function PatientDetailsPage({
   onTripClick,
 }: PatientDetailsPageProps) {
   const [activeTab, setActiveTab] = useState<
-    "overview" | "documents" | "trips"
+    "overview" | "documents" | "trips" | "credits"
   >("overview");
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -355,6 +357,33 @@ export function PatientDetailsPage({
             {allTrips.length}
           </span>
         </button>
+        {/* Credits Tab - show for admins/owners or if patient has credit */}
+        {(canManagePatients || patient.monthly_credit) && (
+          <button
+            onClick={() => setActiveTab("credits")}
+            className={cn(
+              "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
+              activeTab === "credits"
+                ? "border-[#3D5A3D] text-[#3D5A3D]"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            )}
+          >
+            <Coins weight="duotone" className="w-4 h-4" />
+            Credits
+            {patient.monthly_credit && (
+              <span
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                  activeTab === "credits"
+                    ? "bg-[#3D5A3D] text-white"
+                    : "bg-emerald-100 text-emerald-700"
+                )}
+              >
+                ${patient.monthly_credit.toLocaleString()}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Tab Content */}
@@ -801,6 +830,16 @@ export function PatientDetailsPage({
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === "credits" && (
+        <PatientCreditTab
+          patientId={patient.id}
+          patientName={patient.full_name}
+          monthlyCredit={patient.monthly_credit}
+          creditUsedFor={patient.credit_used_for}
+          notes={patient.notes}
+        />
       )}
 
       {/* Edit Form */}
