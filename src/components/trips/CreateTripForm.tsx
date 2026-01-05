@@ -26,6 +26,17 @@ import { cn } from "@/lib/utils";
 
 import { TimePicker, TRIP_TYPES } from "./trip-utils";
 
+import { useLoadScript } from "@react-google-maps/api";
+import { AddressAutocomplete } from "./AddressAutocomplete";
+
+// Libraries must be defined outside component to avoid re-loading
+const GOOGLE_MAPS_LIBRARIES: (
+  | "places"
+  | "geometry"
+  | "drawing"
+  | "visualization"
+)[] = ["places"];
+
 // Vehicle type compatibility matrix
 const canDriverServePatient = (
   driverVehicleType: string | null,
@@ -57,6 +68,8 @@ interface TripDraft {
   other_trip_type: string;
   notes: string;
   status: TripStatus;
+  distance_miles?: number | null;
+  duration_minutes?: number | null;
 }
 
 interface CreateTripFormProps {
@@ -71,6 +84,12 @@ export function CreateTripForm({
   onLoadingChange,
   tripId, // If provided, we are in "Edit Mode" (for at least the primary trip)
 }: CreateTripFormProps) {
+  // Load Google Maps API
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
+
   const { currentOrganization } = useOrganization();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
@@ -90,6 +109,8 @@ export function CreateTripForm({
     other_trip_type: "",
     notes: "",
     status: "pending",
+    distance_miles: null,
+    duration_minutes: null,
   });
 
   const [tripLegs, setTripLegs] = useState<TripDraft[]>([
@@ -105,6 +126,80 @@ export function CreateTripForm({
 
   // Helper to get the current leg data safely
   const currentLeg = tripLegs.find((l) => l.id === activeLegId) || tripLegs[0];
+
+  // Calculate route metrics
+  const calculateRoute = async (pickup: string, dropoff: string) => {
+    if (!pickup || !dropoff || !isLoaded) return null;
+
+    try {
+      const directionsService = new google.maps.DirectionsService();
+      const result = await directionsService.route({
+        origin: pickup,
+        destination: dropoff,
+        travelMode: google.maps.TravelMode.DRIVING,
+      });
+
+      if (result.routes[0]?.legs[0]) {
+        const leg = result.routes[0].legs[0];
+        const distanceMeters = leg.distance?.value || 0;
+        const durationSeconds = leg.duration?.value || 0;
+
+        return {
+          distance_miles: parseFloat((distanceMeters * 0.000621371).toFixed(2)),
+          duration_minutes: Math.ceil(durationSeconds / 60),
+        };
+      }
+    } catch (error) {
+      console.error("Error calculating route:", error);
+    }
+    return null;
+  };
+
+  const handleLocationSelect = async (
+    field: "pickup_location" | "dropoff_location",
+    value: string
+  ) => {
+    if (!value) {
+      // Manual clear or typing
+      updateActiveLeg({
+        [field]: value,
+        distance_miles: null,
+        duration_minutes: null,
+      });
+      return;
+    }
+
+    // Update the field immediately
+    updateActiveLeg({ [field]: value });
+
+    // Get the other field's current value
+    const otherValue =
+      field === "pickup_location"
+        ? currentLeg.dropoff_location
+        : currentLeg.pickup_location;
+
+    // If we have both addresses, calculate the route
+    if (value && otherValue) {
+      const pickup = field === "pickup_location" ? value : otherValue;
+      const dropoff = field === "dropoff_location" ? value : otherValue;
+
+      const metrics = await calculateRoute(pickup, dropoff);
+      if (metrics) {
+        // Update with the calculated metrics
+        setTripLegs((prev) =>
+          prev.map((leg) =>
+            leg.id === activeLegId
+              ? {
+                  ...leg,
+                  distance_miles: metrics.distance_miles,
+                  duration_minutes: metrics.duration_minutes,
+                }
+              : leg
+          )
+        );
+      }
+    }
+  };
 
   // Fetch existing trip if editing
   const { data: existingTrip, isLoading: isLoadingTrip } = useQuery({
@@ -145,6 +240,8 @@ export function CreateTripForm({
             : existingTrip.trip_type || "",
           notes: existingTrip.notes || "",
           status: existingTrip.status || "pending",
+          distance_miles: existingTrip.distance_miles,
+          duration_minutes: existingTrip.duration_minutes,
         };
         setTripLegs([initialLeg]);
         setActiveLegId("leg-1");
@@ -420,6 +517,8 @@ export function CreateTripForm({
             leg.trip_type === "OTHER" ? leg.other_trip_type : leg.trip_type,
           notes: leg.notes,
           status: finalStatus,
+          distance_miles: leg.distance_miles,
+          duration_minutes: leg.duration_minutes,
         };
 
         if (leg.db_id) {
@@ -443,6 +542,9 @@ export function CreateTripForm({
               }
             }
             if (existingTrip.notes !== payload.notes) changes.push("Notes");
+            if (existingTrip.distance_miles !== payload.distance_miles) {
+              changes.push(`Distance: ${payload.distance_miles} miles`);
+            }
           }
 
           const { error } = await supabase
@@ -669,16 +771,7 @@ export function CreateTripForm({
                 required
                 value={currentLeg.patient_id}
                 onChange={(e) => {
-                  // If this is the only leg, just update it
-                  // If there are multiple legs, ask user? Or just update current.
-                  // Ideally, changing patient on Leg 1 might want to propagate to others if they are empty
                   const newPatientId = e.target.value;
-
-                  // Helper to update all legs if they were empty or same as old value
-                  // But simpler: Just update current leg.
-                  // NOTE: If creating a multi-leg trip, usually for SAME patient.
-                  // Let's enforce SAME patient for all legs for now to avoid complexity?
-                  // No, let's keep it flexible but default to same.
                   updateActiveLeg({ patient_id: newPatientId });
                 }}
                 className="w-full rounded-md border-slate-200 bg-white h-10 px-3 text-sm focus:ring-2 focus:ring-blue-500/20"
@@ -722,7 +815,7 @@ export function CreateTripForm({
             </div>
           </div>
 
-          {/* Locations Section */}
+          {/* Locations Section with Autocomplete */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -748,30 +841,86 @@ export function CreateTripForm({
                   <MapPin className="w-4 h-4 text-red-500" />
                   Pickup Location
                 </Label>
-                <Input
-                  required
-                  placeholder="Enter full address"
-                  value={currentLeg.pickup_location}
-                  onChange={(e) =>
-                    updateActiveLeg({ pickup_location: e.target.value })
-                  }
-                />
+                {isLoaded ? (
+                  <AddressAutocomplete
+                    isLoaded={isLoaded}
+                    placeholder="Enter full address"
+                    value={currentLeg.pickup_location}
+                    onChange={(value) =>
+                      updateActiveLeg({ pickup_location: value })
+                    }
+                    onAddressSelect={(place) => {
+                      const address =
+                        place.formatted_address || place.name || "";
+                      handleLocationSelect("pickup_location", address);
+                    }}
+                    className="w-full rounded-md border border-input bg-white h-10 px-3 text-sm focus:ring-2 focus:ring-blue-500/20"
+                  />
+                ) : (
+                  <Input
+                    required
+                    placeholder="Enter full address"
+                    value={currentLeg.pickup_location}
+                    onChange={(e) =>
+                      handleLocationSelect("pickup_location", e.target.value)
+                    }
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-slate-500" />
                   Dropoff Location
                 </Label>
-                <Input
-                  required
-                  placeholder="Enter full address"
-                  value={currentLeg.dropoff_location}
-                  onChange={(e) =>
-                    updateActiveLeg({ dropoff_location: e.target.value })
-                  }
-                />
+                {isLoaded ? (
+                  <AddressAutocomplete
+                    isLoaded={isLoaded}
+                    placeholder="Enter full address"
+                    value={currentLeg.dropoff_location}
+                    onChange={(value) =>
+                      updateActiveLeg({ dropoff_location: value })
+                    }
+                    onAddressSelect={(place) => {
+                      const address =
+                        place.formatted_address || place.name || "";
+                      handleLocationSelect("dropoff_location", address);
+                    }}
+                    className="w-full rounded-md border border-input bg-white h-10 px-3 text-sm focus:ring-2 focus:ring-blue-500/20"
+                  />
+                ) : (
+                  <Input
+                    required
+                    placeholder="Enter full address"
+                    value={currentLeg.dropoff_location}
+                    onChange={(e) =>
+                      handleLocationSelect("dropoff_location", e.target.value)
+                    }
+                  />
+                )}
               </div>
             </div>
+
+            {/* Trip Metrics Display */}
+            {(currentLeg.distance_miles || currentLeg.duration_minutes) && (
+              <div className="flex items-center gap-6 mt-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100 animate-in fade-in slide-in-from-top-2">
+                {currentLeg.distance_miles && (
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <span className="font-semibold text-blue-600">
+                      Est. Distance:
+                    </span>
+                    {currentLeg.distance_miles} miles
+                  </div>
+                )}
+                {currentLeg.duration_minutes && (
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <span className="font-semibold text-blue-600">
+                      Est. Duration:
+                    </span>
+                    {currentLeg.duration_minutes} mins
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Schedule Section */}

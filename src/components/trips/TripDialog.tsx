@@ -31,7 +31,24 @@ export function TripDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl w-[95vw] max-h-[85vh] flex flex-col p-0 border-none shadow-2xl rounded-2xl bg-white overflow-hidden">
+      <DialogContent
+        className="max-w-5xl w-[95vw] max-h-[85vh] flex flex-col p-0 border-none shadow-2xl rounded-2xl bg-white overflow-hidden"
+        onPointerDownOutside={(e) => {
+          // Prevent modal from closing when clicking on Google Maps autocomplete suggestions
+          // The .pac-container is appended to the body by Google Maps, outside the modal DOM
+          const target = e.target as HTMLElement;
+          if (target.closest(".pac-container")) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
+          // Also handle the interact outside event for complete coverage
+          const target = e.target as HTMLElement;
+          if (target.closest(".pac-container")) {
+            e.preventDefault();
+          }
+        }}
+      >
         {/* Header - Fixed at top */}
         <DialogHeader className="p-6 pb-4 border-b border-slate-100 bg-white shrink-0">
           <DialogTitle className="text-xl font-bold text-slate-900 tracking-tight">

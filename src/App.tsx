@@ -163,25 +163,6 @@ function AppContent() {
             {/* Soft Overlay */}
             <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-slate-50/50 dark:to-slate-950/50" />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 to-transparent" />
-
-            {/* Floating info card */}
-            <div className="absolute bottom-12 left-12 right-12 p-8 backdrop-blur-md bg-white/10 border border-white/20 rounded-3xl text-white">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
-                  <span className="text-2xl">✓</span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">Trusted Platform</h3>
-                  <p className="text-white/80 text-sm">
-                    Managing over 10k transports monthly
-                  </p>
-                </div>
-              </div>
-              <p className="italic text-white/70">
-                "MediTrans has transformed our fleet operations, increasing
-                efficiency by 40% in our first quarter."
-              </p>
-            </div>
           </div>
         </div>
       </div>

@@ -170,3 +170,14 @@ a:hover {
   }
 }
 
+/*
+ * Google Maps Places Autocomplete Fix
+ * The .pac-container is appended to the body by Google Maps.
+ * When inside a Radix UI modal, the body may have pointer-events: none,
+ * which blocks clicks on the autocomplete dropdown.
+ * This fix ensures the dropdown is always interactive and visible above modals.
+ */
+.pac-container {
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+}
