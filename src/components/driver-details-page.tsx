@@ -12,8 +12,12 @@ import {
   FileText,
   Trash,
   MapPin,
+  Send,
+  CheckCircle,
+  Clock,
+  RefreshCw,
 } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,6 +27,7 @@ import { DocumentManager } from "@/components/document-manager";
 import { TripList } from "@/components/trips/TripList";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { useOnboarding } from "@/contexts/OnboardingContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 interface DriverDetailsPageProps {
   id: string;
@@ -102,6 +107,7 @@ export function DriverDetailsPage({
   const [isDeleting, setIsDeleting] = useState(false);
   const { isAdmin, isOwner } = usePermissions();
   const { isDemoMode } = useOnboarding();
+  const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
 
   const canManageDrivers = isAdmin || isOwner;
@@ -148,6 +154,111 @@ export function DriverDetailsPage({
       return count || 0;
     },
   });
+
+  // Fetch existing invitation for this driver's email
+  const { data: inviteStatus, refetch: refetchInvite } = useQuery({
+    queryKey: ["driver-invite", driver?.email, driver?.org_id],
+    queryFn: async () => {
+      if (!driver?.email || !driver?.org_id) return null;
+
+      const { data, error } = await supabase
+        .from("org_invites")
+        .select("*")
+        .eq("org_id", driver.org_id)
+        .eq("email", driver.email)
+        .eq("role", "driver")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!driver?.email && !!driver?.org_id,
+  });
+
+  // Send/resend invite mutation
+  const sendInviteMutation = useMutation({
+    mutationFn: async () => {
+      if (!driver?.email || !currentOrganization) {
+        throw new Error("Driver email and organization required");
+      }
+
+      // If there's an existing pending invite, delete it first
+      if (inviteStatus && !inviteStatus.accepted_at) {
+        await supabase.from("org_invites").delete().eq("id", inviteStatus.id);
+      }
+
+      // Create new invitation
+      const { error } = await supabase.from("org_invites").insert({
+        org_id: currentOrganization.id,
+        email: driver.email,
+        role: "driver" as any,
+        invited_by: (await supabase.auth.getUser()).data.user?.id,
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          throw new Error(
+            "An active invitation for this email already exists."
+          );
+        }
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      refetchInvite();
+      queryClient.invalidateQueries({ queryKey: ["driver-invite"] });
+    },
+  });
+
+  // Determine invite button state
+  const getInviteButtonConfig = () => {
+    if (!driver?.email) {
+      return {
+        label: "No Email",
+        disabled: true,
+        icon: Mail,
+        tooltip: "Add an email address to send an invitation",
+      };
+    }
+
+    if (inviteStatus?.accepted_at) {
+      return {
+        label: "Invite Accepted",
+        disabled: true,
+        icon: CheckCircle,
+        tooltip: "Driver has already accepted their invitation",
+      };
+    }
+
+    if (inviteStatus && new Date(inviteStatus.expires_at) > new Date()) {
+      return {
+        label: "Resend Invite",
+        disabled: false,
+        icon: RefreshCw,
+        tooltip: "Send a new invitation (previous invite will be replaced)",
+      };
+    }
+
+    if (inviteStatus && new Date(inviteStatus.expires_at) <= new Date()) {
+      return {
+        label: "Invite Expired - Resend",
+        disabled: false,
+        icon: Clock,
+        tooltip: "Previous invite has expired, send a new one",
+      };
+    }
+
+    return {
+      label: "Send Invite",
+      disabled: false,
+      icon: Send,
+      tooltip: "Send a system invitation to the driver",
+    };
+  };
+
+  const inviteButtonConfig = getInviteButtonConfig();
 
   const handleDelete = async () => {
     if (isDemoMode) return;
@@ -219,7 +330,7 @@ export function DriverDetailsPage({
         </div>
 
         {canManageDrivers && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               onClick={() => setIsEditing(true)}
@@ -227,6 +338,33 @@ export function DriverDetailsPage({
             >
               <Pencil size={16} />
               Edit Details
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => sendInviteMutation.mutate()}
+              disabled={
+                inviteButtonConfig.disabled ||
+                isDemoMode ||
+                sendInviteMutation.isPending
+              }
+              title={inviteButtonConfig.tooltip}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-xl",
+                inviteButtonConfig.disabled
+                  ? "text-slate-400"
+                  : inviteStatus?.accepted_at
+                  ? "text-green-600 border-green-100"
+                  : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700"
+              )}
+            >
+              {sendInviteMutation.isPending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <inviteButtonConfig.icon size={16} />
+              )}
+              {sendInviteMutation.isPending
+                ? "Sending..."
+                : inviteButtonConfig.label}
             </Button>
             <Button
               variant="outline"
@@ -607,10 +745,48 @@ export function DriverDetailsPage({
                   {driver.status.toUpperCase()}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-2">
+              <div className="flex items-center justify-between py-2 border-b border-slate-50">
                 <span className="text-sm text-slate-500">Member Since</span>
                 <span className="text-sm text-slate-900">
                   {formatDate(driver.created_at)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-slate-500">System Access</span>
+                <span
+                  className={cn(
+                    "text-sm font-semibold inline-flex items-center gap-1.5",
+                    inviteStatus?.accepted_at
+                      ? "text-emerald-600"
+                      : inviteStatus &&
+                        new Date(inviteStatus.expires_at) > new Date()
+                      ? "text-amber-600"
+                      : inviteStatus &&
+                        new Date(inviteStatus.expires_at) <= new Date()
+                      ? "text-red-500"
+                      : "text-slate-400"
+                  )}
+                >
+                  {inviteStatus?.accepted_at ? (
+                    <>
+                      <CheckCircle size={14} />
+                      Active
+                    </>
+                  ) : inviteStatus &&
+                    new Date(inviteStatus.expires_at) > new Date() ? (
+                    <>
+                      <Clock size={14} />
+                      Pending
+                    </>
+                  ) : inviteStatus &&
+                    new Date(inviteStatus.expires_at) <= new Date() ? (
+                    <>
+                      <Clock size={14} />
+                      Expired
+                    </>
+                  ) : (
+                    "Not Invited"
+                  )}
                 </span>
               </div>
             </div>
