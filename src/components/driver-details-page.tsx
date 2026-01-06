@@ -63,11 +63,21 @@ interface Driver {
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return "Not specified";
-  return new Date(dateStr).toLocaleDateString(undefined, {
+  // Use UTC to prevent timezone shifts (e.g., showing previous day)
+  return new Date(dateStr).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   });
+}
+
+function formatVehicleType(type: string | null) {
+  if (!type) return "Standard";
+  return type
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
 function getStatusConfig(status: string | null) {
@@ -386,7 +396,7 @@ export function DriverDetailsPage({
                         </p>
                         <p className="text-xs text-slate-500">
                           {driver.vehicle_color || "No color"} •{" "}
-                          {driver.vehicle_type ||
+                          {formatVehicleType(driver.vehicle_type) ||
                             driver.vehicle_info ||
                             "Standard"}
                         </p>

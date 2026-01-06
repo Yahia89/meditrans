@@ -291,7 +291,7 @@ export function DriverForm({
           "full_name",
           "email",
           "phone",
-          "id_number",
+          "license_number",
           "address",
           "county",
         ];
@@ -439,10 +439,10 @@ export function DriverForm({
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
-                    ID Number
+                    License Number
                   </label>
                   <Input
-                    {...register("id_number")}
+                    {...register("license_number")}
                     placeholder="DL-123456789"
                     className="h-9"
                   />

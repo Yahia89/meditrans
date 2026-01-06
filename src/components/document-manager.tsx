@@ -182,9 +182,9 @@ function DocumentPreview({ doc, onClose, onDownload }: DocumentPreviewProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-8">
               {kind === "image" && (
-                <div className="flex items-center bg-slate-50 rounded-xl p-1 gap-1 border border-slate-200/60 mr-2">
+                <div className="hidden sm:flex items-center bg-slate-50 rounded-xl p-1 gap-1 border border-slate-200/60 mr-2">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -208,11 +208,11 @@ function DocumentPreview({ doc, onClose, onDownload }: DocumentPreviewProps) {
               )}
               <Button
                 variant="outline"
-                className="h-9 px-4 rounded-xl gap-2 font-semibold text-xs border-slate-200"
+                className="h-9 px-3 sm:px-4 rounded-xl gap-2 font-semibold text-xs border-slate-200"
                 onClick={() => onDownload(doc)}
               >
                 <DownloadSimple size={14} />
-                Download
+                <span className="hidden sm:inline">Download</span>
               </Button>
             </div>
           </div>
