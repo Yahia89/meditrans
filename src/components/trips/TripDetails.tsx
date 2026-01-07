@@ -22,6 +22,8 @@ import {
   ArrowsClockwise,
   Signature,
   PencilSimpleLine,
+  FilePdf,
+  DownloadSimple,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
@@ -53,6 +55,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { SignatureCaptureDialog, SignatureDisplay } from "./SignatureCapture";
+import { generateTripSummaryPDF } from "@/utils/pdf-generator";
 
 interface TripDetailsProps {
   tripId: string;
@@ -834,22 +837,40 @@ export function TripDetails({
                   )}
 
                   {trip.status === "completed" && (
-                    <div className="flex items-center gap-3 px-6 py-2 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-700 font-bold shadow-sm">
-                      <CheckCircle
-                        weight="duotone"
-                        className="w-6 h-6 text-emerald-500"
-                      />
-                      Trip Completed
-                      {trip.signature_data && (
-                        <span className="text-xs bg-emerald-100 px-2 py-0.5 rounded-full ml-1">
-                          Signed
-                        </span>
-                      )}
-                      {trip.signature_declined && (
-                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">
-                          Signature Declined
-                        </span>
-                      )}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-3 px-6 py-2 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-700 font-bold shadow-sm">
+                        <CheckCircle
+                          weight="duotone"
+                          className="w-6 h-6 text-emerald-500"
+                        />
+                        Trip Completed
+                        {trip.signature_data && (
+                          <span className="text-xs bg-emerald-100 px-2 py-0.5 rounded-full ml-1">
+                            Signed
+                          </span>
+                        )}
+                        {trip.signature_declined && (
+                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">
+                            Signature Declined
+                          </span>
+                        )}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => generateTripSummaryPDF(trip)}
+                        className="h-11 border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 font-bold px-4 rounded-xl gap-2 transition-all shadow-sm bg-white"
+                      >
+                        <FilePdf
+                          weight="duotone"
+                          className="w-5 h-5 text-red-500"
+                        />
+                        Download Summary
+                        <DownloadSimple
+                          weight="bold"
+                          className="w-4 h-4 ml-1 opacity-50"
+                        />
+                      </Button>
                     </div>
                   )}
                 </div>
