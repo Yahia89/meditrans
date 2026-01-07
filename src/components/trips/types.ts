@@ -27,6 +27,12 @@ export interface Trip {
   status_requested_at?: string | null;
   cancel_reason?: string | null;
   cancel_explanation?: string | null;
+  // Signature capture fields
+  signature_data?: string | null;
+  signature_captured_at?: string | null;
+  signed_by_name?: string | null;
+  signature_declined?: boolean;
+  signature_declined_reason?: string | null;
   patient?: {
     id: string;
     full_name: string;

@@ -18,6 +18,10 @@ import {
   Warning,
   HandPointing,
   CaretLeft,
+  Path,
+  ArrowsClockwise,
+  Signature,
+  PencilSimpleLine,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
@@ -48,6 +52,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
+import { SignatureCaptureDialog, SignatureDisplay } from "./SignatureCapture";
 
 interface TripDetailsProps {
   tripId: string;
@@ -118,6 +123,11 @@ function RelatedTripsTimeline({
         <div className="space-y-6">
           {trips.map((trip, idx) => {
             const isCurrent = trip.id === currentTripId;
+            // Calculate total journey distance
+            const totalDistance = trips.reduce(
+              (sum, t) => sum + (t.distance_miles || 0),
+              0
+            );
             return (
               <div key={trip.id} className="relative pl-10 group">
                 {/* Visual Node */}
@@ -170,7 +180,7 @@ function RelatedTripsTimeline({
 
                   <div className="space-y-1.5">
                     <div className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 shrink-0" />
                       <span
                         className="text-xs text-slate-600 line-clamp-1"
                         title={trip.pickup_location}
@@ -179,7 +189,7 @@ function RelatedTripsTimeline({
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
                       <span
                         className="text-xs text-slate-600 line-clamp-1"
                         title={trip.dropoff_location}
@@ -188,7 +198,37 @@ function RelatedTripsTimeline({
                       </span>
                     </div>
                   </div>
+
+                  {/* Distance Badge for this leg */}
+                  {trip.distance_miles && (
+                    <div className="mt-2 pt-2 border-t border-slate-100/80">
+                      <div
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold",
+                          isCurrent
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-slate-100 text-slate-600"
+                        )}
+                      >
+                        <Path weight="bold" className="w-3.5 h-3.5" />
+                        {trip.distance_miles} miles
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Show total distance only on the last item if it's the current trip */}
+                {idx === trips.length - 1 && totalDistance > 0 && (
+                  <div className="mt-3 pl-2">
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <Path weight="duotone" className="w-4 h-4" />
+                      <span className="font-semibold">Total Journey:</span>
+                      <span className="text-slate-700 font-bold">
+                        {totalDistance.toFixed(1)} miles
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -212,6 +252,7 @@ export function TripDetails({
   const [statusToUpdate, setStatusToUpdate] = useState<TripStatus | null>(null);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelExplanation, setCancelExplanation] = useState<string>("");
+  const [showSignatureDialog, setShowSignatureDialog] = useState(false);
 
   const { data: trip, isLoading } = useQuery({
     queryKey: ["trip", tripId],
@@ -302,6 +343,57 @@ export function TripDetails({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trips"] });
       onDeleteSuccess?.();
+    },
+  });
+
+  // Signature capture mutation
+  const signatureCaptureMutation = useMutation({
+    mutationFn: async ({
+      signatureData,
+      signedByName,
+      declined,
+      declinedReason,
+    }: {
+      signatureData?: string;
+      signedByName?: string;
+      declined?: boolean;
+      declinedReason?: string;
+    }) => {
+      const updates: Record<string, unknown> = {
+        status: "completed",
+        signature_captured_at: new Date().toISOString(),
+      };
+
+      if (declined) {
+        updates.signature_declined = true;
+        updates.signature_declined_reason = declinedReason;
+      } else {
+        updates.signature_data = signatureData;
+        updates.signed_by_name = signedByName;
+      }
+
+      const { error } = await supabase
+        .from("trips")
+        .update(updates)
+        .eq("id", tripId);
+
+      if (error) throw error;
+
+      // Log to history
+      await supabase.from("trip_status_history").insert({
+        trip_id: tripId,
+        status: declined
+          ? "COMPLETED (Signature Declined)"
+          : "COMPLETED WITH SIGNATURE",
+        actor_id: user?.id,
+        actor_name: profile?.full_name || user?.email || "Driver",
+      });
+    },
+    onSuccess: () => {
+      setShowSignatureDialog(false);
+      queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
     },
   });
 
@@ -733,10 +825,11 @@ export function TripDetails({
 
                   {trip.status === "in_progress" && (
                     <Button
-                      onClick={() => handleStatusUpdate("completed")}
-                      className="flex-1 md:flex-none bg-slate-900 hover:bg-slate-800 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-slate-200/50"
+                      onClick={() => setShowSignatureDialog(true)}
+                      className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-indigo-200/50 transition-all duration-300"
                     >
-                      Done
+                      <Signature weight="bold" className="w-5 h-5 mr-2" />
+                      Complete & Get Signature
                     </Button>
                   )}
 
@@ -747,6 +840,16 @@ export function TripDetails({
                         className="w-6 h-6 text-emerald-500"
                       />
                       Trip Completed
+                      {trip.signature_data && (
+                        <span className="text-xs bg-emerald-100 px-2 py-0.5 rounded-full ml-1">
+                          Signed
+                        </span>
+                      )}
+                      {trip.signature_declined && (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">
+                          Signature Declined
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -862,76 +965,204 @@ export function TripDetails({
             <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">
               Activity Timeline
             </h3>
-            <div className="space-y-6">
-              {timelineEvents.map((item, idx) => (
-                <div key={item.id} className="relative flex gap-4">
-                  {idx !== timelineEvents.length - 1 && (
-                    <div className="absolute left-[19px] top-10 bottom-[-24px] w-0.5 bg-slate-100" />
-                  )}
-                  <div
-                    className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300",
-                      item.status.includes("REQUEST")
-                        ? "bg-amber-50 border-amber-100"
-                        : item.status.toLowerCase() === "completed"
-                        ? "bg-emerald-50 border-emerald-100"
-                        : item.status.toLowerCase().includes("assigned")
-                        ? "bg-blue-50 border-blue-100"
-                        : item.status.toLowerCase().includes("created")
-                        ? "bg-slate-50 border-slate-100"
-                        : "bg-slate-50 border-slate-100"
+            <div className="space-y-5">
+              {timelineEvents.map((item, idx) => {
+                // Determine event type for styling
+                const isUpdate = item.status.includes("UPDATED");
+                const isCreated = item.status.toLowerCase().includes("created");
+                const isAssigned = item.status
+                  .toLowerCase()
+                  .includes("assigned");
+                const isCompleted = item.status.toLowerCase() === "completed";
+                const isRequest = item.status.includes("REQUEST");
+                const isCancelOrReject =
+                  item.status.includes("CANCEL") ||
+                  item.status.includes("REJECTED");
+                const isSignature = item.status
+                  .toLowerCase()
+                  .includes("signature");
+
+                // Extract distance from update message if present
+                const distanceMatch = item.status.match(
+                  /DISTANCE:\s*([\d.]+)\s*MILES?/i
+                );
+                const distance = distanceMatch
+                  ? parseFloat(distanceMatch[1])
+                  : null;
+
+                // Clean up the status text for display
+                let displayStatus = item.status.replace(/_/g, " ");
+                // For updates, make it more readable
+                if (isUpdate) {
+                  displayStatus = displayStatus.replace("UPDATED:", "").trim();
+                }
+
+                return (
+                  <div key={item.id} className="relative flex gap-3">
+                    {idx !== timelineEvents.length - 1 && (
+                      <div className="absolute left-[15px] top-10 bottom-[-20px] w-0.5 bg-slate-100" />
                     )}
-                  >
-                    {item.status.toLowerCase() === "completed" ? (
-                      <CheckCircle
-                        weight="duotone"
-                        className="w-5 h-5 text-emerald-600"
-                      />
-                    ) : item.status.includes("CANCEL") ||
-                      item.status.includes("REJECTED") ? (
-                      <Warning
-                        weight="duotone"
-                        className="w-5 h-5 text-red-500"
-                      />
-                    ) : item.status.toLowerCase().includes("assigned") ? (
-                      <Car weight="duotone" className="w-5 h-5 text-blue-500" />
-                    ) : item.status.toLowerCase().includes("created") ? (
-                      <Calendar
-                        weight="duotone"
-                        className="w-5 h-5 text-slate-400"
-                      />
-                    ) : (
-                      <Clock
-                        weight="duotone"
-                        className="w-5 h-5 text-slate-400"
-                      />
-                    )}
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="text-sm font-bold text-slate-900 uppercase tracking-tight">
-                        {item.status.replace(/_/g, " ")}
-                      </p>
-                      <time className="text-[10px] font-bold text-slate-400 uppercase">
-                        {new Date(item.created_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </time>
+
+                    {/* Event Icon */}
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-all duration-300",
+                        isCompleted
+                          ? "bg-emerald-50 border-emerald-200"
+                          : isCancelOrReject
+                          ? "bg-red-50 border-red-200"
+                          : isRequest
+                          ? "bg-amber-50 border-amber-200"
+                          : isAssigned
+                          ? "bg-blue-50 border-blue-200"
+                          : isUpdate
+                          ? "bg-slate-50 border-slate-200"
+                          : isSignature
+                          ? "bg-indigo-50 border-indigo-200"
+                          : isCreated
+                          ? "bg-slate-50 border-slate-200"
+                          : "bg-slate-50 border-slate-150"
+                      )}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle
+                          weight="duotone"
+                          className="w-4 h-4 text-emerald-600"
+                        />
+                      ) : isCancelOrReject ? (
+                        <Warning
+                          weight="duotone"
+                          className="w-4 h-4 text-red-500"
+                        />
+                      ) : isRequest ? (
+                        <Clock
+                          weight="duotone"
+                          className="w-4 h-4 text-amber-500"
+                        />
+                      ) : isAssigned ? (
+                        <Car
+                          weight="duotone"
+                          className="w-4 h-4 text-blue-500"
+                        />
+                      ) : isUpdate ? (
+                        <PencilSimpleLine
+                          weight="duotone"
+                          className="w-4 h-4 text-slate-400"
+                        />
+                      ) : isSignature ? (
+                        <Signature
+                          weight="duotone"
+                          className="w-4 h-4 text-indigo-500"
+                        />
+                      ) : isCreated ? (
+                        <Calendar
+                          weight="duotone"
+                          className="w-4 h-4 text-slate-400"
+                        />
+                      ) : (
+                        <ArrowsClockwise
+                          weight="duotone"
+                          className="w-4 h-4 text-slate-400"
+                        />
+                      )}
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      by{" "}
-                      <span className="font-semibold text-slate-700">
-                        {item.actor_name}
-                      </span>
-                      <span className="mx-2 text-slate-300">•</span>
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </p>
+
+                    {/* Event Content */}
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          {isUpdate ? (
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Trip Updated
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {displayStatus.split(",").map((change, i) => {
+                                  const trimmed = change.trim();
+                                  const isDistanceChange = trimmed
+                                    .toLowerCase()
+                                    .includes("distance");
+                                  return (
+                                    <span
+                                      key={i}
+                                      className={cn(
+                                        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium",
+                                        isDistanceChange
+                                          ? "bg-blue-50 text-blue-600 border border-blue-100"
+                                          : "bg-slate-100 text-slate-600"
+                                      )}
+                                    >
+                                      {isDistanceChange && (
+                                        <Path
+                                          weight="bold"
+                                          className="w-3 h-3"
+                                        />
+                                      )}
+                                      {trimmed}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : (
+                            <p
+                              className={cn(
+                                "text-sm font-bold uppercase tracking-tight",
+                                isCompleted
+                                  ? "text-emerald-700"
+                                  : isCancelOrReject
+                                  ? "text-red-600"
+                                  : isRequest
+                                  ? "text-amber-600"
+                                  : "text-slate-800"
+                              )}
+                            >
+                              {displayStatus}
+                            </p>
+                          )}
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            by{" "}
+                            <span className="font-semibold text-slate-600">
+                              {item.actor_name}
+                            </span>
+                          </p>
+                        </div>
+                        <time className="text-[10px] font-semibold text-slate-400 whitespace-nowrap shrink-0">
+                          {new Date(item.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                          <span className="block text-[9px] font-normal text-slate-300">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </span>
+                        </time>
+                      </div>
+
+                      {/* Special display for distance if parsed */}
+                      {distance && !isUpdate && (
+                        <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 rounded text-xs font-semibold text-blue-600 border border-blue-100">
+                          <Path weight="bold" className="w-3 h-3" />
+                          {distance} miles
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
+
+          {/* Signature Display (for completed trips with signature) */}
+          {trip.status === "completed" &&
+            (trip.signature_data || trip.signature_declined) && (
+              <SignatureDisplay
+                signatureData={trip.signature_data}
+                signedByName={trip.signed_by_name}
+                capturedAt={trip.signature_captured_at}
+                declined={trip.signature_declined}
+                declinedReason={trip.signature_declined_reason}
+              />
+            )}
         </div>
 
         {/* Delete Confirmation */}
@@ -1053,6 +1284,25 @@ export function TripDetails({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Signature Capture Dialog */}
+        {trip && (
+          <SignatureCaptureDialog
+            open={showSignatureDialog}
+            onOpenChange={setShowSignatureDialog}
+            trip={trip}
+            onSignatureCapture={({ signatureData, signedByName }) => {
+              signatureCaptureMutation.mutate({ signatureData, signedByName });
+            }}
+            onSignatureDecline={(reason) => {
+              signatureCaptureMutation.mutate({
+                declined: true,
+                declinedReason: reason,
+              });
+            }}
+            isLoading={signatureCaptureMutation.isPending}
+          />
+        )}
       </div>
     </div>
   );
