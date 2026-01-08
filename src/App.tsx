@@ -56,8 +56,11 @@ import { TripsScheduler } from "./components/trips/TripsScheduler";
 import { ClientCreditsPage } from "./components/client-credits-page";
 import { ErrorBoundary } from "./components/error-boundary";
 
+import { useDriverLocation } from "@/hooks/useDriverLocation";
+
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
+  useDriverLocation(); // Enables driver tracking and SMS trigger
   const { loading: orgLoading } = useOrganization();
   const { isSuperAdmin, isAdmin, isOwner } = usePermissions();
 
