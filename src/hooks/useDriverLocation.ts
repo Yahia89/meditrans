@@ -40,7 +40,23 @@ export function useDriverLocation() {
         lastPosRef.current = { lat: latitude, lng: longitude };
 
         try {
-          // 1. Update Driver Location in DB
+          // 1. First, get the driver record for this user
+          const { data: driverRecord, error: driverFetchError } = await supabase
+            .from("drivers")
+            .select("id")
+            .eq("user_id", user.id)
+            .single();
+
+          if (driverFetchError || !driverRecord) {
+            console.error(
+              "Driver record not found for user:",
+              user.id,
+              driverFetchError
+            );
+            return;
+          }
+
+          // 2. Update Driver Location in DB
           const { error: driverError } = await supabase
             .from("drivers")
             .update({
@@ -48,37 +64,34 @@ export function useDriverLocation() {
               current_lng: longitude,
               last_location_update: new Date().toISOString(),
             })
-            .eq("user_id", user.id);
+            .eq("id", driverRecord.id);
 
           if (driverError) {
             console.error("Error updating location:", driverError);
+            return;
           }
 
-          // 2. Check for Active Trip to Trigger SMS Logic
-          // We find ANY in_progress trip for this driver
-          // This keeps the client logic dummy; the edge function handles the complex ETA check.
+          // 3. Check for Active Trip to Trigger SMS Logic
           const { data: activeTrip } = await supabase
             .from("trips")
             .select("id")
-            .eq(
-              "driver_id",
-              (
-                await supabase
-                  .from("drivers")
-                  .select("id")
-                  .eq("user_id", user.id)
-                  .single()
-              ).data?.id
-            )
+            .eq("driver_id", driverRecord.id)
             .eq("status", "in_progress")
-            .single();
+            .maybeSingle();
 
           if (activeTrip) {
-            // Trigger Edge Function
-            // We don't await this blocking UI
-            supabase.functions.invoke("send_eta_sms", {
-              body: { trip_id: activeTrip.id },
-            });
+            // Trigger Edge Function (non-blocking)
+            supabase.functions
+              .invoke("send_eta_sms", {
+                body: { trip_id: activeTrip.id },
+              })
+              .then((result) => {
+                if (result.error) {
+                  console.error("ETA SMS function error:", result.error);
+                } else {
+                  console.log("ETA check result:", result.data);
+                }
+              });
           }
         } catch (err) {
           console.error("Location sync error:", err);

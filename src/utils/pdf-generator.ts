@@ -43,7 +43,14 @@ export const generateTripSummaryPDF = (trip: Trip) => {
     ["Dropoff", trip.dropoff_location],
     ["Trip Type", trip.trip_type],
     ["Driver", trip.driver?.full_name || "Unassigned"],
-    ["Distance", trip.distance_miles ? `${trip.distance_miles} miles` : "N/A"],
+    [
+      "Distance",
+      trip.actual_distance_miles
+        ? `${trip.actual_distance_miles} miles (actual)`
+        : trip.distance_miles
+        ? `${trip.distance_miles} miles (estimated)`
+        : "N/A",
+    ],
   ];
 
   // Need to cast to any because the type definition for autoTable might be tricky to import perfectly in this context,

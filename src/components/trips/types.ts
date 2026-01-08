@@ -33,6 +33,10 @@ export interface Trip {
   signed_by_name?: string | null;
   signature_declined?: boolean;
   signature_declined_reason?: string | null;
+  // Actual trip metrics (captured during/after trip)
+  actual_distance_miles?: number | null;
+  actual_duration_minutes?: number | null;
+  eta_sms_sent_at?: string | null;
   patient?: {
     id: string;
     full_name: string;

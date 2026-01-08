@@ -362,9 +362,35 @@ export function TripDetails({
       declined?: boolean;
       declinedReason?: string;
     }) => {
+      // Calculate actual distance using Google Maps Directions API
+      let actualDistance: number | null = null;
+
+      try {
+        if (trip && import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
+          const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
+            trip.pickup_location
+          )}&destination=${encodeURIComponent(trip.dropoff_location)}&key=${
+            import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+          }`;
+
+          const response = await fetch(directionsUrl);
+          const data = await response.json();
+
+          if (data.status === "OK" && data.routes?.[0]?.legs?.[0]?.distance) {
+            // Convert meters to miles
+            const meters = data.routes[0].legs[0].distance.value;
+            actualDistance = parseFloat((meters / 1609.34).toFixed(2));
+          }
+        }
+      } catch (err) {
+        console.error("Error calculating actual distance:", err);
+        // Continue anyway with null distance
+      }
+
       const updates: Record<string, unknown> = {
         status: "completed",
         signature_captured_at: new Date().toISOString(),
+        actual_distance_miles: actualDistance,
       };
 
       if (declined) {
