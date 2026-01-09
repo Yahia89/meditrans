@@ -73,9 +73,13 @@ export function AppSidebar({
   onNavigate,
   ...props
 }: AppSidebarProps) {
-  const { isSuperAdmin, isOwner, isAdmin } = usePermissions();
+  const { isSuperAdmin, isOwner, isAdmin, isDriver } = usePermissions();
 
-  const navItems = [...data.navMain];
+  let navItems = [...data.navMain];
+
+  if (isDriver) {
+    navItems = navItems.filter((item) => item.title === "Trips");
+  }
 
   // Add Client Credits to owners and admins only
   if (isOwner || isAdmin) {

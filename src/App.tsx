@@ -24,6 +24,7 @@ import { OnboardingProvider } from "@/contexts/OnboardingContext";
 import loginbgimg from "./assets/loginbgimg.png";
 import logo from "./assets/logo.png";
 import { usePermissions } from "@/hooks/usePermissions";
+import { Loader2 } from "lucide-react";
 
 // Define valid page values for type safety
 export const pages = [
@@ -60,9 +61,9 @@ import { useDriverLocation } from "@/hooks/useDriverLocation";
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
-  useDriverLocation(); // Enables driver tracking and SMS trigger
+  const { driverId: currentDriverId } = useDriverLocation(); // Enables driver tracking and SMS trigger
   const { loading: orgLoading } = useOrganization();
-  const { isSuperAdmin, isAdmin, isOwner } = usePermissions();
+  const { isSuperAdmin, isAdmin, isOwner, isDriver } = usePermissions();
 
   const loading = authLoading || (user && orgLoading);
 
@@ -287,10 +288,22 @@ function AppContent() {
           </DashboardPage>
         );
       case "trips":
+        if (isDriver && !currentDriverId) {
+          return (
+            <DashboardPage title="Trips Management">
+              <div className="flex h-64 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              </div>
+            </DashboardPage>
+          );
+        }
         return (
           <DashboardPage title="Trips Management">
             <TripsScheduler
-              onCreateClick={() => setModalType("create")}
+              onCreateClick={
+                !isDriver ? () => setModalType("create") : undefined
+              }
+              driverId={isDriver ? currentDriverId || undefined : undefined}
               onTripClick={(id) => {
                 setTripId(id);
                 setCurrentPage("trip-details");

@@ -128,4 +128,6 @@ export function useDriverLocation() {
       navigator.geolocation.clearWatch(watchId);
     };
   }, [user, driverId]);
+
+  return { driverId };
 }
