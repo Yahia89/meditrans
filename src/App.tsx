@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import "./App.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -87,6 +88,22 @@ function AppContent() {
   const [fromPage, setFromPage] = useQueryState("from");
   const [_, setSection] = useQueryState("section");
 
+  // Redirection and access control for drivers
+  useEffect(() => {
+    if (!loading && user && isDriver) {
+      const allowedForDrivers = [
+        "trips",
+        "trip-details",
+        "account",
+        "notifications",
+        "accept-invite",
+      ];
+      if (!allowedForDrivers.includes(currentPage)) {
+        setCurrentPage("trips");
+      }
+    }
+  }, [loading, user, isDriver, currentPage, setCurrentPage]);
+
   // Show loading state while checking auth
   if (loading) {
     return (
@@ -174,6 +191,26 @@ function AppContent() {
   }
 
   const renderPage = () => {
+    // Restrict access for drivers to prevent flickering/unauthorized access
+    if (isDriver) {
+      const allowedForDrivers = [
+        "trips",
+        "trip-details",
+        "account",
+        "notifications",
+        "accept-invite",
+      ];
+      if (!allowedForDrivers.includes(currentPage)) {
+        return (
+          <DashboardPage title="Trips Management">
+            <div className="flex h-64 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+            </div>
+          </DashboardPage>
+        );
+      }
+    }
+
     switch (currentPage) {
       case "dashboard":
         return (
