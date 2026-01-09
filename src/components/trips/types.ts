@@ -2,6 +2,7 @@ export type TripStatus =
   | "pending"
   | "assigned"
   | "accepted"
+  | "en_route"
   | "arrived"
   | "in_progress"
   | "completed"

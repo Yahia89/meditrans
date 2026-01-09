@@ -292,29 +292,21 @@ export function TripDetails({
   const updateStatusMutation = useMutation({
     mutationFn: async ({
       status,
-      requestedByDriver,
       cancelReason,
       cancelExplanation,
     }: {
       status: TripStatus;
-      requestedByDriver?: boolean;
       cancelReason?: string;
       cancelExplanation?: string;
     }) => {
-      const updates: any = {};
+      const updates: any = {
+        status: status,
+        status_requested: null,
+        status_requested_at: null,
+      };
 
-      if (requestedByDriver) {
-        updates.status_requested = status;
-        updates.status_requested_at = new Date().toISOString();
-        if (cancelReason) updates.cancel_reason = cancelReason;
-        if (cancelExplanation) updates.cancel_explanation = cancelExplanation;
-      } else {
-        updates.status = status;
-        updates.status_requested = null;
-        updates.status_requested_at = null;
-        if (cancelReason) updates.cancel_reason = cancelReason;
-        if (cancelExplanation) updates.cancel_explanation = cancelExplanation;
-      }
+      if (cancelReason) updates.cancel_reason = cancelReason;
+      if (cancelExplanation) updates.cancel_explanation = cancelExplanation;
 
       const { error } = await supabase
         .from("trips")
@@ -326,9 +318,9 @@ export function TripDetails({
       // Log to history
       await supabase.from("trip_status_history").insert({
         trip_id: tripId,
-        status: requestedByDriver ? `REQUESTED: ${status}` : status,
+        status: status,
         actor_id: user?.id,
-        actor_name: profile?.full_name || user?.email || "Unknown User",
+        actor_name: profile?.full_name || user?.email || "System",
       });
     },
     onSuccess: () => {
@@ -445,7 +437,6 @@ export function TripDetails({
     } else {
       updateStatusMutation.mutate({
         status,
-        requestedByDriver: isDesignatedDriver && !canManage,
       });
     }
   };
@@ -455,7 +446,6 @@ export function TripDetails({
 
     updateStatusMutation.mutate({
       status: statusToUpdate,
-      requestedByDriver: isDesignatedDriver && !canManage,
       cancelReason: statusToUpdate === "cancelled" ? cancelReason : undefined,
       cancelExplanation:
         statusToUpdate === "cancelled" && cancelReason === "other"
@@ -525,83 +515,20 @@ export function TripDetails({
         </Button>
       )}
 
-      {/* Admin Review Banner */}
-      {canManage && trip.status_requested && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white border border-amber-200 flex items-center justify-center shadow-sm">
-              <Warning weight="duotone" className="w-6 h-6 text-amber-600" />
+      {/* Trip Actions Section - Only shown for relevant users */}
+      {(isDesignatedDriver || canManage) && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-1">
+                <h2 className="text-xl font-bold text-slate-900">
+                  Trip Status
+                </h2>
+                <p className="text-sm text-slate-500">
+                  Manage the progression of this journey in real-time
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-amber-900">
-                Pending Review
-              </h3>
-              <p className="text-sm text-amber-700/80">
-                Driver has requested to change status to{" "}
-                <span className="font-bold uppercase tracking-wider">
-                  {trip.status_requested.replace("_", " ")}
-                </span>
-                {trip.cancel_reason && ` - Reason: ${trip.cancel_reason}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3 w-full md:w-auto">
-            <Button
-              onClick={() =>
-                updateStatusMutation.mutate({
-                  status: trip.status_requested!,
-                  requestedByDriver: false,
-                })
-              }
-              className="flex-1 md:flex-none bg-amber-600 hover:bg-amber-700 text-white font-bold h-11 px-8 rounded-xl"
-            >
-              Approve
-            </Button>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                await supabase
-                  .from("trips")
-                  .update({ status_requested: null, status_requested_at: null })
-                  .eq("id", trip.id);
-
-                await supabase.from("trip_status_history").insert({
-                  trip_id: trip.id,
-                  status: "REQUEST REJECTED",
-                  actor_id: user?.id,
-                  actor_name: profile?.full_name || user?.email || "Admin",
-                });
-
-                queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
-                queryClient.invalidateQueries({
-                  queryKey: ["trip-history", tripId],
-                });
-              }}
-              className="flex-1 md:flex-none border-amber-200 text-amber-700 hover:bg-amber-100 font-bold h-11 px-8 rounded-xl"
-            >
-              Reject
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Driver Pending Message */}
-      {isDesignatedDriver && !canManage && trip.status_requested && (
-        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-white border border-blue-100 flex items-center justify-center shadow-sm">
-            <Clock weight="duotone" className="w-5 h-5 text-blue-500" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-blue-900">
-              Status Change Pending
-            </h3>
-            <p className="text-xs text-blue-700/80">
-              Your request to mark trip as{" "}
-              <span className="font-bold uppercase">
-                {trip.status_requested.replace("_", " ")}
-              </span>{" "}
-              is waiting for admin approval.
-            </p>
           </div>
         </div>
       )}
@@ -825,21 +752,23 @@ export function TripDetails({
                     </>
                   )}
 
-                  {trip.status === "assigned" && (
+                  {/* New Simplified & Descriptive Flow */}
+                  {(trip.status === "assigned" ||
+                    trip.status === "accepted") && (
                     <Button
-                      onClick={() => handleStatusUpdate("accepted")}
-                      className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-emerald-200/50"
+                      onClick={() => handleStatusUpdate("en_route")}
+                      className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-purple-200/50"
                     >
-                      Accept Trip
+                      Start Driving to Pickup
                     </Button>
                   )}
 
-                  {trip.status === "accepted" && (
+                  {trip.status === "en_route" && (
                     <Button
                       onClick={() => handleStatusUpdate("arrived")}
                       className="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-amber-200/50"
                     >
-                      Mark Arrived
+                      Arrived at Pickup
                     </Button>
                   )}
 
@@ -848,17 +777,17 @@ export function TripDetails({
                       onClick={() => handleStatusUpdate("in_progress")}
                       className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-blue-200/50"
                     >
-                      Start Trip
+                      Pickup Patient
                     </Button>
                   )}
 
                   {trip.status === "in_progress" && (
                     <Button
                       onClick={() => setShowSignatureDialog(true)}
-                      className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-indigo-200/50 transition-all duration-300"
+                      className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-emerald-200/50 transition-all duration-300"
                     >
                       <Signature weight="bold" className="w-5 h-5 mr-2" />
-                      Complete & Get Signature
+                      Arrived at Destination / Drop Off
                     </Button>
                   )}
 

@@ -83,12 +83,12 @@ export function useDriverLocation() {
 
           console.log("Location updated:", latitude, longitude);
 
-          // 2. Check for Active Trip to Trigger SMS Logic
+          // 2. Check for Active Trip to Trigger SMS Logic (only during en_route)
           const { data: activeTrip } = await supabase
             .from("trips")
             .select("id")
             .eq("driver_id", driverId)
-            .eq("status", "in_progress")
+            .eq("status", "en_route")
             .maybeSingle();
 
           if (activeTrip) {
