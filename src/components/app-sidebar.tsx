@@ -10,6 +10,7 @@ import {
   Shield,
   MapTrifold,
   Coins,
+  Clock,
 } from "@phosphor-icons/react";
 
 import { NavUser } from "@/components/nav-user";
@@ -79,6 +80,11 @@ export function AppSidebar({
 
   if (isDriver) {
     navItems = navItems.filter((item) => item.title === "Trips");
+    navItems.push({
+      title: "History",
+      url: "driver-history" as Page,
+      icon: Clock,
+    });
   }
 
   // Add Client Credits to owners and admins only

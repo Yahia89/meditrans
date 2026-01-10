@@ -44,6 +44,7 @@ export const pages = [
   "accept-invite",
   "trips",
   "trip-details",
+  "driver-history",
   "client-credits",
 ] as const;
 
@@ -56,6 +57,7 @@ import { TripDetails } from "./components/trips/TripDetails";
 import { TripDialog } from "./components/trips/TripDialog";
 import { TripsScheduler } from "./components/trips/TripsScheduler";
 import { ClientCreditsPage } from "./components/client-credits-page";
+import { DriverHistoryPage } from "./components/driver-history-page";
 import { ErrorBoundary } from "./components/error-boundary";
 
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -104,6 +106,7 @@ function AppContent() {
         "upload",
         "review_import",
         "billing",
+        "notifications",
         "founder",
         "client-credits",
       ],
@@ -362,6 +365,21 @@ function AppContent() {
         return (
           <DashboardPage title="Client Credits">
             <ClientCreditsPage />
+          </DashboardPage>
+        );
+      case "driver-history":
+        if (isDriver && !currentDriverId) {
+          return (
+            <DashboardPage title="Driving History">
+              <div className="flex h-64 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              </div>
+            </DashboardPage>
+          );
+        }
+        return (
+          <DashboardPage title="Driving History">
+            <DriverHistoryPage driverId={currentDriverId || ""} />
           </DashboardPage>
         );
       default:

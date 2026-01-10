@@ -708,7 +708,7 @@ export function EmployeesPage() {
                     className="mt-1"
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-lg font-semibold">
+                  <div className="w-14 h-14 aspect-square rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-lg font-semibold flex-shrink-0">
                     {(employee.name || "E")
                       .split(" ")
                       .filter(Boolean)
@@ -907,7 +907,7 @@ export function EmployeesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-sm font-semibold">
+                          <div className="w-10 h-10 aspect-square rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                             {(employee.name || "E")
                               .split(" ")
                               .filter(Boolean)
@@ -969,19 +969,9 @@ export function EmployeesPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div
-                          className="flex items-center gap-2"
+                          className="flex items-center justify-end"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedEmployeeId(employee.id)}
-                            className="hidden group-hover:flex h-8 w-8 p-0"
-                          >
-                            <DotsThreeVertical size={16} />
-                            {/* Wait, design usually shows dropdown here. I'll just put dropdown straight. */}
-                          </Button>
-
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button

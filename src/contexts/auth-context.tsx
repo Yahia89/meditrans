@@ -71,14 +71,47 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Fetch user profile
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // 1. Get base profile
+      const { data: userProfile, error } = await supabase
         .from("user_profiles")
         .select("*")
         .eq("user_id", userId)
         .maybeSingle();
 
       if (error) throw error;
-      setProfile(data || null);
+
+      let finalProfile = userProfile;
+
+      // 2. Check if user is a driver (often has more up-to-date info)
+      const { data: driverProfile } = await supabase
+        .from("drivers")
+        .select("full_name, phone")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (driverProfile) {
+        if (!finalProfile) {
+          // Create synthetic profile if none exists
+          finalProfile = {
+            user_id: userId,
+            full_name: driverProfile.full_name,
+            phone: driverProfile.phone,
+            default_org_id: null,
+            is_super_admin: false,
+            created_at: new Date().toISOString(),
+          };
+        } else {
+          // Merge driver info if profile info is missing
+          if (!finalProfile.full_name && driverProfile.full_name) {
+            finalProfile.full_name = driverProfile.full_name;
+          }
+          if (!finalProfile.phone && driverProfile.phone) {
+            finalProfile.phone = driverProfile.phone;
+          }
+        }
+      }
+
+      setProfile(finalProfile || null);
     } catch (error) {
       console.error("Error fetching profile:", error);
       setProfile(null);

@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/auth-context";
+import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 
 export function AccountPage() {
   const { user, profile, refresh } = useAuth();
+  const { isDriver } = usePermissions();
 
   // Profile State
   const [profileLoading, setProfileLoading] = useState(false);
@@ -181,7 +183,12 @@ export function AccountPage() {
                     placeholder="Enter your name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="pl-10 h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
+                    disabled={isDriver}
+                    className={`pl-10 h-11 rounded-xl border-slate-200 transition-all ${
+                      isDriver
+                        ? "bg-slate-100/50 text-slate-500 cursor-not-allowed"
+                        : "bg-slate-50/50 focus:bg-white"
+                    }`}
                     required
                   />
                 </div>
@@ -204,7 +211,12 @@ export function AccountPage() {
                     placeholder="Add phone number"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="pl-10 h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
+                    disabled={isDriver}
+                    className={`pl-10 h-11 rounded-xl border-slate-200 transition-all ${
+                      isDriver
+                        ? "bg-slate-100/50 text-slate-500 cursor-not-allowed"
+                        : "bg-slate-50/50 focus:bg-white"
+                    }`}
                   />
                 </div>
               </div>
@@ -238,125 +250,131 @@ export function AccountPage() {
               </div>
             </div>
 
-            <div className="pt-2">
-              <Button
-                type="submit"
-                disabled={
-                  profileLoading ||
-                  (fullName === (profile?.full_name || "") &&
-                    phone === (profile?.phone || ""))
-                }
-                className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-8 h-11 font-bold transition-all shadow-lg shadow-slate-200"
-              >
-                {profileLoading ? (
-                  <CircleNotch className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FloppyDisk weight="duotone" className="mr-2 h-4 w-4" />
-                )}
-                Update Profile
-              </Button>
-            </div>
+            {!isDriver && (
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  disabled={
+                    profileLoading ||
+                    (fullName === (profile?.full_name || "") &&
+                      phone === (profile?.phone || ""))
+                  }
+                  className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-8 h-11 font-bold transition-all shadow-lg shadow-slate-200"
+                >
+                  {profileLoading ? (
+                    <CircleNotch className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FloppyDisk weight="duotone" className="mr-2 h-4 w-4" />
+                  )}
+                  Update Profile
+                </Button>
+              </div>
+            )}
           </form>
         </div>
       </section>
 
       {/* Security Section */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-2 text-slate-900">
-          <Lock weight="duotone" className="w-5 h-5 text-amber-500" />
-          <h2 className="text-xl font-bold">Security & Password</h2>
-        </div>
+      {!isDriver && (
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 text-slate-900">
+            <Lock weight="duotone" className="w-5 h-5 text-amber-500" />
+            <h2 className="text-xl font-bold">Security & Password</h2>
+          </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-          <form onSubmit={handleUpdatePassword} className="p-8 space-y-6">
-            {passwordFeedback && (
-              <div
-                className={`p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
-                  passwordFeedback.type === "success"
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                    : "bg-red-50 text-red-700 border border-red-100"
-                }`}
-              >
-                {passwordFeedback.type === "success" ? (
-                  <CheckCircle weight="duotone" className="w-5 h-5" />
-                ) : (
-                  <WarningCircle weight="duotone" className="w-5 h-5" />
-                )}
-                <p className="text-sm font-bold">{passwordFeedback.message}</p>
-              </div>
-            )}
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="new_password"
-                  className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <form onSubmit={handleUpdatePassword} className="p-8 space-y-6">
+              {passwordFeedback && (
+                <div
+                  className={`p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
+                    passwordFeedback.type === "success"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                      : "bg-red-50 text-red-700 border border-red-100"
+                  }`}
                 >
-                  New Password
-                </Label>
-                <div className="relative">
-                  <Lock
-                    weight="duotone"
-                    className="absolute left-3 top-3.5 h-4 w-4 text-slate-400"
-                  />
-                  <Input
-                    id="new_password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="pl-10 h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
-                    required
-                  />
+                  {passwordFeedback.type === "success" ? (
+                    <CheckCircle weight="duotone" className="w-5 h-5" />
+                  ) : (
+                    <WarningCircle weight="duotone" className="w-5 h-5" />
+                  )}
+                  <p className="text-sm font-bold">
+                    {passwordFeedback.message}
+                  </p>
+                </div>
+              )}
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="new_password"
+                    className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
+                  >
+                    New Password
+                  </Label>
+                  <div className="relative">
+                    <Lock
+                      weight="duotone"
+                      className="absolute left-3 top-3.5 h-4 w-4 text-slate-400"
+                    />
+                    <Input
+                      id="new_password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pl-10 h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="confirm_password"
+                    className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
+                  >
+                    Confirm Password
+                  </Label>
+                  <div className="relative">
+                    <Lock
+                      weight="duotone"
+                      className="absolute left-3 top-3.5 h-4 w-4 text-slate-400"
+                    />
+                    <Input
+                      id="confirm_password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pl-10 h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="confirm_password"
-                  className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  disabled={
+                    passwordLoading ||
+                    !newPassword ||
+                    newPassword !== confirmPassword
+                  }
+                  className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-8 h-11 font-bold transition-all shadow-lg shadow-slate-200"
                 >
-                  Confirm Password
-                </Label>
-                <div className="relative">
-                  <Lock
-                    weight="duotone"
-                    className="absolute left-3 top-3.5 h-4 w-4 text-slate-400"
-                  />
-                  <Input
-                    id="confirm_password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
-                    required
-                  />
-                </div>
+                  {passwordLoading ? (
+                    <CircleNotch className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Lock weight="duotone" className="mr-2 h-4 w-4" />
+                  )}
+                  Update Password
+                </Button>
               </div>
-            </div>
-
-            <div className="pt-2">
-              <Button
-                type="submit"
-                disabled={
-                  passwordLoading ||
-                  !newPassword ||
-                  newPassword !== confirmPassword
-                }
-                className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-8 h-11 font-bold transition-all shadow-lg shadow-slate-200"
-              >
-                {passwordLoading ? (
-                  <CircleNotch className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Lock weight="duotone" className="mr-2 h-4 w-4" />
-                )}
-                Update Password
-              </Button>
-            </div>
-          </form>
-        </div>
-      </section>
+            </form>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

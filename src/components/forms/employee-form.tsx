@@ -334,7 +334,7 @@ export function EmployeeForm({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] p-0 overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden flex flex-col">
         {showSuccess ? (
           <div className="p-8 text-center space-y-6">
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
@@ -386,8 +386,8 @@ export function EmployeeForm({
             </DialogHeader>
 
             {/* Step Indicator */}
-            <div className="px-5 py-3 border-b bg-slate-50 shrink-0">
-              <div className="flex items-center justify-between">
+            <div className="px-3 sm:px-5 py-3 border-b bg-slate-50 shrink-0 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center justify-between min-w-max">
                 {STEPS.map((step, index) => {
                   const Icon = step.icon;
                   const isActive = step.id === currentStep;
@@ -474,7 +474,7 @@ export function EmployeeForm({
                       </p>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-700">
                         Email
@@ -512,7 +512,7 @@ export function EmployeeForm({
                     <Briefcase className="w-4 h-4 text-[#3D5A3D]" />
                     Employment Details
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-700">
                         Role / Position

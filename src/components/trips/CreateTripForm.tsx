@@ -827,21 +827,34 @@ export function CreateTripForm({
               >
                 <option value="">Select Patient</option>
                 {patients?.map((p) => {
+                  const hasNoCredit =
+                    p.monthly_credit === null ||
+                    p.monthly_credit === undefined ||
+                    p.monthly_credit === 0;
                   const isLow = p.creditInfo.status === "low";
+                  const isDisabled = hasNoCredit || isLow;
                   const pct = p.creditInfo.percentage.toFixed(0);
+
+                  let statusText = "";
+                  if (hasNoCredit) {
+                    statusText = "- NO CREDITS ASSIGNED";
+                  } else if (isLow) {
+                    statusText = "- INSUFFICIENT CREDIT";
+                  }
 
                   return (
                     <option
                       key={p.id}
                       value={p.id}
-                      disabled={isLow}
+                      disabled={isDisabled}
                       className={cn(
-                        isLow && "text-red-400 bg-slate-50",
+                        isDisabled && "text-slate-400 bg-slate-50",
+                        !hasNoCredit && isLow && "text-red-400",
                         p.creditInfo.status === "mid" && "text-amber-600"
                       )}
                     >
                       {p.full_name} {p.monthly_credit ? `(${pct}% credit)` : ""}{" "}
-                      {isLow ? "- INSUFFICIENT CREDIT" : ""}
+                      {statusText}
                     </option>
                   );
                 })}

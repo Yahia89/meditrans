@@ -64,6 +64,7 @@ interface Driver {
   status: string;
   created_at: string;
   custom_fields: Record<string, any> | null;
+  user_id: string | null;
 }
 
 function formatDate(dateStr: string | null) {
@@ -214,6 +215,16 @@ export function DriverDetailsPage({
 
   // Determine invite button state
   const getInviteButtonConfig = () => {
+    // 1. Check if driver already has a user account linked
+    if (driver?.user_id) {
+      return {
+        label: "Account Active",
+        disabled: true,
+        icon: ShieldAlert,
+        tooltip: "Driver already has an active system account",
+      };
+    }
+
     if (!driver?.email) {
       return {
         label: "No Email",
@@ -756,7 +767,7 @@ export function DriverDetailsPage({
                 <span
                   className={cn(
                     "text-sm font-semibold inline-flex items-center gap-1.5",
-                    inviteStatus?.accepted_at
+                    driver.user_id || inviteStatus?.accepted_at
                       ? "text-emerald-600"
                       : inviteStatus &&
                         new Date(inviteStatus.expires_at) > new Date()
@@ -767,7 +778,7 @@ export function DriverDetailsPage({
                       : "text-slate-400"
                   )}
                 >
-                  {inviteStatus?.accepted_at ? (
+                  {driver.user_id || inviteStatus?.accepted_at ? (
                     <>
                       <CheckCircle size={14} />
                       Active

@@ -68,6 +68,8 @@ html {
   overflow-x: hidden;
   background-color: #ffffff;
   color: #213547;
+  /* Use scrollbar-gutter instead of overflow-y: scroll for better compatibility */
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -180,4 +182,56 @@ a:hover {
 .pac-container {
   z-index: 10000 !important;
   pointer-events: auto !important;
+}
+
+/* Hide scrollbar while maintaining scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* 
+ * Prevent layout shift when Radix UI locks scroll
+ * When selects/dropdowns/dialogs open, Radix UI hides the scrollbar and causes layout shift
+ * 
+ * CRITICAL: Use "html body" selector for higher specificity to override Radix's inline styles
+ * ALSO: Override the CSS variable that Radix uses to calculate scrollbar width compensation
+ */
+
+/* Override the Radix CSS variable that calculates scrollbar width */
+:root {
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* Main fix - targets the data-scroll-locked attribute */
+html body[data-scroll-locked] {
+  --removed-body-scroll-bar-size: 0px !important;
+  overflow: visible !important;
+  margin-right: 0px !important;
+  padding-right: 0px !important;
+}
+
+/* Also target the html element */
+html[data-scroll-locked] {
+  --removed-body-scroll-bar-size: 0px !important;
+  overflow: visible !important;
+  padding-right: 0px !important;
+  margin-right: 0px !important;
+}
+
+/* Additional coverage for other Radix attributes */
+html body[data-radix-scroll-lock-ignored] {
+  --removed-body-scroll-bar-size: 0px !important;
+  overflow: visible !important;
+  margin-right: 0px !important;
+  padding-right: 0px !important;
+}
+
+/* Nuclear option - override any inline overflow styles */
+html body[style*="overflow"] {
+  overflow: visible !important;
 }

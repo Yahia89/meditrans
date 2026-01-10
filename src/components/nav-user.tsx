@@ -24,11 +24,13 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth-context";
 import { useQueryState } from "nuqs";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
   const { user, profile, signOut } = useAuth();
   const [, setPage] = useQueryState("page");
+  const { isDriver } = usePermissions();
 
   // Derive display values from auth context
   const name =
@@ -47,6 +49,7 @@ export function NavUser() {
   const handleLogout = async () => {
     try {
       await signOut();
+      setPage(null);
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -100,14 +103,18 @@ export function NavUser() {
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setPage("billing")}>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setPage("notifications")}>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
+              {!isDriver && (
+                <>
+                  <DropdownMenuItem onClick={() => setPage("billing")}>
+                    <CreditCard />
+                    Billing
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setPage("notifications")}>
+                    <Bell />
+                    Notifications
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />

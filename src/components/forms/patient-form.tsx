@@ -376,7 +376,7 @@ export function PatientForm({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] p-0 overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden flex flex-col">
         {/* Header */}
         <DialogHeader className="p-5 pb-4 border-b shrink-0">
           <DialogTitle className="text-lg font-semibold text-slate-900">
@@ -390,8 +390,8 @@ export function PatientForm({
         </DialogHeader>
 
         {/* Step Indicator */}
-        <div className="px-5 py-3 border-b bg-slate-50 shrink-0">
-          <div className="flex items-center justify-between">
+        <div className="px-3 sm:px-5 py-3 border-b bg-slate-50 shrink-0 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center justify-between min-w-max">
             {STEPS.map((step, index) => {
               const Icon = step.icon;
               const isActive = step.id === currentStep;
@@ -462,7 +462,7 @@ export function PatientForm({
                 Basic Information
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
                     Full Name <span className="text-red-500">*</span>
@@ -487,7 +487,7 @@ export function PatientForm({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
                     Email
@@ -525,7 +525,7 @@ export function PatientForm({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
                     Address
@@ -558,7 +558,7 @@ export function PatientForm({
                 Transportation Needs
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
                     Vehicle Type Needed <span className="text-red-500">*</span>
@@ -652,7 +652,7 @@ export function PatientForm({
                 Service & Referral Information
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
                     Waiver Type
@@ -697,7 +697,7 @@ export function PatientForm({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
                     Referral Date
@@ -730,7 +730,7 @@ export function PatientForm({
                 Case Management
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
                     Case Manager Name
@@ -783,7 +783,7 @@ export function PatientForm({
                 Billing & Additional Information
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
                     Monthly Credit ($)

@@ -384,7 +384,7 @@ export function DriverForm({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] p-0 overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden flex flex-col">
         {showSuccess ? (
           <div className="p-8 text-center space-y-6">
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
@@ -458,8 +458,8 @@ export function DriverForm({
             </DialogHeader>
 
             {/* Step Indicator */}
-            <div className="px-5 py-3 border-b bg-slate-50 shrink-0">
-              <div className="flex items-center justify-between">
+            <div className="px-3 sm:px-5 py-3 border-b bg-slate-50 shrink-0 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center justify-between min-w-max">
                 {STEPS.map((step, index) => {
                   const Icon = step.icon;
                   const isActive = step.id === currentStep;
@@ -530,7 +530,7 @@ export function DriverForm({
                     Personal Information
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-700">
                         Full Name <span className="text-red-500">*</span>
@@ -562,7 +562,7 @@ export function DriverForm({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-700">
                         Email
@@ -602,7 +602,7 @@ export function DriverForm({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-700">
                         Address
@@ -635,7 +635,7 @@ export function DriverForm({
                     Vehicle Information
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-700">
                         Vehicle Type <span className="text-red-500">*</span>
@@ -746,7 +746,7 @@ export function DriverForm({
                     Compliance & Documentation
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-700">
                         DOT Medical #
@@ -769,7 +769,7 @@ export function DriverForm({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-700">
                         Insurance Company
@@ -792,7 +792,7 @@ export function DriverForm({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-700">
                         Insurance Start Date

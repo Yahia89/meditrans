@@ -8,7 +8,6 @@ import { RecentActivity } from "./dashboard/RecentActivity";
 import { QuickActions } from "./dashboard/QuickActions";
 import { LowBalanceAlerts } from "./credits/LowBalanceAlerts";
 import { usePermissions } from "@/hooks/usePermissions";
-import { Warning, GasPump, Trophy } from "@phosphor-icons/react";
 
 import { useEffect } from "react";
 import { useQueryState } from "nuqs";
@@ -101,7 +100,7 @@ export function Dashboard({ onNavigateToCredits }: DashboardProps) {
                     </p>
                   </div>
                   <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 text-[10px] font-bold uppercase tracking-wider border border-red-100">
-                    3 Active
+                    Active Alerts
                   </span>
                 </div>
 
@@ -110,48 +109,6 @@ export function Dashboard({ onNavigateToCredits }: DashboardProps) {
                   {isAdmin && (
                     <LowBalanceAlerts onNavigate={onNavigateToCredits} />
                   )}
-
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:border-slate-200 cursor-pointer group">
-                    <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                      <Warning size={20} weight="fill" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-900 text-sm">
-                        License Expiration
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        2 drivers have licenses expiring within 30 days.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:border-slate-200 cursor-pointer group">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                      <GasPump size={20} weight="fill" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-900 text-sm">
-                        Vehicle Maintenance
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        Vehicle #TR-2490 is due for routine service.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:border-slate-200 cursor-pointer group">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                      <Trophy size={20} weight="fill" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-900 text-sm">
-                        Monthly Target
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        On-time arrival reached 98.4% this month.
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

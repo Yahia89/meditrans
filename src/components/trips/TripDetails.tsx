@@ -361,8 +361,9 @@ export function TripDetails({
       declined?: boolean;
       declinedReason?: string;
     }) => {
-      // Calculate actual distance using Google Maps Directions API
+      // Calculate actual distance and duration using Google Maps Directions API
       let actualDistance: number | null = null;
+      let actualDuration: number | null = null;
 
       try {
         if (trip && import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
@@ -379,17 +380,22 @@ export function TripDetails({
             // Convert meters to miles and round up to nearest whole mile
             const meters = data.routes[0].legs[0].distance.value;
             actualDistance = Math.ceil(meters / 1609.34);
+
+            // Convert seconds to minutes and round
+            const seconds = data.routes[0].legs[0].duration.value;
+            actualDuration = Math.round(seconds / 60);
           }
         }
       } catch (err) {
         console.error("Error calculating actual distance:", err);
-        // Continue anyway with null distance
+        // Continue anyway with null metrics
       }
 
       const updates: Record<string, unknown> = {
         status: "completed",
         signature_captured_at: new Date().toISOString(),
         actual_distance_miles: actualDistance,
+        actual_duration_minutes: actualDuration,
       };
 
       if (declined) {

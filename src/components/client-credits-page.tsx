@@ -998,6 +998,24 @@ export function ClientCreditsPage() {
                     </button>
                   )}
                 </div>
+
+                {/* Mobile Edit Credit Button */}
+                {canManageCredits && (
+                  <div className="px-4 pb-4 pt-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditingPatient(data.patient);
+                        setShowCreditDialog(true);
+                      }}
+                      className="w-full rounded-lg gap-2 h-10 text-slate-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50"
+                    >
+                      <Pencil weight="duotone" className="w-4 h-4" />
+                      Edit Credit Settings
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

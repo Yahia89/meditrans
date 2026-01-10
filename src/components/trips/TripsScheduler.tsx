@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useAuth } from "@/contexts/auth-context";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import {
   Plus,
@@ -86,6 +88,8 @@ export function TripsScheduler({
   driverId,
 }: TripsSchedulerProps) {
   const { currentOrganization } = useOrganization();
+  const { profile } = useAuth();
+  const { isDriver } = usePermissions();
 
   // View state
   const [viewMode, setViewMode] = useState<"timeline" | "list" | "cards">(
@@ -257,10 +261,25 @@ export function TripsScheduler({
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Trip Scheduler</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Manage and track all patient transportation
-          </p>
+          {isDriver ? (
+            <>
+              <h1 className="text-2xl font-bold text-slate-900">
+                Hello, {profile?.full_name?.split(" ")[0] || "Driver"}
+              </h1>
+              <p className="text-sm text-slate-500 mt-1">
+                View and manage your assigned trips
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-slate-900">
+                Trip Scheduler
+              </h1>
+              <p className="text-sm text-slate-500 mt-1">
+                Manage and track all patient transportation
+              </p>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <Button

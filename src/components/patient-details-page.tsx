@@ -304,87 +304,89 @@ export function PatientDetailsPage({
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-200">
-        <button
-          onClick={() => setActiveTab("overview")}
-          className={cn(
-            "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
-            activeTab === "overview"
-              ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-          )}
-        >
-          Overview
-        </button>
-        <button
-          onClick={() => setActiveTab("documents")}
-          className={cn(
-            "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
-            activeTab === "documents"
-              ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-          )}
-        >
-          Documents
-          <span
-            className={cn(
-              "px-2 py-0.5 rounded-full text-[10px] font-bold",
-              activeTab === "documents"
-                ? "bg-[#3D5A3D] text-white"
-                : "bg-slate-100 text-slate-500"
-            )}
-          >
-            {docCount}
-          </span>
-        </button>
-        <button
-          onClick={() => setActiveTab("trips")}
-          className={cn(
-            "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
-            activeTab === "trips"
-              ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-          )}
-        >
-          Trip History
-          <span
-            className={cn(
-              "px-2 py-0.5 rounded-full text-[10px] font-bold",
-              activeTab === "trips"
-                ? "bg-[#3D5A3D] text-white"
-                : "bg-slate-100 text-slate-500"
-            )}
-          >
-            {allTrips.length}
-          </span>
-        </button>
-        {/* Credits Tab - show for admins/owners or if patient has credit */}
-        {(canManagePatients || patient.monthly_credit) && (
+      <div className="border-b border-slate-200 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex min-w-max">
           <button
-            onClick={() => setActiveTab("credits")}
+            onClick={() => setActiveTab("overview")}
             className={cn(
-              "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
-              activeTab === "credits"
+              "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
+              activeTab === "overview"
                 ? "border-[#3D5A3D] text-[#3D5A3D]"
                 : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
             )}
           >
-            <Coins weight="duotone" className="w-4 h-4" />
-            Credits
-            {patient.monthly_credit && (
-              <span
-                className={cn(
-                  "px-2 py-0.5 rounded-full text-[10px] font-bold",
-                  activeTab === "credits"
-                    ? "bg-[#3D5A3D] text-white"
-                    : "bg-emerald-100 text-emerald-700"
-                )}
-              >
-                ${patient.monthly_credit.toLocaleString()}
-              </span>
-            )}
+            Overview
           </button>
-        )}
+          <button
+            onClick={() => setActiveTab("documents")}
+            className={cn(
+              "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
+              activeTab === "documents"
+                ? "border-[#3D5A3D] text-[#3D5A3D]"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            )}
+          >
+            Documents
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                activeTab === "documents"
+                  ? "bg-[#3D5A3D] text-white"
+                  : "bg-slate-100 text-slate-500"
+              )}
+            >
+              {docCount}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("trips")}
+            className={cn(
+              "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
+              activeTab === "trips"
+                ? "border-[#3D5A3D] text-[#3D5A3D]"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            )}
+          >
+            Trip History
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                activeTab === "trips"
+                  ? "bg-[#3D5A3D] text-white"
+                  : "bg-slate-100 text-slate-500"
+              )}
+            >
+              {allTrips.length}
+            </span>
+          </button>
+          {/* Credits Tab - show for admins/owners or if patient has credit */}
+          {(canManagePatients || patient.monthly_credit) && (
+            <button
+              onClick={() => setActiveTab("credits")}
+              className={cn(
+                "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
+                activeTab === "credits"
+                  ? "border-[#3D5A3D] text-[#3D5A3D]"
+                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              )}
+            >
+              <Coins weight="duotone" className="w-4 h-4" />
+              Credits
+              {patient.monthly_credit && (
+                <span
+                  className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                    activeTab === "credits"
+                      ? "bg-[#3D5A3D] text-white"
+                      : "bg-emerald-100 text-emerald-700"
+                  )}
+                >
+                  ${patient.monthly_credit.toLocaleString()}
+                </span>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tab Content */}
