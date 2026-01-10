@@ -28,12 +28,20 @@ import { CreditEntryDialog } from "@/components/credits/CreditEntryDialog";
 import { AddPatientToCreditDialog } from "@/components/credits/AddPatientToCreditDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 
+import {
+  calculateCreditStatus,
+  type CreditInfo,
+  ESTIMATED_COST_PER_TRIP,
+} from "@/lib/credit-utils";
+
 interface Patient {
   id: string;
   full_name: string;
   monthly_credit: number | null;
   credit_used_for: string | null;
+  service_type: string | null;
   referral_date: string | null;
+  referral_expiration_date: string | null;
   notes: string | null;
   phone: string | null;
   email: string | null;
@@ -53,11 +61,9 @@ interface PatientCreditData {
   totalSpend: number;
   remainingBalance: number;
   tripCount: number;
-  isLowBalance: boolean;
+  creditInfo: CreditInfo;
   isPending: boolean;
 }
-
-const LOW_BALANCE_THRESHOLD = 0.2; // 20% remaining triggers low balance warning
 
 export function ClientCreditsPage() {
   const { currentOrganization } = useOrganization();
@@ -74,7 +80,7 @@ export function ClientCreditsPage() {
   // Search and filters
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
-    "all" | "low" | "good" | "pending"
+    "all" | "low" | "medium" | "good" | "pending"
   >("all");
   const [sortBy, setSortBy] = useState<"name" | "balance" | "spend">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -207,26 +213,24 @@ export function ClientCreditsPage() {
       );
 
       // For now, estimate cost per trip since trip_cost is not in the database yet
-      // This can be replaced with actual trip costs when that field is added
-      // Placeholder: $50 per completed trip as a default estimate
-      const ESTIMATED_COST_PER_TRIP = 50;
       const totalSpend = patientTrips.length * ESTIMATED_COST_PER_TRIP;
 
       const monthlyCredit = patient.monthly_credit || 0;
       const remainingBalance = monthlyCredit - totalSpend;
-      const isLowBalance =
-        monthlyCredit > 0 &&
-        remainingBalance / monthlyCredit <= LOW_BALANCE_THRESHOLD;
+      const creditInfo = calculateCreditStatus(monthlyCredit, totalSpend);
       const isPending =
         patient.notes?.toLowerCase().includes("pending") || false;
 
       return {
-        patient,
+        patient: {
+          ...patient,
+          referral_expiration_date: patient.referral_expiration_date || null,
+        },
         monthlyCredit,
         totalSpend,
         remainingBalance,
         tripCount: patientTrips.length,
-        isLowBalance,
+        creditInfo,
         isPending,
       };
     });
@@ -249,9 +253,13 @@ export function ClientCreditsPage() {
 
     // Status filter
     if (filterStatus === "low") {
-      result = result.filter((d) => d.isLowBalance);
+      result = result.filter((d) => d.creditInfo.status === "low");
+    } else if (filterStatus === "medium") {
+      result = result.filter((d) => d.creditInfo.status === "mid");
     } else if (filterStatus === "good") {
-      result = result.filter((d) => !d.isLowBalance && !d.isPending);
+      result = result.filter(
+        (d) => d.creditInfo.status === "good" && !d.isPending
+      );
     } else if (filterStatus === "pending") {
       result = result.filter((d) => d.isPending);
     }
@@ -274,7 +282,7 @@ export function ClientCreditsPage() {
 
   // Low balance alerts
   const lowBalancePatients = useMemo(
-    () => creditData.filter((d) => d.isLowBalance),
+    () => creditData.filter((d) => d.creditInfo.status === "low"),
     [creditData]
   );
 
@@ -370,16 +378,20 @@ export function ClientCreditsPage() {
   // Get balance status color
   const getBalanceColor = (data: PatientCreditData) => {
     if (data.isPending) return "text-amber-600 bg-amber-50 border-amber-200";
-    if (data.isLowBalance) return "text-red-600 bg-red-50 border-red-200";
-    if (data.remainingBalance < 0)
-      return "text-red-700 bg-red-100 border-red-300";
-    return "text-emerald-600 bg-emerald-50 border-emerald-200";
+    return cn(
+      data.creditInfo.colorClass,
+      data.creditInfo.bgClass,
+      data.creditInfo.colorClass
+        .replace("text-", "border-")
+        .replace("700", "200")
+    );
   };
 
   const getProgressColor = (data: PatientCreditData) => {
     if (data.isPending) return "bg-amber-500";
-    if (data.isLowBalance) return "bg-red-500";
-    if (data.remainingBalance < 0) return "bg-red-600";
+    const status = data.creditInfo.status;
+    if (status === "low" || data.remainingBalance < 0) return "bg-red-500";
+    if (status === "mid") return "bg-amber-500";
     return "bg-emerald-500";
   };
 
@@ -564,6 +576,7 @@ export function ClientCreditsPage() {
               >
                 <option value="all">All Status</option>
                 <option value="good">Good Standing</option>
+                <option value="medium">Medium Balance</option>
                 <option value="low">Low Balance</option>
                 <option value="pending">Pending</option>
               </select>
@@ -739,9 +752,7 @@ export function ClientCreditsPage() {
                           >
                             {data.isPending
                               ? "PENDING"
-                              : data.isLowBalance
-                              ? "LOW"
-                              : "GOOD"}
+                              : data.creditInfo.label.toUpperCase()}
                           </span>
                           {/* Progress bar */}
                           <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -878,9 +889,7 @@ export function ClientCreditsPage() {
                   >
                     {data.isPending
                       ? "PENDING"
-                      : data.isLowBalance
-                      ? "LOW"
-                      : "GOOD"}
+                      : data.creditInfo.label.toUpperCase()}
                   </span>
                 </div>
 
@@ -1006,7 +1015,17 @@ export function ClientCreditsPage() {
           patientId={editingPatient.id}
           patientName={editingPatient.full_name}
           currentMonthlyCredit={editingPatient.monthly_credit || 0}
+          currentCreditUsedFor={editingPatient.credit_used_for || ""}
           currentNotes={editingPatient.notes || ""}
+          currentReferralDate={editingPatient.referral_date || ""}
+          currentReferralExpiration={
+            editingPatient.referral_expiration_date || ""
+          }
+          currentSpend={
+            creditData.find((d) => d.patient.id === editingPatient.id)
+              ?.totalSpend || 0
+          }
+          serviceType={editingPatient.service_type || ""}
           mode="edit"
         />
       )}

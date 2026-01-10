@@ -106,8 +106,10 @@ export function Dashboard({ onNavigateToCredits }: DashboardProps) {
                 </div>
 
                 <div className="space-y-4">
-                  {/* Low Balance Alerts - Dynamic */}
-                  <LowBalanceAlerts onNavigate={onNavigateToCredits} />
+                  {/* Low Balance Alerts - Dynamic - Only for Owners/Admins */}
+                  {isAdmin && (
+                    <LowBalanceAlerts onNavigate={onNavigateToCredits} />
+                  )}
 
                   <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:bg-white hover:border-slate-200 cursor-pointer group">
                     <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-600 group-hover:text-white transition-colors">

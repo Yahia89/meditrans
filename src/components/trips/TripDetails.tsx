@@ -546,16 +546,16 @@ export function TripDetails({
           {/* Trip Card */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-8">
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                     Trip Type
                   </p>
                   <h2 className="text-xl font-bold text-slate-900">
-                    {trip.trip_type} Transportation
+                    {trip.trip_type}
                   </h2>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-start md:self-auto">
                   {canManage && (
                     <div className="flex items-center gap-2 mr-2">
                       {onEdit && (
@@ -764,7 +764,7 @@ export function TripDetails({
                     trip.status === "accepted") && (
                     <Button
                       onClick={() => handleStatusUpdate("en_route")}
-                      className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-purple-200/50"
+                      className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700 text-white font-bold h-11 px-8 rounded-xl"
                     >
                       Start Driving to Pickup
                     </Button>
@@ -773,7 +773,7 @@ export function TripDetails({
                   {trip.status === "en_route" && (
                     <Button
                       onClick={() => handleStatusUpdate("arrived")}
-                      className="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-amber-200/50"
+                      className="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white font-bold h-11 px-8 rounded-xl"
                     >
                       Arrived at Pickup
                     </Button>
@@ -782,7 +782,7 @@ export function TripDetails({
                   {trip.status === "arrived" && (
                     <Button
                       onClick={() => handleStatusUpdate("in_progress")}
-                      className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-blue-200/50"
+                      className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-8 rounded-xl"
                     >
                       Pickup Patient
                     </Button>
@@ -791,7 +791,7 @@ export function TripDetails({
                   {trip.status === "in_progress" && (
                     <Button
                       onClick={() => setShowSignatureDialog(true)}
-                      className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-emerald-200/50 transition-all duration-300"
+                      className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-8 rounded-xl transition-all duration-300"
                     >
                       <Signature weight="bold" className="w-5 h-5 mr-2" />
                       Arrived at Destination / Drop Off

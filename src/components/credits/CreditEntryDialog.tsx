@@ -1,11 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { X, CreditCard, Plus, Pencil } from "@phosphor-icons/react";
+import {
+  X,
+  CreditCard,
+  Plus,
+  Pencil,
+  Coins,
+  TrendDown,
+  TrendUp,
+} from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { calculateCreditStatus } from "@/lib/credit-utils";
 
 interface CreditEntryDialogProps {
   open: boolean;
@@ -13,7 +23,12 @@ interface CreditEntryDialogProps {
   patientId: string;
   patientName: string;
   currentMonthlyCredit?: number;
+  currentCreditUsedFor?: string;
   currentNotes?: string;
+  currentReferralDate?: string;
+  currentReferralExpiration?: string;
+  currentSpend?: number;
+  serviceType?: string;
   mode: "add" | "edit";
   onSuccess?: () => void;
 }
@@ -24,7 +39,12 @@ export function CreditEntryDialog({
   patientId,
   patientName,
   currentMonthlyCredit = 0,
+  currentCreditUsedFor = "",
   currentNotes = "",
+  currentReferralDate = "",
+  currentReferralExpiration = "",
+  currentSpend = 0,
+  serviceType = "",
   mode,
   onSuccess,
 }: CreditEntryDialogProps) {
@@ -33,11 +53,21 @@ export function CreditEntryDialog({
   const [error, setError] = useState<string | null>(null);
 
   // Form state
+  // Form state
   const [monthlyCredit, setMonthlyCredit] = useState(
     currentMonthlyCredit.toString()
   );
-  const [creditUsedFor, setCreditUsedFor] = useState("");
-  const [notes, setNotes] = useState(currentNotes);
+  const [notes, setNotes] = useState(currentNotes || "");
+
+  const numericCredit = parseFloat(monthlyCredit) || 0;
+  const creditInfo = calculateCreditStatus(numericCredit, currentSpend);
+  const remainingValue = numericCredit - currentSpend;
+
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(val);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +84,6 @@ export function CreditEntryDialog({
         .from("patients")
         .update({
           monthly_credit: creditValue,
-          credit_used_for: creditUsedFor || null,
           notes: notes || null,
         })
         .eq("id", patientId);
@@ -79,7 +108,6 @@ export function CreditEntryDialog({
   const handleReset = () => {
     setMonthlyCredit(currentMonthlyCredit.toString());
     setNotes(currentNotes);
-    setCreditUsedFor("");
     setError(null);
   };
 
@@ -128,6 +156,51 @@ export function CreditEntryDialog({
             </div>
           )}
 
+          {/* Live Stats Summary */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <TrendDown weight="bold" className="w-3 h-3" />
+                Spent this Month
+              </div>
+              <p className="text-lg font-bold text-slate-700">
+                {formatCurrency(currentSpend)}
+              </p>
+            </div>
+            <div className="space-y-1 text-right">
+              <div className="flex items-center justify-end gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Remaining
+                <TrendUp weight="bold" className="w-3 h-3" />
+              </div>
+              <p
+                className={cn(
+                  "text-lg font-bold",
+                  remainingValue >= 0 ? "text-emerald-600" : "text-red-600"
+                )}
+              >
+                {formatCurrency(remainingValue)}
+              </p>
+            </div>
+            <div className="col-span-2 pt-3 border-t border-slate-200/60 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <Coins weight="bold" className="w-3 h-3" />
+                Status
+              </div>
+              <span
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                  creditInfo.colorClass,
+                  creditInfo.bgClass,
+                  creditInfo.colorClass
+                    .replace("text-", "border-")
+                    .replace("700", "200")
+                )}
+              >
+                {creditInfo.label.toUpperCase()}
+              </span>
+            </div>
+          </div>
+
           {/* Monthly Credit */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700">
@@ -153,28 +226,47 @@ export function CreditEntryDialog({
             </p>
           </div>
 
-          {/* Credit Used For */}
+          {/* Service Type (Read Only) */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700">
-              Credit Used For
+              Service Type
             </label>
-            <select
-              value={creditUsedFor}
-              onChange={(e) => setCreditUsedFor(e.target.value)}
-              className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-            >
-              <option value="">Select usage type...</option>
-              <option value="Medical Transportation">
-                Medical Transportation
-              </option>
-              <option value="Dialysis Trips">Dialysis Trips</option>
-              <option value="Doctor Appointments">Doctor Appointments</option>
-              <option value="Therapy Sessions">Therapy Sessions</option>
-              <option value="General Transportation">
-                General Transportation
-              </option>
-              <option value="Other">Other</option>
-            </select>
+            <input
+              type="text"
+              value={serviceType || "Not set"}
+              disabled
+              className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500 cursor-not-allowed"
+            />
+          </div>
+
+          {/* Referral Dates (Read Only) */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700">
+                Referral Date
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={currentReferralDate || ""}
+                  disabled
+                  className="w-full h-11 pl-4 pr-10 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500 cursor-not-allowed"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700">
+                Expiration Date
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={currentReferralExpiration || ""}
+                  disabled
+                  className="w-full h-11 pl-4 pr-10 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-500 cursor-not-allowed"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Notes */}

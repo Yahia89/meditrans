@@ -3,8 +3,13 @@
 import { CreditCard, Warning, ArrowRight } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Loader2 } from "lucide-react";
+import {
+  calculateCreditStatus,
+  ESTIMATED_COST_PER_TRIP,
+} from "@/lib/credit-utils";
 
 interface LowBalancePatient {
   id: string;
@@ -14,8 +19,7 @@ interface LowBalancePatient {
   percentRemaining: number;
 }
 
-const LOW_BALANCE_THRESHOLD = 0.2; // 20%
-const ESTIMATED_COST_PER_TRIP = 50;
+// Thresholds and cost moved to credit-utils.ts
 
 export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
   const { currentOrganization } = useOrganization();
@@ -67,17 +71,16 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
           trips?.filter((t) => t.patient_id === patient.id) || [];
         const totalSpend = patientTrips.length * ESTIMATED_COST_PER_TRIP;
         const monthlyCredit = patient.monthly_credit || 0;
-        const remainingBalance = monthlyCredit - totalSpend;
-        const percentRemaining =
-          monthlyCredit > 0 ? remainingBalance / monthlyCredit : 1;
 
-        if (percentRemaining <= LOW_BALANCE_THRESHOLD && monthlyCredit > 0) {
+        const creditInfo = calculateCreditStatus(monthlyCredit, totalSpend);
+
+        if (creditInfo.status !== "good" && creditInfo.status !== "none") {
           lowBalance.push({
             id: patient.id,
             full_name: patient.full_name,
             monthly_credit: monthlyCredit,
-            remainingBalance,
-            percentRemaining,
+            remainingBalance: monthlyCredit - totalSpend,
+            percentRemaining: creditInfo.percentage / 100,
           });
         }
       });
@@ -123,29 +126,70 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
     );
   }
 
+  const criticalCount = lowBalancePatients.filter(
+    (p) => p.percentRemaining * 100 <= 5
+  ).length;
+  const bgColor =
+    criticalCount > 0
+      ? "bg-red-50 border-red-100 hover:bg-red-100 hover:border-red-200"
+      : "bg-amber-50 border-amber-100 hover:bg-amber-100 hover:border-amber-200";
+  const iconBgColor =
+    criticalCount > 0
+      ? "bg-red-100 text-red-700 group-hover:bg-red-600"
+      : "bg-amber-100 text-amber-700 group-hover:bg-amber-600";
+  const textColor = criticalCount > 0 ? "text-red-600" : "text-amber-600";
+
   return (
     <button
       onClick={onNavigate}
-      className="w-full flex items-start gap-4 p-4 rounded-xl bg-red-50 border border-red-100 transition-all hover:bg-red-100 hover:border-red-200 cursor-pointer group text-left"
+      className={cn(
+        "w-full flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer group text-left",
+        bgColor
+      )}
     >
-      <div className="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center flex-shrink-0 group-hover:bg-red-600 group-hover:text-white transition-colors">
-        <Warning size={20} weight="fill" />
+      <div
+        className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:text-white transition-colors",
+          iconBgColor
+        )}
+      >
+        {criticalCount > 0 ? (
+          <Warning size={20} weight="fill" />
+        ) : (
+          <CreditCard size={20} weight="duotone" />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <h4 className="font-bold text-slate-900 text-sm">
-            Low Credit Balance
+            {criticalCount > 0
+              ? "Critical Credit Alerts"
+              : "Credit Balance Alerts"}
           </h4>
-          <span className="px-2 py-0.5 rounded-full bg-red-200 text-red-800 text-[10px] font-bold">
+          <span
+            className={cn(
+              "px-2 py-0.5 rounded-full text-[10px] font-bold",
+              criticalCount > 0
+                ? "bg-red-200 text-red-800"
+                : "bg-amber-200 text-amber-800"
+            )}
+          >
             {lowBalancePatients.length}
           </span>
         </div>
         <p className="text-xs text-slate-500 mt-1 leading-relaxed">
           {lowBalancePatients.length === 1
-            ? `${lowBalancePatients[0].full_name} has low credit balance`
-            : `${lowBalancePatients.length} clients have low credit balances`}
+            ? `${lowBalancePatients[0].full_name} has ${(
+                lowBalancePatients[0].percentRemaining * 100
+              ).toFixed(0)}% credit remaining`
+            : `${lowBalancePatients.length} clients are below 50% credit`}
         </p>
-        <div className="flex items-center gap-1 mt-2 text-xs text-red-600 font-medium">
+        <div
+          className={cn(
+            "flex items-center gap-1 mt-2 text-xs font-medium",
+            textColor
+          )}
+        >
           <span>View details</span>
           <ArrowRight
             size={12}

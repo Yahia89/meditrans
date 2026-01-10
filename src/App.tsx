@@ -63,8 +63,8 @@ import { useDriverLocation } from "@/hooks/useDriverLocation";
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
   const { driverId: currentDriverId } = useDriverLocation(); // Enables driver tracking and SMS trigger
-  const { loading: orgLoading } = useOrganization();
-  const { isSuperAdmin, isAdmin, isOwner, isDriver } = usePermissions();
+  const { loading: orgLoading, userRole } = useOrganization();
+  const { isDriver } = usePermissions();
 
   const loading = authLoading || (user && orgLoading);
 
@@ -88,21 +88,38 @@ function AppContent() {
   const [fromPage, setFromPage] = useQueryState("from");
   const [_, setSection] = useQueryState("section");
 
-  // Redirection and access control for drivers
+  // Centralized Access Control and Redirection
   useEffect(() => {
-    if (!loading && user && isDriver) {
-      const allowedForDrivers = [
-        "trips",
-        "trip-details",
-        "account",
-        "notifications",
-        "accept-invite",
-      ];
-      if (!allowedForDrivers.includes(currentPage)) {
-        setCurrentPage("trips");
-      }
+    if (loading || !user) return;
+
+    // Define restricted pages for each role
+    const restrictions: Record<string, Page[]> = {
+      driver: [
+        "dashboard",
+        "patients",
+        "patient-details",
+        "drivers",
+        "driver-details",
+        "employees",
+        "upload",
+        "review_import",
+        "billing",
+        "founder",
+        "client-credits",
+      ],
+      employee: ["founder", "client-credits", "billing"],
+      admin: ["founder"],
+      owner: ["founder"],
+    };
+
+    const userRestrictedPages = restrictions[userRole || ""] || [];
+
+    // Check if current page is restricted for this user
+    if (userRestrictedPages.includes(currentPage)) {
+      const fallbackPage = isDriver ? "trips" : "dashboard";
+      setCurrentPage(fallbackPage);
     }
-  }, [loading, user, isDriver, currentPage, setCurrentPage]);
+  }, [loading, user, userRole, currentPage, isDriver, setCurrentPage]);
 
   // Show loading state while checking auth
   if (loading) {
@@ -191,26 +208,6 @@ function AppContent() {
   }
 
   const renderPage = () => {
-    // Restrict access for drivers to prevent flickering/unauthorized access
-    if (isDriver) {
-      const allowedForDrivers = [
-        "trips",
-        "trip-details",
-        "account",
-        "notifications",
-        "accept-invite",
-      ];
-      if (!allowedForDrivers.includes(currentPage)) {
-        return (
-          <DashboardPage title="Trips Management">
-            <div className="flex h-64 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-            </div>
-          </DashboardPage>
-        );
-      }
-    }
-
     switch (currentPage) {
       case "dashboard":
         return (
@@ -314,11 +311,6 @@ function AppContent() {
             <NotificationsPage />
           </DashboardPage>
         );
-      case "founder":
-        if (!isSuperAdmin) {
-          setCurrentPage("dashboard");
-          return null;
-        }
         return (
           <DashboardPage title="Founder Admin">
             <FounderInviteForm />
@@ -367,10 +359,6 @@ function AppContent() {
           </DashboardPage>
         );
       case "client-credits":
-        if (!isAdmin && !isOwner) {
-          setCurrentPage("dashboard");
-          return null;
-        }
         return (
           <DashboardPage title="Client Credits">
             <ClientCreditsPage />

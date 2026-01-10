@@ -23,6 +23,10 @@ import {
 } from "lucide-react";
 import type { TripStatus } from "./types";
 import { cn } from "@/lib/utils";
+import {
+  calculateCreditStatus,
+  ESTIMATED_COST_PER_TRIP,
+} from "@/lib/credit-utils";
 
 import { TimePicker, TRIP_TYPES } from "./trip-utils";
 
@@ -249,19 +253,64 @@ export function CreateTripForm({
     }
   }, [existingTrip]);
 
-  const { data: patients } = useQuery({
-    queryKey: ["patients-form", currentOrganization?.id],
+  const { data: patientsData } = useQuery({
+    queryKey: ["patients-form-with-credits", currentOrganization?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!currentOrganization?.id) return [];
+
+      // 1. Fetch patients
+      const { data: patients, error: patientsError } = await supabase
         .from("patients")
-        .select("id, full_name, vehicle_type_need")
-        .eq("org_id", currentOrganization?.id)
+        .select("id, full_name, vehicle_type_need, monthly_credit")
+        .eq("org_id", currentOrganization.id)
         .order("full_name");
-      if (error) throw error;
-      return data;
+
+      if (patientsError) throw patientsError;
+
+      // 2. Fetch completed trip counts for this month
+      const now = new Date();
+      const startOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        1
+      ).toISOString();
+      const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59
+      ).toISOString();
+
+      const { data: tripCounts, error: tripsError } = await supabase
+        .from("trips")
+        .select("patient_id")
+        .eq("org_id", currentOrganization.id)
+        .eq("status", "completed")
+        .gte("pickup_time", startOfMonth)
+        .lte("pickup_time", endOfMonth);
+
+      if (tripsError) throw tripsError;
+
+      // 3. Map status to patients
+      return patients.map((p) => {
+        const completedCount =
+          tripCounts?.filter((t) => t.patient_id === p.id).length || 0;
+        const creditInfo = calculateCreditStatus(
+          p.monthly_credit,
+          completedCount * ESTIMATED_COST_PER_TRIP
+        );
+        return {
+          ...p,
+          creditInfo,
+        };
+      });
     },
     enabled: !!currentOrganization,
   });
+
+  const patients = patientsData;
 
   const { data: drivers } = useQuery({
     queryKey: ["drivers-form", currentOrganization?.id],
@@ -777,11 +826,25 @@ export function CreateTripForm({
                 className="w-full rounded-md border-slate-200 bg-white h-10 px-3 text-sm focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="">Select Patient</option>
-                {patients?.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.full_name}
-                  </option>
-                ))}
+                {patients?.map((p) => {
+                  const isLow = p.creditInfo.status === "low";
+                  const pct = p.creditInfo.percentage.toFixed(0);
+
+                  return (
+                    <option
+                      key={p.id}
+                      value={p.id}
+                      disabled={isLow}
+                      className={cn(
+                        isLow && "text-red-400 bg-slate-50",
+                        p.creditInfo.status === "mid" && "text-amber-600"
+                      )}
+                    >
+                      {p.full_name} {p.monthly_credit ? `(${pct}% credit)` : ""}{" "}
+                      {isLow ? "- INSUFFICIENT CREDIT" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

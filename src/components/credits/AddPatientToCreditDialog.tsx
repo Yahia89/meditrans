@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Loader2 } from "lucide-react";
+import { SERVICE_TYPES } from "@/lib/constants";
 
 interface Patient {
   id: string;
@@ -42,6 +43,8 @@ export function AddPatientToCreditDialog({
   const [monthlyCredit, setMonthlyCredit] = useState("");
   const [creditUsedFor, setCreditUsedFor] = useState("");
   const [notes, setNotes] = useState("");
+  const [referralDate, setReferralDate] = useState("");
+  const [referralExpiration, setReferralExpiration] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,8 +105,10 @@ export function AddPatientToCreditDialog({
           credit_used_for: creditUsedFor || null,
           notes: notes || null,
           referral_date:
+            referralDate ||
             selectedPatient.referral_date ||
             new Date().toISOString().split("T")[0],
+          referral_expiration_date: referralExpiration || null,
         })
         .eq("id", selectedPatient.id);
 
@@ -129,6 +134,8 @@ export function AddPatientToCreditDialog({
     setMonthlyCredit("");
     setCreditUsedFor("");
     setNotes("");
+    setReferralDate("");
+    setReferralExpiration("");
     setSearchQuery("");
     setError(null);
     onOpenChange(false);
@@ -288,22 +295,45 @@ export function AddPatientToCreditDialog({
                 <select
                   value={creditUsedFor}
                   onChange={(e) => setCreditUsedFor(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none bg-slate-50/50"
                 >
                   <option value="">Select usage type...</option>
-                  <option value="Medical Transportation">
-                    Medical Transportation
-                  </option>
-                  <option value="Dialysis Trips">Dialysis Trips</option>
-                  <option value="Doctor Appointments">
-                    Doctor Appointments
-                  </option>
-                  <option value="Therapy Sessions">Therapy Sessions</option>
-                  <option value="General Transportation">
-                    General Transportation
-                  </option>
-                  <option value="Other">Other</option>
+                  {SERVICE_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
                 </select>
+              </div>
+
+              {/* Referral Dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Referral Date
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={referralDate}
+                      onChange={(e) => setReferralDate(e.target.value)}
+                      className="w-full h-11 pl-4 pr-10 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Expiration Date
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={referralExpiration}
+                      onChange={(e) => setReferralExpiration(e.target.value)}
+                      className="w-full h-11 pl-4 pr-10 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Notes */}

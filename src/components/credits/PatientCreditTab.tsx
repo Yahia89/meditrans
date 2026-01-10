@@ -19,6 +19,10 @@ import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { CreditEntryDialog } from "./CreditEntryDialog";
 import { usePermissions } from "@/hooks/usePermissions";
+import {
+  calculateCreditStatus,
+  ESTIMATED_COST_PER_TRIP,
+} from "@/lib/credit-utils";
 
 interface PatientCreditTabProps {
   patientId: string;
@@ -26,6 +30,9 @@ interface PatientCreditTabProps {
   monthlyCredit: number | null;
   creditUsedFor: string | null;
   notes: string | null;
+  referralDate: string | null;
+  referralExpiration: string | null;
+  serviceType: string | null;
 }
 
 interface Trip {
@@ -37,7 +44,7 @@ interface Trip {
   dropoff_location: string;
 }
 
-const ESTIMATED_COST_PER_TRIP = 50; // Default cost estimate per trip
+// Moved to @/lib/credit-utils.ts
 
 export function PatientCreditTab({
   patientId,
@@ -45,6 +52,9 @@ export function PatientCreditTab({
   monthlyCredit,
   creditUsedFor,
   notes,
+  referralDate,
+  referralExpiration,
+  serviceType,
 }: PatientCreditTabProps) {
   const { isOwner, isAdmin } = usePermissions();
   const canManageCredits = isOwner || isAdmin;
@@ -111,11 +121,11 @@ export function PatientCreditTab({
     return { dailySpend: daily, totalSpend: total, completedTrips: completed };
   }, [trips]);
 
+  const creditStatus = calculateCreditStatus(monthlyCredit, totalSpend);
   const remainingBalance = (monthlyCredit || 0) - totalSpend;
   const usagePercentage = monthlyCredit
-    ? Math.min(100, (totalSpend / monthlyCredit) * 100)
+    ? (totalSpend / monthlyCredit) * 100
     : 0;
-  const isLowBalance = monthlyCredit && remainingBalance / monthlyCredit <= 0.2;
 
   // Month navigation
   const goToPrevMonth = () => {
@@ -144,17 +154,11 @@ export function PatientCreditTab({
   };
 
   const getStatusColor = () => {
-    if (!monthlyCredit) return "bg-slate-100 text-slate-600";
-    if (remainingBalance < 0) return "bg-red-100 text-red-700";
-    if (isLowBalance) return "bg-amber-100 text-amber-700";
-    return "bg-emerald-100 text-emerald-700";
+    return `${creditStatus.bgClass} ${creditStatus.colorClass}`;
   };
 
   const getStatusText = () => {
-    if (!monthlyCredit) return "No Credit Set";
-    if (remainingBalance < 0) return "Over Budget";
-    if (isLowBalance) return "Low Balance";
-    return "Good Standing";
+    return creditStatus.label;
   };
 
   return (
@@ -252,9 +256,9 @@ export function PatientCreditTab({
               <div
                 className={cn(
                   "h-full rounded-full transition-all duration-300",
-                  remainingBalance < 0
+                  creditStatus.status === "low"
                     ? "bg-red-500"
-                    : isLowBalance
+                    : creditStatus.status === "mid"
                     ? "bg-amber-500"
                     : "bg-emerald-500"
                 )}
@@ -438,7 +442,12 @@ export function PatientCreditTab({
         patientId={patientId}
         patientName={patientName}
         currentMonthlyCredit={monthlyCredit || 0}
+        currentCreditUsedFor={creditUsedFor || ""}
         currentNotes={notes || ""}
+        currentReferralDate={referralDate || ""}
+        currentReferralExpiration={referralExpiration || ""}
+        currentSpend={totalSpend}
+        serviceType={serviceType || ""}
         mode="edit"
       />
     </div>

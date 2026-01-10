@@ -68,6 +68,7 @@ const statusColors: Record<TripStatus, string> = {
   pending: "bg-slate-100 text-slate-700 border-slate-200",
   assigned: "bg-blue-50 text-blue-700 border-blue-100",
   accepted: "bg-indigo-50 text-indigo-700 border-indigo-100",
+  en_route: "bg-sky-50 text-sky-700 border-sky-100",
   arrived: "bg-amber-50 text-amber-700 border-amber-100",
   in_progress: "bg-blue-100 text-blue-800 border-blue-200",
   completed: "bg-emerald-50 text-emerald-700 border-emerald-100",
@@ -839,6 +840,9 @@ export function PatientDetailsPage({
           monthlyCredit={patient.monthly_credit}
           creditUsedFor={patient.credit_used_for}
           notes={patient.notes}
+          referralDate={patient.referral_date}
+          referralExpiration={patient.referral_expiration_date}
+          serviceType={patient.service_type}
         />
       )}
 

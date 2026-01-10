@@ -31,43 +31,12 @@ import {
 import { cn, formatPhoneNumber } from "@/lib/utils";
 
 // Vehicle type need options for patients
-const VEHICLE_TYPE_NEEDS = [
-  { value: "COMMON CARRIER", label: "Common Carrier" },
-  { value: "FOLDED WHEELCHAIR", label: "Folded Wheelchair" },
-  { value: "WHEELCHAIR", label: "Wheelchair" },
-  { value: "VAN", label: "Van" },
-] as const;
-
-// New constants for predefined options
-const WAIVER_TYPES = [
-  "Elderly Waiver (EW)",
-  "MSHO",
-  "CADD",
-  "BI Waiver",
-  "CAC Waiver",
-  "Other",
-];
-
-const REFERRAL_SOURCES = [
-  "Case Manager",
-  "Clinic",
-  "Social Worker",
-  "Internal",
-  "Other",
-];
-
-const SERVICE_TYPES = [
-  "Work",
-  "School",
-  "Pleasure",
-  "Dentist",
-  "Medical Appointment",
-  "Clinics",
-  "Methadone Clinics",
-  "Dialysis",
-  "Regular Transportation",
-  "Other",
-];
+import {
+  VEHICLE_TYPE_NEEDS,
+  WAIVER_TYPES,
+  REFERRAL_SOURCES,
+  SERVICE_TYPES,
+} from "@/lib/constants";
 
 // Schema for patient form
 // Column mapping: CLIENT NAME, DOB, PHONE NUMBER, ADDRESS, WAIVER TYPE, COUNTY,
@@ -237,14 +206,14 @@ export function PatientForm({
   useEffect(() => {
     if (
       initialData?.service_type &&
-      !SERVICE_TYPES.includes(initialData.service_type)
+      !SERVICE_TYPES.includes(initialData.service_type as any)
     ) {
       setValue("service_type", "Other");
       setOtherServiceType(initialData.service_type);
     }
     if (
       initialData?.referral_by &&
-      !REFERRAL_SOURCES.includes(initialData.referral_by)
+      !REFERRAL_SOURCES.includes(initialData.referral_by as any)
     ) {
       setValue("referral_by", "Other");
       setOtherReferralBy(initialData.referral_by);
