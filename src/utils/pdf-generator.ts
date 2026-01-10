@@ -46,9 +46,9 @@ export const generateTripSummaryPDF = (trip: Trip) => {
     [
       "Distance",
       trip.actual_distance_miles
-        ? `${trip.actual_distance_miles} miles (actual)`
+        ? `${Math.ceil(Number(trip.actual_distance_miles))} miles (actual)`
         : trip.distance_miles
-        ? `${trip.distance_miles} miles (estimated)`
+        ? `${Math.ceil(Number(trip.distance_miles))} miles`
         : "N/A",
     ],
   ];

@@ -145,7 +145,7 @@ export function CreateTripForm({
         const durationSeconds = leg.duration?.value || 0;
 
         return {
-          distance_miles: parseFloat((distanceMeters * 0.000621371).toFixed(2)),
+          distance_miles: Math.ceil(distanceMeters * 0.000621371),
           duration_minutes: Math.ceil(durationSeconds / 60),
         };
       }

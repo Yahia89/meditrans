@@ -128,7 +128,9 @@ function RelatedTripsTimeline({
             const isCurrent = trip.id === currentTripId;
             // Calculate total journey distance
             const totalDistance = trips.reduce(
-              (sum, t) => sum + (t.distance_miles || 0),
+              (sum, t) =>
+                sum +
+                (Number(t.actual_distance_miles || t.distance_miles) || 0),
               0
             );
             return (
@@ -214,7 +216,12 @@ function RelatedTripsTimeline({
                         )}
                       >
                         <Path weight="bold" className="w-3.5 h-3.5" />
-                        {trip.distance_miles} miles
+                        {Math.ceil(
+                          Number(
+                            trip.actual_distance_miles || trip.distance_miles
+                          )
+                        )}{" "}
+                        miles
                       </div>
                     </div>
                   )}
@@ -227,7 +234,7 @@ function RelatedTripsTimeline({
                       <Path weight="duotone" className="w-4 h-4" />
                       <span className="font-semibold">Total Journey:</span>
                       <span className="text-slate-700 font-bold">
-                        {totalDistance.toFixed(1)} miles
+                        {Math.ceil(totalDistance)} miles
                       </span>
                     </div>
                   </div>
@@ -369,9 +376,9 @@ export function TripDetails({
           const data = await response.json();
 
           if (data.status === "OK" && data.routes?.[0]?.legs?.[0]?.distance) {
-            // Convert meters to miles
+            // Convert meters to miles and round up to nearest whole mile
             const meters = data.routes[0].legs[0].distance.value;
-            actualDistance = parseFloat((meters / 1609.34).toFixed(2));
+            actualDistance = Math.ceil(meters / 1609.34);
           }
         }
       } catch (err) {
