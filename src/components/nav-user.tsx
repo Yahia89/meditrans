@@ -48,8 +48,10 @@ export function NavUser() {
 
   const handleLogout = async () => {
     try {
+      // Clear all URL query params before sign out to prevent stale state on next login
+      // This is needed because nuqs state persists in URL and may carry over between sessions
+      window.history.replaceState({}, "", window.location.pathname);
       await signOut();
-      setPage(null);
     } catch (error) {
       console.error("Error signing out:", error);
     }

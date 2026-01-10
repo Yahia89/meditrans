@@ -146,7 +146,6 @@ function AppContent() {
   }
 
   // Show login page if not authenticated
-
   if (!user) {
     return (
       <div className="flex min-h-svh w-full">

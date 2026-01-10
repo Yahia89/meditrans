@@ -59,9 +59,11 @@ export function SignatureCaptureDialog({
   const handleSubmit = () => {
     if (!sigCanvas.current || !hasDrawn || !signerName.trim()) return;
 
-    const signatureData = sigCanvas.current
-      .getTrimmedCanvas()
-      .toDataURL("image/png");
+    // Use getCanvas() instead of getTrimmedCanvas() to avoid alpha version bug
+    // The getTrimmedCanvas() method in react-signature-canvas@1.1.0-alpha.2
+    // has a broken import for trim-canvas causing runtime errors
+    const canvas = sigCanvas.current.getCanvas();
+    const signatureData = canvas.toDataURL("image/png");
 
     onSignatureCapture({
       signatureData,
