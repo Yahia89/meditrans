@@ -952,14 +952,16 @@ export function PatientsPage({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2 text-sm text-slate-600">
                         <Phone
                           size={14}
                           weight="duotone"
-                          className="text-slate-400"
+                          className="text-slate-400 flex-shrink-0"
                         />
-                        {patient.phone || "—"}
+                        <span className="whitespace-nowrap">
+                          {patient.phone || "—"}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">

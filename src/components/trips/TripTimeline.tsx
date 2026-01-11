@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { Trip, TripStatus } from "./types";
-import { MapPin, Clock, User, Car } from "lucide-react";
+import { MapPin, Clock, User, Car, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface TripTimelineProps {
   trips: Trip[];
@@ -9,6 +10,7 @@ interface TripTimelineProps {
   selectedDate?: Date;
   viewMode?: "day" | "week";
   compact?: boolean;
+  onQuickAdd?: (patientId: string, patientName: string, date: Date) => void;
 }
 
 // Status colors matching the system
@@ -364,6 +366,7 @@ export function TripTimelineVertical({
   trips,
   onTripClick,
   selectedDate = new Date(),
+  onQuickAdd,
 }: TripTimelineProps) {
   // Filter trips for selected date
   const filteredTrips = useMemo(() => {
@@ -569,6 +572,32 @@ export function TripTimelineVertical({
                   </div>
                 );
               })}
+
+              {/* Quick Add Leg Button */}
+              {onQuickAdd && (
+                <div className="relative pl-10 pt-2">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const date = new Date(patientTrips[0].pickup_time);
+                      onQuickAdd(
+                        patientId,
+                        patient?.full_name || "Patient",
+                        date
+                      );
+                    }}
+                    variant="ghost"
+                    className="w-full h-auto min-h-[44px] py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 group"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center group-hover:border-blue-400 group-hover:text-blue-400 transition-colors flex-shrink-0">
+                      <Plus className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                      Add Leg
+                    </span>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ))}

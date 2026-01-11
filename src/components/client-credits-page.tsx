@@ -743,10 +743,10 @@ export function ClientCreditsPage() {
 
                       {/* Status */}
                       <td className="py-4 px-4">
-                        <div className="flex flex-col items-center gap-1.5">
+                        <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
                           <span
                             className={cn(
-                              "px-2 py-0.5 rounded-full text-xs font-semibold border",
+                              "px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border whitespace-nowrap",
                               getBalanceColor(data)
                             )}
                           >
@@ -755,7 +755,7 @@ export function ClientCreditsPage() {
                               : data.creditInfo.label.toUpperCase()}
                           </span>
                           {/* Progress bar */}
-                          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="w-12 sm:w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div
                               className={cn(
                                 "h-full transition-all rounded-full",

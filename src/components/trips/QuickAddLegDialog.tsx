@@ -18,6 +18,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Plus, MapPin, Clock, Clipboard, Car } from "lucide-react";
 import { TimePicker, TRIP_TYPES, canDriverServePatient } from "./trip-utils";
 import type { Trip } from "./types";
+import { useLoadScript } from "@react-google-maps/api";
+import { AddressAutocomplete } from "./AddressAutocomplete";
+
+// Libraries must be defined outside component to avoid re-loading
+const GOOGLE_MAPS_LIBRARIES: (
+  | "places"
+  | "geometry"
+  | "drawing"
+  | "visualization"
+)[] = ["places"];
 
 interface QuickAddLegDialogProps {
   open: boolean;
@@ -41,6 +51,12 @@ export function QuickAddLegDialog({
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load Google Maps Script
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
 
   // Form State
   const [pickupLocation, setPickupLocation] = useState("");
@@ -252,24 +268,54 @@ export function QuickAddLegDialog({
                       <MapPin className="w-4 h-4 text-red-500" />
                       Pickup Location
                     </Label>
-                    <Input
-                      placeholder="Start address"
-                      value={pickupLocation}
-                      onChange={(e) => setPickupLocation(e.target.value)}
-                      className="rounded-xl border-slate-200 h-11"
-                    />
+                    {isLoaded ? (
+                      <AddressAutocomplete
+                        isLoaded={isLoaded}
+                        placeholder="Enter pickup address"
+                        value={pickupLocation}
+                        onChange={(value) => setPickupLocation(value)}
+                        onAddressSelect={(place) => {
+                          const address =
+                            place.formatted_address || place.name || "";
+                          setPickupLocation(address);
+                        }}
+                        className="w-full rounded-xl border-slate-200 h-11 px-3 text-sm focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    ) : (
+                      <Input
+                        placeholder="Enter pickup address"
+                        value={pickupLocation}
+                        onChange={(e) => setPickupLocation(e.target.value)}
+                        className="rounded-xl border-slate-200 h-11"
+                      />
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-emerald-500" />
                       Dropoff Location
                     </Label>
-                    <Input
-                      placeholder="Destination address"
-                      value={dropoffLocation}
-                      onChange={(e) => setDropoffLocation(e.target.value)}
-                      className="rounded-xl border-slate-200 h-11"
-                    />
+                    {isLoaded ? (
+                      <AddressAutocomplete
+                        isLoaded={isLoaded}
+                        placeholder="Enter destination address"
+                        value={dropoffLocation}
+                        onChange={(value) => setDropoffLocation(value)}
+                        onAddressSelect={(place) => {
+                          const address =
+                            place.formatted_address || place.name || "";
+                          setDropoffLocation(address);
+                        }}
+                        className="w-full rounded-xl border-slate-200 h-11 px-3 text-sm focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    ) : (
+                      <Input
+                        placeholder="Enter destination address"
+                        value={dropoffLocation}
+                        onChange={(e) => setDropoffLocation(e.target.value)}
+                        className="rounded-xl border-slate-200 h-11"
+                      />
+                    )}
                   </div>
                 </div>
 

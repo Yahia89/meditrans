@@ -535,6 +535,9 @@ export function TripsScheduler({
             trips={filteredTrips}
             onTripClick={onTripClick}
             selectedDate={selectedDate}
+            onQuickAdd={(patientId, patientName, date) =>
+              setQuickAddData({ patientId, patientName, date })
+            }
           />
         ) : viewMode === "timeline" ? (
           <TripTimeline
@@ -736,12 +739,12 @@ function TripCardsView({
                     );
                   }}
                   variant="ghost"
-                  className="w-full h-11 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 group"
+                  className="w-full h-auto min-h-[44px] py-2.5 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 group"
                 >
-                  <div className="w-7 h-7 rounded-full bg-white border-2 border-slate-100 flex items-center justify-center group-hover:border-blue-400 group-hover:text-blue-400 transition-colors">
-                    <Plus className="w-3.5 h-3.5" />
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white border-2 border-slate-100 flex items-center justify-center group-hover:border-blue-400 group-hover:text-blue-400 transition-colors flex-shrink-0">
+                    <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-wider">
+                  <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                     Add Leg
                   </span>
                 </Button>
