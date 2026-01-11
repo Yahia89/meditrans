@@ -46,6 +46,12 @@ const statusConfig: Record<
     text: "text-blue-800",
     dot: "bg-blue-600 animate-pulse",
   },
+  en_route: {
+    bg: "bg-purple-50",
+    border: "border-purple-200",
+    text: "text-purple-700",
+    dot: "bg-purple-500",
+  },
   completed: {
     bg: "bg-emerald-50",
     border: "border-emerald-200",
