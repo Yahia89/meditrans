@@ -21,6 +21,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     // Storage key for the session
     storageKey: "future-transport-auth",
+    // Official v2.90.0+ fix for Web Locks deadlock in Safari/Production
+    // @ts-expect-error - lockAcquisitionTimeout is available in v2.90.0+ runtime but types lag
+    lockAcquisitionTimeout: 3000,
   },
 });
 

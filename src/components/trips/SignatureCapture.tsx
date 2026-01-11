@@ -228,12 +228,11 @@ export function SignatureCaptureDialog({
                     ref={sigCanvas}
                     penColor="#1e293b"
                     canvasProps={{
-                      width: 420,
-                      height: 160,
-                      className: "signature-canvas w-full",
+                      className: "signature-canvas w-full h-40",
                       style: {
                         touchAction: "none",
                         cursor: "crosshair",
+                        display: "block",
                       },
                     }}
                     onEnd={handleEnd}
@@ -247,12 +246,12 @@ export function SignatureCaptureDialog({
               </div>
 
               {/* Actions */}
-              <DialogFooter className="flex-col sm:flex-row gap-3">
+              <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-2">
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={() => setShowDeclineForm(true)}
-                  className="text-slate-500 hover:text-slate-700 h-11"
+                  className="text-slate-500 hover:text-slate-700 h-11 w-full sm:w-auto"
                 >
                   <XCircle weight="duotone" className="w-4 h-4 mr-2" />
                   Unable to Sign
@@ -261,7 +260,7 @@ export function SignatureCaptureDialog({
                   onClick={handleSubmit}
                   disabled={!hasDrawn || !signerName.trim() || isLoading}
                   className={cn(
-                    "flex-1 h-12 rounded-xl font-bold transition-all duration-300",
+                    "h-12 rounded-xl font-bold transition-all duration-300 w-full sm:flex-1",
                     hasDrawn && signerName.trim()
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50"
                       : "bg-slate-200 text-slate-400"
@@ -287,21 +286,21 @@ export function SignatureCaptureDialog({
                 />
               </div>
 
-              <DialogFooter className="flex-col sm:flex-row gap-3">
+              <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-2">
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={() => setShowDeclineForm(false)}
-                  className="text-slate-500 h-11"
+                  className="text-slate-500 h-11 w-full sm:w-auto"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleDecline}
                   disabled={!declineReason.trim() || isLoading}
-                  className="flex-1 h-12 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white"
+                  className="h-12 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white w-full sm:flex-1"
                 >
-                  {isLoading ? "Saving..." : "Complete Trip Without Signature"}
+                  {isLoading ? "Saving..." : "Complete Without Signature"}
                 </Button>
               </DialogFooter>
             </>

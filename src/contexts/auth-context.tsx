@@ -72,7 +72,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isFetchingData.current = true;
 
     try {
-      // 1. Get base profile & driver profile in parallel
       const [profileRes, driverRes, membershipRes] = await Promise.all([
         supabase
           .from("user_profiles")
@@ -120,73 +119,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
+  // Effect 1: Handle Initial Session and Auth State Listener
+  // Using the native v2.90+ getSession (safe now due to lockAcquisitionTimeout)
   useEffect(() => {
     let mounted = true;
 
-    // Safety fallback: If getSession() deadlocks due to Web Locks API in Safari/Production
-    const getSessionWithTimeout = async () => {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Session Timeout")), 2500)
-      );
-
-      try {
-        const {
-          data: { session },
-        } = await (Promise.race([
-          supabase.auth.getSession(),
-          timeoutPromise,
-        ]) as Promise<{ data: { session: Session | null } }>);
-
-        return session;
-      } catch (err) {
-        console.warn(
-          "Supabase Web Lock detected or Timeout. Falling back to local storage."
-        );
-        // Find the Supabase key in localStorage (usually starts with sb-...)
-        const storageKey = Object.keys(localStorage).find(
-          (key) => key.startsWith("sb-") && key.endsWith("-auth-token")
-        );
-        if (storageKey) {
-          const raw = localStorage.getItem(storageKey);
-          if (raw) {
-            try {
-              return JSON.parse(raw) as Session;
-            } catch {
-              return null;
-            }
-          }
-        }
-        return null;
-      }
-    };
-
-    const initializeAuth = async () => {
-      const currentSession = await getSessionWithTimeout();
-
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (!session) setLoading(false);
+    });
 
-      if (currentSession) {
-        setSession(currentSession);
-        setUser(currentSession.user);
-        await fetchUserData(currentSession.user.id);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
+    // Synchronous listener - no await inside to avoid holding locks
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!mounted) return;
-
       setSession(newSession);
       setUser(newSession?.user ?? null);
-
-      if (newSession?.user) {
-        await fetchUserData(newSession.user.id);
-      } else {
+      if (!newSession) {
         setProfile(null);
         setMemberships([]);
         setLoading(false);
@@ -197,7 +149,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchUserData]);
+  }, []);
+
+  // Effect 2: Reactively fetch profile data when user changes
+  // This separates data fetching from the auth listener to avoid holding locks
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserData(user.id);
+    }
+  }, [user?.id, fetchUserData]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -261,3 +221,5 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export type { UserProfile, OrganizationMembership };
