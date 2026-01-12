@@ -11,6 +11,7 @@ import {
   MapTrifold,
   Coins,
   Clock,
+  FileText,
 } from "@phosphor-icons/react";
 
 import { NavUser } from "@/components/nav-user";
@@ -90,6 +91,11 @@ export function AppSidebar({
   // Add Client Credits to owners and admins only
   if (isOwner || isAdmin) {
     navItems.push({
+      title: "Medicaid Billing",
+      url: "medicaid-billing" as Page,
+      icon: FileText,
+    });
+    navItems.push({
       title: "Client Credits",
       url: "client-credits" as Page,
       icon: Coins,
@@ -136,7 +142,9 @@ export function AppSidebar({
               (item.url === "drivers" && currentPage === "driver-details") ||
               (item.url === "trips" && currentPage === "trip-details") ||
               (item.url === "client-credits" &&
-                currentPage === "client-credits");
+                currentPage === "client-credits") ||
+              (item.url === "medicaid-billing" &&
+                currentPage === "medicaid-billing");
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton

@@ -70,6 +70,7 @@ const patientSchema = z.object({
   // Billing
   monthly_credit: z.string().optional(), // MONTHLY CREDIT
   credit_used_for: z.string().optional(),
+  medicaid_id: z.string().optional(), // MEDICAID ID for 837P billing
   // Transportation
   vehicle_type_need: z.string().optional(), // VEHICLE NEED
   notes: z.string().optional(), // NOTES
@@ -806,6 +807,20 @@ export function PatientForm({
                     className="h-9"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  Medicaid ID
+                  <span className="text-xs text-slate-400 ml-2 font-normal">
+                    (Required for Medicaid billing)
+                  </span>
+                </label>
+                <Input
+                  {...register("medicaid_id")}
+                  placeholder="e.g., MN123456789"
+                  className="h-9"
+                />
               </div>
 
               <div className="space-y-1.5">

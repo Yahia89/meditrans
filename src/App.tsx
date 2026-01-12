@@ -44,8 +44,9 @@ export const pages = [
   "accept-invite",
   "trips",
   "trip-details",
-  "driver-history",
   "client-credits",
+  "driver-history",
+  "medicaid-billing",
 ] as const;
 
 export type Page = (typeof pages)[number];
@@ -60,6 +61,7 @@ import { ClientCreditsPage } from "./components/client-credits-page";
 import { DriverHistoryPage } from "./components/driver-history-page";
 import { ErrorBoundary } from "./components/error-boundary";
 
+import { MedicaidBillingPage } from "./components/MedicaidBillingPage";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
 
 function AppContent() {
@@ -110,7 +112,6 @@ function AppContent() {
         "founder",
         "client-credits",
       ],
-      employee: ["founder", "client-credits", "billing"],
       admin: ["founder"],
       owner: ["founder"],
     };
@@ -379,6 +380,12 @@ function AppContent() {
         return (
           <DashboardPage title="Driving History">
             <DriverHistoryPage driverId={currentDriverId || ""} />
+          </DashboardPage>
+        );
+      case "medicaid-billing":
+        return (
+          <DashboardPage title="Medicaid Electronic Billing">
+            <MedicaidBillingPage />
           </DashboardPage>
         );
       default:
