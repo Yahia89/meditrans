@@ -51,15 +51,46 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onPointerDownOutside,
+  onInteractOutside,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
+  // Handler to prevent dialog closing when clicking on Google Places autocomplete
+  const handlePointerDownOutside = (event: Event) => {
+    const target = event.target as HTMLElement;
+    // Check if click is on Google Places autocomplete dropdown
+    if (
+      target?.closest(".pac-container") ||
+      target?.classList?.contains("pac-item")
+    ) {
+      event.preventDefault();
+      return;
+    }
+    onPointerDownOutside?.(event as any);
+  };
+
+  const handleInteractOutside = (event: Event) => {
+    const target = event.target as HTMLElement;
+    // Check if interaction is with Google Places autocomplete dropdown
+    if (
+      target?.closest(".pac-container") ||
+      target?.classList?.contains("pac-item")
+    ) {
+      event.preventDefault();
+      return;
+    }
+    onInteractOutside?.(event as any);
+  };
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        onPointerDownOutside={handlePointerDownOutside}
+        onInteractOutside={handleInteractOutside}
         className={cn(
           "bg-background fixed z-50 grid gap-4 rounded-lg border shadow-lg",
           // Simplified animations - no zoom, just fade
