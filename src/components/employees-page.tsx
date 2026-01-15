@@ -15,6 +15,7 @@ import {
   List,
   CaretLeft,
   CaretRight,
+  Circle,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -26,6 +27,11 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { EmployeesEmptyState } from "@/components/ui/empty-state";
+import {
+  useOrganizationMembers,
+  type OrganizationMember,
+} from "@/hooks/useOrganizationMembers";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 
 import { exportToExcel } from "@/lib/export";
 import {
@@ -184,6 +190,23 @@ export function EmployeesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
+
+  // Fetch organization members with real-time presence status
+  const {
+    members: orgMembers,
+    onlineCount,
+    awayCount,
+    offlineCount,
+  } = useOrganizationMembers();
+
+  // Create a map for quick lookup of member presence by email
+  const memberPresenceMap = useMemo(() => {
+    const map = new Map<string, OrganizationMember>();
+    orgMembers.forEach((m) => {
+      if (m.email) map.set(m.email.toLowerCase(), m);
+    });
+    return map;
+  }, [orgMembers]);
 
   // View and pagination state
   const [viewMode, setViewMode] = useState<"bento" | "list">("bento");
@@ -352,8 +375,6 @@ export function EmployeesPage() {
     paginatedEmployees.length > 0 &&
     paginatedEmployees.every((e) => selectedIds.has(e.id));
 
-  const activeCount = employees.filter((e) => e.status === "active").length;
-  const onLeaveCount = employees.filter((e) => e.status === "on-leave").length;
   const departments = [...new Set(employees.map((e) => e.department))].length;
 
   const formatDate = (dateString: string) => {
@@ -533,31 +554,50 @@ export function EmployeesPage() {
         </div>
       )}
 
-      {/* Stats Row - Inline like reference */}
+      {/* Stats Row - With Real-time Presence */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-5 divide-x divide-slate-100">
           <div className="pl-0">
             <InlineStat label="Total Employees" value={employees.length} />
           </div>
           <div className="pl-8">
-            <InlineStat
-              label="Active"
-              value={activeCount}
-              valueColor="text-[#2E7D32]"
-            />
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-slate-500 flex items-center gap-1.5">
+                <Circle size={8} weight="fill" className="text-emerald-500" />
+                Online Now
+              </span>
+              <span className="text-2xl font-semibold tracking-tight text-emerald-600">
+                {onlineCount}
+              </span>
+            </div>
           </div>
           <div className="pl-8">
-            <InlineStat
-              label="On Leave"
-              value={onLeaveCount}
-              valueColor="text-[#E65100]"
-            />
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-slate-500 flex items-center gap-1.5">
+                <Circle size={8} weight="fill" className="text-amber-500" />
+                Away
+              </span>
+              <span className="text-2xl font-semibold tracking-tight text-amber-600">
+                {awayCount}
+              </span>
+            </div>
+          </div>
+          <div className="pl-8">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-slate-500 flex items-center gap-1.5">
+                <Circle size={8} weight="fill" className="text-slate-400" />
+                Offline
+              </span>
+              <span className="text-2xl font-semibold tracking-tight text-slate-500">
+                {offlineCount}
+              </span>
+            </div>
           </div>
           <div className="pl-8">
             <InlineStat
               label="Departments"
               value={departments}
-              valueColor="text-[#1976D2]"
+              valueColor="text-indigo-600"
             />
           </div>
         </div>
@@ -732,21 +772,20 @@ export function EmployeesPage() {
                     </div>
                   </div>
                 </div>
-                <span
-                  className={cn(
-                    "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                    employee.status === "active"
-                      ? "bg-[#E8F5E9] text-[#2E7D32]"
-                      : employee.status === "on-leave"
-                      ? "bg-[#FFF3E0] text-[#E65100]"
-                      : "bg-slate-100 text-slate-600"
-                  )}
-                >
-                  {employee.status === "on-leave"
-                    ? "On Leave"
-                    : employee.status.charAt(0).toUpperCase() +
-                      employee.status.slice(1)}
-                </span>
+                {/* Real-time presence indicator */}
+                {(() => {
+                  const member = memberPresenceMap.get(
+                    employee.email?.toLowerCase() || ""
+                  );
+                  const presenceStatus = member?.presence_status || "offline";
+                  return (
+                    <PresenceIndicator
+                      status={presenceStatus}
+                      size="md"
+                      showLabel
+                    />
+                  );
+                })()}
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -951,21 +990,20 @@ export function EmployeesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={cn(
-                            "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                            employee.status === "active"
-                              ? "bg-[#E8F5E9] text-[#2E7D32]"
-                              : employee.status === "on-leave"
-                              ? "bg-[#FFF3E0] text-[#E65100]"
-                              : "bg-slate-100 text-slate-600"
-                          )}
-                        >
-                          {employee.status === "on-leave"
-                            ? "On Leave"
-                            : employee.status.charAt(0).toUpperCase() +
-                              employee.status.slice(1)}
-                        </span>
+                        {(() => {
+                          const member = memberPresenceMap.get(
+                            employee.email?.toLowerCase() || ""
+                          );
+                          const presenceStatus =
+                            member?.presence_status || "offline";
+                          return (
+                            <PresenceIndicator
+                              status={presenceStatus}
+                              size="md"
+                              showLabel
+                            />
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div

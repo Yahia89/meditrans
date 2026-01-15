@@ -25,6 +25,7 @@ import { OnboardingProvider } from "@/contexts/OnboardingContext";
 import loginbgimg from "./assets/loginbgimg.png";
 import logo from "./assets/logo.png";
 import { usePermissions } from "@/hooks/usePermissions";
+import { usePresence } from "@/hooks/usePresence";
 import { Loader2 } from "lucide-react";
 
 // Define valid page values for type safety
@@ -68,7 +69,10 @@ function AppContent() {
   const { user, loading: authLoading } = useAuth();
   const { driverId: currentDriverId } = useDriverLocation(); // Enables driver tracking and SMS trigger
   const { loading: orgLoading, userRole } = useOrganization();
-  const { isDriver } = usePermissions();
+  const { isDriver, isSuperAdmin } = usePermissions();
+
+  // Initialize presence tracking for logged-in users
+  usePresence();
 
   const loading = authLoading || (user && orgLoading);
 
@@ -97,6 +101,7 @@ function AppContent() {
     if (loading || !user) return;
 
     // Define restricted pages for each role
+    // Hierarchy: owner > admin > dispatch > employee > driver
     const restrictions: Record<string, Page[]> = {
       driver: [
         "dashboard",
@@ -111,7 +116,10 @@ function AppContent() {
         "notifications",
         "founder",
         "client-credits",
+        "medicaid-billing",
       ],
+      employee: ["founder", "billing", "medicaid-billing"],
+      dispatch: ["founder", "employees", "billing", "medicaid-billing"],
       admin: ["founder"],
       owner: ["founder"],
     };
@@ -314,6 +322,19 @@ function AppContent() {
             <NotificationsPage />
           </DashboardPage>
         );
+      case "founder":
+        // Only accessible by super admins (founder email)
+        if (!isSuperAdmin) {
+          return (
+            <DashboardPage title="Access Denied">
+              <div className="flex flex-col items-center justify-center h-64 text-center">
+                <p className="text-slate-500">
+                  You don't have permission to access this page.
+                </p>
+              </div>
+            </DashboardPage>
+          );
+        }
         return (
           <DashboardPage title="Founder Admin">
             <FounderInviteForm />

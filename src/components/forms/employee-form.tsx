@@ -567,6 +567,7 @@ export function EmployeeForm({
                           Owner {hasOwner ? "(Already Assigned)" : ""}
                         </option>
                         <option value="admin">Administrator</option>
+                        <option value="dispatch">Dispatcher</option>
                         <option value="employee">Staff / Employee</option>
                         <option value="driver">Driver</option>
                       </select>

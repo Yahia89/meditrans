@@ -36,7 +36,12 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type MembershipRole = "owner" | "admin" | "employee" | "driver";
+export type MembershipRole =
+  | "owner"
+  | "admin"
+  | "dispatch"
+  | "employee"
+  | "driver";
 
 export interface Database {
   public: {
@@ -421,6 +426,8 @@ export interface Database {
           user_id: string;
           role: MembershipRole;
           is_primary: boolean;
+          presence_status: "online" | "away" | "offline";
+          last_active_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -429,6 +436,8 @@ export interface Database {
           user_id: string;
           role: MembershipRole;
           is_primary?: boolean;
+          presence_status?: "online" | "away" | "offline";
+          last_active_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -437,6 +446,8 @@ export interface Database {
           user_id?: string;
           role?: MembershipRole;
           is_primary?: boolean;
+          presence_status?: "online" | "away" | "offline";
+          last_active_at?: string | null;
           created_at?: string;
         };
       };

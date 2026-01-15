@@ -15,17 +15,28 @@ export function usePermissions() {
     // Owners can do everything
     if (userRole === "owner") return true;
 
-    // Admins can do almost everything
+    // Admins can do almost everything except delete owner and change org name
     if (userRole === "admin") {
       const restrictedActions = ["delete_owner", "change_organization_name"];
       return !restrictedActions.includes(action);
     }
 
-    if (userRole === "driver") {
-      const allowedActions = ["view_assigned_trips"];
+    // Dispatch: can view drivers, patients, create/manage trips, but not manage employees or billing
+    if (userRole === "dispatch") {
+      const allowedActions = [
+        "view_dashboard",
+        "view_patients",
+        "view_drivers",
+        "view_trips",
+        "create_trips",
+        "assign_trips",
+        "edit_trips",
+        "upload_files",
+      ];
       return allowedActions.includes(action);
     }
 
+    // Employees: limited view access
     if (userRole === "employee") {
       const allowedActions = [
         "view_dashboard",
@@ -34,6 +45,12 @@ export function usePermissions() {
         "view_employees",
         "upload_files",
       ];
+      return allowedActions.includes(action);
+    }
+
+    // Drivers: most limited access
+    if (userRole === "driver") {
+      const allowedActions = ["view_assigned_trips", "update_trip_status"];
       return allowedActions.includes(action);
     }
 
@@ -46,8 +63,16 @@ export function usePermissions() {
   );
   const isOwner = userRole === "owner" || isSuperAdmin;
   const isAdmin = userRole === "admin" || isOwner;
-  const isEmployee = userRole === "employee" || isAdmin;
+  const isDispatch = userRole === "dispatch" || isAdmin;
+  const isEmployee = userRole === "employee" || isDispatch;
   const isDriver = userRole === "driver";
+
+  // Can manage users (invite, edit roles, etc.)
+  const canManageUsers = isAdmin;
+  // Can manage trips (create, assign, edit)
+  const canManageTrips = isDispatch;
+  // Can view employees list
+  const canViewEmployees = isAdmin;
 
   return {
     can,
@@ -55,7 +80,11 @@ export function usePermissions() {
     isSuperAdmin,
     isOwner,
     isAdmin,
+    isDispatch,
     isEmployee,
     isDriver,
+    canManageUsers,
+    canManageTrips,
+    canViewEmployees,
   };
 }
