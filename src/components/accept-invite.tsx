@@ -224,29 +224,6 @@ export function AcceptInvitePage() {
 
       {!user ? (
         <div className="space-y-6">
-          <div className="flex p-1 bg-slate-100 rounded-lg">
-            <button
-              onClick={() => setAuthMode("register")}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                authMode === "register"
-                  ? "bg-white shadow text-slate-900"
-                  : "text-slate-500"
-              }`}
-            >
-              Sign Up
-            </button>
-            <button
-              onClick={() => setAuthMode("login")}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                authMode === "login"
-                  ? "bg-white shadow text-slate-900"
-                  : "text-slate-500"
-              }`}
-            >
-              Login
-            </button>
-          </div>
-
           <div className="space-y-4">
             {authError && (
               <div className="p-3 rounded-lg bg-red-50 text-xs text-red-600 border border-red-100">
@@ -254,75 +231,141 @@ export function AcceptInvitePage() {
               </div>
             )}
 
-            {authMode === "register" && (
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter your name"
-                  className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:ring-2 focus:ring-[#3D5A3D]/20 outline-none"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
+            {authMode === "register" ? (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter your name"
+                    className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:ring-2 focus:ring-[#3D5A3D]/20 outline-none"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="name@company.com"
+                    className="w-full h-11 px-4 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
+                    value={email}
+                    disabled
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Min. 6 characters"
+                    className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:ring-2 focus:ring-[#3D5A3D]/20 outline-none"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                <Button
+                  onClick={async () => {
+                    setIsAuthing(true);
+                    setAuthError(null);
+                    try {
+                      const { error } = await signUp(email, password, fullName);
+                      if (error) setAuthError(error.message);
+                    } catch (err: any) {
+                      setAuthError(err.message);
+                    } finally {
+                      setIsAuthing(false);
+                    }
+                  }}
+                  disabled={isAuthing || authLoading}
+                  className="w-full h-11 bg-[#3D5A3D] hover:bg-[#2E4A2E]"
+                >
+                  {isAuthing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Register & Accept"
+                  )}
+                </Button>
+
+                <p className="text-center text-sm text-slate-500">
+                  Already have an account?{" "}
+                  <button
+                    onClick={() => setAuthMode("login")}
+                    className="text-[#3D5A3D] font-semibold hover:underline"
+                  >
+                    Sign in here
+                  </button>
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full h-11 px-4 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
+                    value={email}
+                    disabled
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Enter your password"
+                    className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:ring-2 focus:ring-[#3D5A3D]/20 outline-none"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                <Button
+                  onClick={async () => {
+                    setIsAuthing(true);
+                    setAuthError(null);
+                    try {
+                      const { error } = await signIn(email, password);
+                      if (error) setAuthError(error.message);
+                    } catch (err: any) {
+                      setAuthError(err.message);
+                    } finally {
+                      setIsAuthing(false);
+                    }
+                  }}
+                  disabled={isAuthing || authLoading}
+                  className="w-full h-11 bg-[#3D5A3D] hover:bg-[#2E4A2E]"
+                >
+                  {isAuthing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Login & Accept"
+                  )}
+                </Button>
+
+                <p className="text-center text-sm text-slate-500">
+                  Need to create an account?{" "}
+                  <button
+                    onClick={() => setAuthMode("register")}
+                    className="text-[#3D5A3D] font-semibold hover:underline"
+                  >
+                    Register here
+                  </button>
+                </p>
+              </>
             )}
-
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="name@company.com"
-                className="w-full h-11 px-4 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
-                value={email}
-                disabled
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Password
-              </label>
-              <input
-                type="password"
-                placeholder="Min. 6 characters"
-                className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:ring-2 focus:ring-[#3D5A3D]/20 outline-none"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <Button
-              onClick={async () => {
-                setIsAuthing(true);
-                setAuthError(null);
-                try {
-                  const { error } =
-                    authMode === "login"
-                      ? await signIn(email, password)
-                      : await signUp(email, password, fullName);
-
-                  if (error) setAuthError(error.message);
-                } catch (err: any) {
-                  setAuthError(err.message);
-                } finally {
-                  setIsAuthing(false);
-                }
-              }}
-              disabled={isAuthing || authLoading}
-              className="w-full h-11 bg-[#3D5A3D] hover:bg-[#2E4A2E]"
-            >
-              {isAuthing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : authMode === "login" ? (
-                "Login & Accept"
-              ) : (
-                "Register & Accept"
-              )}
-            </Button>
           </div>
         </div>
       ) : (

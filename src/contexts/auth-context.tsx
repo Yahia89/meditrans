@@ -168,18 +168,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName } },
     });
 
-    if (data.user && !error) {
-      await supabase.from("user_profiles").insert({
-        user_id: data.user.id,
-        full_name: fullName || null,
-      });
-    }
     return { error };
   };
 
