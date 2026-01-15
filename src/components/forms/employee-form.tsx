@@ -515,16 +515,6 @@ export function EmployeeForm({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-slate-700">
-                        Role / Position
-                      </label>
-                      <Input
-                        {...register("role")}
-                        placeholder="Operations Manager"
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-slate-700">
                         Department
                       </label>
                       <Input
@@ -533,16 +523,16 @@ export function EmployeeForm({
                         className="h-9"
                       />
                     </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">
-                      Hire Date
-                    </label>
-                    <Input
-                      {...register("hire_date")}
-                      type="date"
-                      className="h-9 w-full"
-                    />
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700">
+                        Hire Date
+                      </label>
+                      <Input
+                        {...register("hire_date")}
+                        type="date"
+                        className="h-9 w-full"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -569,7 +559,6 @@ export function EmployeeForm({
                         <option value="admin">Administrator</option>
                         <option value="dispatch">Dispatcher</option>
                         <option value="employee">Staff / Employee</option>
-                        <option value="driver">Driver</option>
                       </select>
                       <p className="text-[11px] text-slate-500 leading-relaxed italic mt-2">
                         Choosing a role will trigger a system invitation to the

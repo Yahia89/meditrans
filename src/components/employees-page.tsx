@@ -177,6 +177,64 @@ function DemoIndicator() {
   );
 }
 
+// Helper to format role names
+function formatRoleName(role: string | null): string {
+  if (!role) return "No Access";
+  // Map RBAC roles to display names
+  const roleMap: Record<string, string> = {
+    owner: "Owner",
+    admin: "Admin",
+    dispatch: "Dispatch",
+    employee: "Employee",
+    driver: "Driver", // Just in case, but shouldn't appear in employees
+  };
+  return roleMap[role.toLowerCase()] || role;
+}
+
+// Role badge component - now uses RBAC role from organization_memberships
+function RoleBadge({
+  employee,
+  memberPresenceMap,
+}: {
+  employee: Employee;
+  memberPresenceMap: Map<string, OrganizationMember>;
+}) {
+  // Get RBAC role from organization_memberships (single source of truth)
+  const member = memberPresenceMap.get(employee.email?.toLowerCase() || "");
+  const rbacRole = member?.role || null;
+
+  if (!rbacRole) {
+    return (
+      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-600">
+        No Access
+      </span>
+    );
+  }
+
+  const roleColors = {
+    owner: "bg-purple-100 text-purple-700",
+    admin: "bg-blue-100 text-blue-700",
+    dispatch: "bg-indigo-100 text-indigo-700",
+    employee: "bg-emerald-100 text-emerald-700",
+    driver: "bg-amber-100 text-amber-700",
+  };
+
+  const colorClass =
+    roleColors[rbacRole.toLowerCase() as keyof typeof roleColors] ||
+    "bg-slate-100 text-slate-600";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center px-2 py-1 rounded-md text-xs font-medium",
+        colorClass
+      )}
+    >
+      {formatRoleName(rbacRole)}
+    </span>
+  );
+}
+
 export function EmployeesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -191,13 +249,13 @@ export function EmployeesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
 
+  // Presence status filter state
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "online" | "away" | "offline"
+  >("all");
+
   // Fetch organization members with real-time presence status
-  const {
-    members: orgMembers,
-    onlineCount,
-    awayCount,
-    offlineCount,
-  } = useOrganizationMembers();
+  const { members: orgMembers } = useOrganizationMembers();
 
   // Create a map for quick lookup of member presence by email
   const memberPresenceMap = useMemo(() => {
@@ -339,6 +397,7 @@ export function EmployeesPage() {
     : [];
 
   const filteredEmployees = employees.filter((employee) => {
+    // Search filter
     const nameMatch = (employee.name || "")
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
@@ -352,8 +411,38 @@ export function EmployeesPage() {
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     const phoneMatch = (employee.phone || "").includes(searchQuery);
-    return nameMatch || emailMatch || deptMatch || posMatch || phoneMatch;
+    const searchMatch =
+      nameMatch || emailMatch || deptMatch || posMatch || phoneMatch;
+
+    // Presence status filter
+    if (statusFilter !== "all") {
+      const member = memberPresenceMap.get(employee.email?.toLowerCase() || "");
+      const presenceStatus = member?.presence_status || "offline";
+      if (presenceStatus !== statusFilter) {
+        return false;
+      }
+    }
+
+    return searchMatch;
   });
+
+  // Calculate presence counts from filtered employees (not all org members)
+  const { onlineCount, awayCount, offlineCount } = useMemo(() => {
+    let online = 0;
+    let away = 0;
+    let offline = 0;
+
+    employees.forEach((employee) => {
+      const member = memberPresenceMap.get(employee.email?.toLowerCase() || "");
+      const status = member?.presence_status || "offline";
+
+      if (status === "online") online++;
+      else if (status === "away") away++;
+      else offline++;
+    });
+
+    return { onlineCount: online, awayCount: away, offlineCount: offline };
+  }, [employees, memberPresenceMap]);
 
   // Pagination
   const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
@@ -362,10 +451,10 @@ export function EmployeesPage() {
     return filteredEmployees.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredEmployees, currentPage]);
 
-  // Reset to page 1 when search changes
+  // Reset to page 1 when search or filter changes
   useMemo(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, statusFilter]);
 
   const selectAll = () => {
     setSelectedIds(new Set(paginatedEmployees.map((e) => e.id)));
@@ -618,17 +707,33 @@ export function EmployeesPage() {
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
           />
         </div>
-        <Button
-          variant="outline"
-          className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
-        >
-          <Funnel size={16} />
-          Filters
-        </Button>
+
+        {/* Status Filter */}
+        <div className="relative min-w-[160px]">
+          <select
+            value={statusFilter}
+            onChange={(e) =>
+              setStatusFilter(
+                e.target.value as "all" | "online" | "away" | "offline"
+              )
+            }
+            className="h-10 w-full appearance-none pl-4 pr-10 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D] cursor-pointer"
+          >
+            <option value="all">All Status</option>
+            <option value="online">Online Only</option>
+            <option value="away">Away Only</option>
+            <option value="offline">Offline Only</option>
+          </select>
+          <Funnel
+            size={16}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          />
+        </div>
+
         <Button
           variant="outline"
           onClick={handleExport}
-          className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
+          className="h-10 inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
         >
           <DownloadSimple size={16} />
           Export
@@ -664,7 +769,7 @@ export function EmployeesPage() {
         </div>
       </div>
 
-      {/* Multi-select actions - Persistent to prevent layout shift */}
+      {/* Multi-select actions & Filter Results */}
       <div
         className={cn(
           "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200",
@@ -687,8 +792,22 @@ export function EmployeesPage() {
               selectedIds.size > 0 ? "text-indigo-900" : "text-slate-500"
             )}
           >
-            {selectedIds.size} employee{selectedIds.size !== 1 ? "s" : ""}{" "}
-            selected
+            {selectedIds.size > 0 ? (
+              <>
+                {selectedIds.size} employee{selectedIds.size !== 1 ? "s" : ""}{" "}
+                selected
+              </>
+            ) : (
+              <>
+                Showing {filteredEmployees.length} of {employees.length}{" "}
+                employees
+                {statusFilter !== "all" && (
+                  <span className="ml-1 text-xs text-slate-400">
+                    (filtered by status)
+                  </span>
+                )}
+              </>
+            )}
           </span>
         </div>
 
@@ -760,15 +879,11 @@ export function EmployeesPage() {
                     <h3 className="text-base font-semibold text-slate-900">
                       {employee.name}
                     </h3>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Briefcase
-                        size={14}
-                        weight="duotone"
-                        className="text-slate-400"
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <RoleBadge
+                        employee={employee}
+                        memberPresenceMap={memberPresenceMap}
                       />
-                      <span className="text-sm text-slate-600">
-                        {employee.position}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -985,9 +1100,10 @@ export function EmployeesPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-slate-600">
-                          {employee.position}
-                        </span>
+                        <RoleBadge
+                          employee={employee}
+                          memberPresenceMap={memberPresenceMap}
+                        />
                       </td>
                       <td className="px-6 py-4">
                         {(() => {

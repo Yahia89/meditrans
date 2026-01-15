@@ -229,6 +229,7 @@ export interface Database {
           status: string;
           notes: string | null;
           custom_fields: Json;
+          user_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -244,6 +245,7 @@ export interface Database {
           status?: string;
           notes?: string | null;
           custom_fields?: Json;
+          user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -259,6 +261,7 @@ export interface Database {
           status?: string;
           notes?: string | null;
           custom_fields?: Json;
+          user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };

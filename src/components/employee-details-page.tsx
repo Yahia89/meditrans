@@ -53,6 +53,54 @@ function formatDate(dateStr: string | null) {
   });
 }
 
+// Helper to format role names
+function formatRoleName(role: string | null): string {
+  if (!role) return "No Access";
+  // Map RBAC roles to display names
+  const roleMap: Record<string, string> = {
+    owner: "Owner",
+    admin: "Admin",
+    dispatch: "Dispatch",
+    employee: "Employee",
+    driver: "Driver",
+  };
+  return roleMap[role.toLowerCase()] || role;
+}
+
+// Role badge component
+function RoleBadge({ rbacRole }: { rbacRole: string | null }) {
+  if (!rbacRole) {
+    return (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-slate-100 text-slate-600">
+        No Access
+      </span>
+    );
+  }
+
+  const roleColors = {
+    owner: "bg-purple-100 text-purple-700",
+    admin: "bg-blue-100 text-blue-700",
+    dispatch: "bg-indigo-100 text-indigo-700",
+    employee: "bg-emerald-100 text-emerald-700",
+    driver: "bg-amber-100 text-amber-700",
+  };
+
+  const colorClass =
+    roleColors[rbacRole.toLowerCase() as keyof typeof roleColors] ||
+    "bg-slate-100 text-slate-600";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium",
+        colorClass
+      )}
+    >
+      {formatRoleName(rbacRole)}
+    </span>
+  );
+}
+
 export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
   const [activeTab, setActiveTab] = useState<
     "overview" | "documents" | "trips"
@@ -81,6 +129,25 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
     },
     enabled: !!id,
   });
+
+  // Fetch organization membership to get RBAC role (single source of truth)
+  const { data: memberRole } = useQuery({
+    queryKey: ["employee-member-role", employee?.email],
+    queryFn: async () => {
+      if (!employee?.email) return null;
+
+      const { data, error } = await supabase
+        .from("organization_memberships")
+        .select("role")
+        .eq("email", employee.email)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data?.role || null;
+    },
+    enabled: !!employee?.email,
+  });
+
   // Fetch document count
   const { data: docCount = 0 } = useQuery({
     queryKey: ["employee-docs-count", id],
@@ -279,11 +346,11 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
-                          Role / Position
+                          System Role
                         </p>
-                        <p className="text-slate-900 mt-0.5">
-                          {employee.role || "Not specified"}
-                        </p>
+                        <div className="mt-1.5">
+                          <RoleBadge rbacRole={memberRole} />
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
