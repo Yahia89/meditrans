@@ -231,13 +231,14 @@ export function EmployeeForm({
           }
         }
 
-        // Create invitation
+        // Create invitation with full_name for display on accept-invite page
         const { error: inviteError } = await supabase
           .from("org_invites")
           .insert({
             org_id: currentOrganization.id,
             email: data.email,
             role: data.system_role as any,
+            full_name: data.full_name,
             invited_by: (await supabase.auth.getUser()).data.user?.id,
           });
 

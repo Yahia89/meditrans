@@ -35,7 +35,7 @@ export function AcceptInvitePage() {
 
     async function fetchInvite() {
       try {
-        // 1. Fetch the invite details
+        // Fetch the invite details including full_name
         const { data: inviteData, error: inviteError } = await supabase
           .from("org_invites")
           .select("*, organizations(name)")
@@ -59,30 +59,9 @@ export function AcceptInvitePage() {
         setInvite(inviteData);
         setEmail(inviteData.email);
 
-        // 2. Try to fetch the invitee's name from the employees table
-        const { data: employeeData } = await supabase
-          .from("employees")
-          .select("full_name")
-          .eq("org_id", inviteData.org_id)
-          .eq("email", inviteData.email)
-          .maybeSingle();
-
-        if (employeeData?.full_name) {
-          setInviteeName(employeeData.full_name);
-        } else {
-          // Fallback: try drivers table if this is a driver invite
-          if (inviteData.role === "driver") {
-            const { data: driverData } = await supabase
-              .from("drivers")
-              .select("full_name")
-              .eq("org_id", inviteData.org_id)
-              .eq("email", inviteData.email)
-              .maybeSingle();
-
-            if (driverData?.full_name) {
-              setInviteeName(driverData.full_name);
-            }
-          }
+        // Use full_name from invite record (set when employee was added)
+        if (inviteData.full_name) {
+          setInviteeName(inviteData.full_name);
         }
       } catch (err) {
         setError("Failed to fetch invitation details.");
