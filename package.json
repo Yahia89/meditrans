@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "sh -c 'echo nemt.futrans.us > dist/CNAME && gh-pages -d dist'"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
