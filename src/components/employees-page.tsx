@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
-import { EmployeeDetailsPage } from "@/components/employee-details-page";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface Employee {
@@ -235,13 +234,14 @@ function RoleBadge({
   );
 }
 
-export function EmployeesPage() {
+interface EmployeesPageProps {
+  onEmployeeClick?: (id: string) => void;
+}
+
+export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
-    null
-  );
   const { isDemoMode, navigateTo } = useOnboarding();
   const { currentOrganization } = useOrganization();
   const { isAdmin } = usePermissions();
@@ -473,15 +473,6 @@ export function EmployeesPage() {
       day: "numeric",
     });
   };
-
-  if (selectedEmployeeId) {
-    return (
-      <EmployeeDetailsPage
-        id={selectedEmployeeId}
-        onBack={() => setSelectedEmployeeId(null)}
-      />
-    );
-  }
 
   if (isLoading) {
     return (
@@ -851,7 +842,7 @@ export function EmployeesPage() {
           {paginatedEmployees.map((employee) => (
             <div
               key={employee.id}
-              onClick={() => setSelectedEmployeeId(employee.id)}
+              onClick={() => onEmployeeClick?.(employee.id)}
               className={cn(
                 "rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer",
                 selectedIds.has(employee.id)
@@ -960,7 +951,7 @@ export function EmployeesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedEmployeeId(employee.id)}
+                  onClick={() => onEmployeeClick?.(employee.id)}
                   className="flex-1 rounded-lg border-slate-200 hover:bg-slate-50"
                 >
                   View Details
@@ -1043,7 +1034,7 @@ export function EmployeesPage() {
                   paginatedEmployees.map((employee) => (
                     <tr
                       key={employee.id}
-                      onClick={() => setSelectedEmployeeId(employee.id)}
+                      onClick={() => onEmployeeClick?.(employee.id)}
                       className={cn(
                         "group transition-all duration-200 hover:bg-slate-50 cursor-pointer",
                         selectedIds.has(employee.id) &&

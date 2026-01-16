@@ -13,8 +13,12 @@ import {
   CheckCircle2,
   History,
   Trash,
+  Send,
+  CheckCircle,
+  Clock,
+  RefreshCw,
 } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,6 +27,7 @@ import { EmployeeForm } from "@/components/forms/employee-form";
 import { DocumentManager } from "@/components/document-manager";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { useOnboarding } from "@/contexts/OnboardingContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 interface EmployeeDetailsPageProps {
   id: string;
@@ -42,6 +47,7 @@ interface Employee {
   notes: string | null;
   created_at: string;
   custom_fields: Record<string, any> | null;
+  user_id: string | null;
 }
 
 function formatDate(dateStr: string | null) {
@@ -56,11 +62,10 @@ function formatDate(dateStr: string | null) {
 // Helper to format role names
 function formatRoleName(role: string | null): string {
   if (!role) return "No Access";
-  // Map RBAC roles to display names
   const roleMap: Record<string, string> = {
     owner: "Owner",
-    admin: "Admin",
-    dispatch: "Dispatch",
+    admin: "Administrator",
+    dispatch: "Dispatcher",
     employee: "Employee",
     driver: "Driver",
   };
@@ -110,6 +115,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const { isAdmin, isOwner } = usePermissions();
   const { isDemoMode } = useOnboarding();
+  const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
 
   const canManageEmployees = isAdmin || isOwner;
@@ -131,22 +137,169 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
   });
 
   // Fetch organization membership to get RBAC role (single source of truth)
-  const { data: memberRole } = useQuery({
-    queryKey: ["employee-member-role", employee?.email],
+  const { data: membershipData } = useQuery({
+    queryKey: [
+      "employee-membership",
+      employee?.org_id,
+      employee?.user_id,
+      employee?.email,
+    ],
     queryFn: async () => {
-      if (!employee?.email) return null;
+      if (!employee?.org_id) return null;
+
+      // Method 1: Try by user_id if available
+      if (employee.user_id) {
+        const { data, error } = await supabase
+          .from("organization_memberships")
+          .select("role, user_id, email")
+          .eq("org_id", employee.org_id)
+          .eq("user_id", employee.user_id)
+          .maybeSingle();
+
+        if (!error && data) return data;
+      }
+
+      // Method 2: Fallback to email lookup
+      if (employee.email) {
+        const { data, error } = await supabase
+          .from("organization_memberships")
+          .select("role, user_id, email")
+          .eq("org_id", employee.org_id)
+          .eq("email", employee.email)
+          .maybeSingle();
+
+        if (!error && data) {
+          // Auto-fix: Link user_id to employee if missing
+          if (data.user_id && !employee.user_id) {
+            await supabase
+              .from("employees")
+              .update({ user_id: data.user_id })
+              .eq("id", employee.id);
+          }
+          return data;
+        }
+      }
+
+      return null;
+    },
+    enabled: !!employee?.org_id && (!!employee?.user_id || !!employee?.email),
+  });
+
+  // Fetch existing invitation for this employee's email
+  const { data: inviteStatus, refetch: refetchInvite } = useQuery({
+    queryKey: ["employee-invite", employee?.email, employee?.org_id],
+    queryFn: async () => {
+      if (!employee?.email || !employee?.org_id) return null;
 
       const { data, error } = await supabase
-        .from("organization_memberships")
-        .select("role")
+        .from("org_invites")
+        .select("*")
+        .eq("org_id", employee.org_id)
         .eq("email", employee.email)
+        .neq("role", "driver") // Exclude driver invites
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
-      return data?.role || null;
+      return data;
     },
-    enabled: !!employee?.email,
+    enabled: !!employee?.email && !!employee?.org_id,
   });
+
+  // Send/resend invite mutation
+  const sendInviteMutation = useMutation({
+    mutationFn: async () => {
+      if (!employee?.email || !currentOrganization) {
+        throw new Error("Employee email and organization required");
+      }
+
+      // If there's an existing pending invite, delete it first
+      if (inviteStatus && !inviteStatus.accepted_at) {
+        await supabase.from("org_invites").delete().eq("id", inviteStatus.id);
+      }
+
+      // Create new invitation with admin role by default (can be changed in form)
+      const { error } = await supabase.from("org_invites").insert({
+        org_id: currentOrganization.id,
+        email: employee.email,
+        role: inviteStatus?.role || "admin", // Use previous role or default to admin
+        full_name: employee.full_name,
+        invited_by: (await supabase.auth.getUser()).data.user?.id,
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          throw new Error(
+            "An active invitation for this email already exists."
+          );
+        }
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      refetchInvite();
+      queryClient.invalidateQueries({ queryKey: ["employee-invite"] });
+    },
+  });
+
+  // Determine invite button state
+  const getInviteButtonConfig = () => {
+    // 1. Check if employee already has a user account linked
+    if (employee?.user_id) {
+      return {
+        label: "Account Active",
+        disabled: true,
+        icon: CheckCircle,
+        tooltip: "Employee already has an active system account",
+      };
+    }
+
+    if (!employee?.email) {
+      return {
+        label: "No Email",
+        disabled: true,
+        icon: Mail,
+        tooltip: "Add an email address to send an invitation",
+      };
+    }
+
+    if (inviteStatus?.accepted_at) {
+      return {
+        label: "Invite Accepted",
+        disabled: true,
+        icon: CheckCircle,
+        tooltip: "Employee has already accepted their invitation",
+      };
+    }
+
+    if (inviteStatus && new Date(inviteStatus.expires_at) > new Date()) {
+      return {
+        label: "Resend Invite",
+        disabled: false,
+        icon: RefreshCw,
+        tooltip: "Send a new invitation (previous invite will be replaced)",
+      };
+    }
+
+    if (inviteStatus && new Date(inviteStatus.expires_at) <= new Date()) {
+      return {
+        label: "Invite Expired - Resend",
+        disabled: false,
+        icon: Clock,
+        tooltip: "Previous invite has expired, send a new one",
+      };
+    }
+
+    return {
+      label: "Send Invite",
+      disabled: false,
+      icon: Send,
+      tooltip: "Send a system invitation to the employee",
+    };
+  };
+
+  const inviteButtonConfig = getInviteButtonConfig();
 
   // Fetch document count
   const { data: docCount = 0 } = useQuery({
@@ -258,7 +411,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
         </div>
 
         {canManageEmployees && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               onClick={() => setIsEditing(true)}
@@ -266,6 +419,33 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
             >
               <Pencil size={16} />
               Edit Details
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => sendInviteMutation.mutate()}
+              disabled={
+                inviteButtonConfig.disabled ||
+                isDemoMode ||
+                sendInviteMutation.isPending
+              }
+              title={inviteButtonConfig.tooltip}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-xl",
+                inviteButtonConfig.disabled
+                  ? "text-slate-400"
+                  : inviteStatus?.accepted_at
+                  ? "text-green-600 border-green-100"
+                  : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700"
+              )}
+            >
+              {sendInviteMutation.isPending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <inviteButtonConfig.icon size={16} />
+              )}
+              {sendInviteMutation.isPending
+                ? "Sending..."
+                : inviteButtonConfig.label}
             </Button>
             <Button
               variant="outline"
@@ -349,7 +529,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                           System Role
                         </p>
                         <div className="mt-1.5">
-                          <RoleBadge rbacRole={memberRole} />
+                          <RoleBadge rbacRole={membershipData?.role || null} />
                         </div>
                       </div>
                     </div>
@@ -513,23 +693,68 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
             </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between py-2 border-b border-slate-50">
-                <span className="text-sm text-slate-500">
-                  Organization Access
-                </span>
-                <span className="text-sm font-semibold text-slate-900">
-                  Standard User
+                <span className="text-sm text-slate-500">System Role</span>
+                <RoleBadge rbacRole={membershipData?.role || null} />
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-slate-50">
+                <span className="text-sm text-slate-500">System Access</span>
+                <span
+                  className={cn(
+                    "text-sm font-semibold inline-flex items-center gap-1.5",
+                    employee.user_id || inviteStatus?.accepted_at
+                      ? "text-emerald-600"
+                      : inviteStatus &&
+                        new Date(inviteStatus.expires_at) > new Date()
+                      ? "text-amber-600"
+                      : inviteStatus &&
+                        new Date(inviteStatus.expires_at) <= new Date()
+                      ? "text-red-500"
+                      : "text-slate-400"
+                  )}
+                >
+                  {employee.user_id || inviteStatus?.accepted_at ? (
+                    <>
+                      <CheckCircle size={14} />
+                      Active
+                    </>
+                  ) : inviteStatus &&
+                    new Date(inviteStatus.expires_at) > new Date() ? (
+                    <>
+                      <Clock size={14} />
+                      Pending
+                    </>
+                  ) : inviteStatus &&
+                    new Date(inviteStatus.expires_at) <= new Date() ? (
+                    <>
+                      <Clock size={14} />
+                      Expired
+                    </>
+                  ) : (
+                    "Not Invited"
+                  )}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-slate-50">
-                <span className="text-sm text-slate-500">Last Activity</span>
-                <span className="text-sm text-slate-900">Never</span>
-              </div>
-              <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-slate-500">Added On</span>
                 <span className="text-sm text-slate-900">
                   {formatDate(employee.created_at)}
                 </span>
               </div>
+              {inviteStatus && !inviteStatus.accepted_at && (
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm text-slate-500">Invite Expires</span>
+                  <span
+                    className={cn(
+                      "text-sm",
+                      new Date(inviteStatus.expires_at) < new Date()
+                        ? "text-red-500 font-semibold"
+                        : "text-slate-900"
+                    )}
+                  >
+                    {formatDate(inviteStatus.expires_at)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

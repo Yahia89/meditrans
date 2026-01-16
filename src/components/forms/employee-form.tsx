@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,11 +112,20 @@ export function EmployeeForm({
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [lastInviteEmail, setLastInviteEmail] = useState("");
 
-  // Check for existing owner
+  // Track if this employee already has a system account (existing membership)
+  const [existingMembership, setExistingMembership] = useState<{
+    id: string;
+    role: string;
+    user_id: string;
+  } | null>(null);
+  const [roleUpdated, setRoleUpdated] = useState(false);
+
+  // Check for existing owner and existing membership
   useEffect(() => {
     if (!open || !currentOrganization) return;
 
-    const checkOwner = async () => {
+    const checkOwnerAndMembership = async () => {
+      // Check for existing owner
       const { count: mCount } = await supabase
         .from("organization_memberships")
         .select("*", { count: "exact", head: true })
@@ -132,15 +140,78 @@ export function EmployeeForm({
         .is("accepted_at", null);
 
       setHasOwner((mCount || 0) + (iCount || 0) > 0);
+
+      // Check if this employee already has a membership (editing existing employee)
+      if (initialData?.email) {
+        let foundMembership = null;
+
+        // Method 1: Find via employees.user_id
+        const { data: employeeData } = await supabase
+          .from("employees")
+          .select("user_id")
+          .eq("org_id", currentOrganization.id)
+          .eq("email", initialData.email)
+          .not("user_id", "is", null)
+          .maybeSingle();
+
+        if (employeeData?.user_id) {
+          const { data: membershipData } = await supabase
+            .from("organization_memberships")
+            .select("id, role, user_id")
+            .eq("org_id", currentOrganization.id)
+            .eq("user_id", employeeData.user_id)
+            .maybeSingle();
+
+          if (membershipData) {
+            foundMembership = membershipData;
+          }
+        }
+
+        // Method 2: Fallback - find membership directly by email
+        // (handles cases where employees.user_id wasn't properly linked)
+        if (!foundMembership) {
+          const { data: membershipByEmail } = await supabase
+            .from("organization_memberships")
+            .select("id, role, user_id")
+            .eq("org_id", currentOrganization.id)
+            .eq("email", initialData.email)
+            .maybeSingle();
+
+          if (membershipByEmail) {
+            foundMembership = membershipByEmail;
+
+            // Also fix the employees.user_id if it's missing
+            if (membershipByEmail.user_id) {
+              await supabase
+                .from("employees")
+                .update({ user_id: membershipByEmail.user_id })
+                .eq("org_id", currentOrganization.id)
+                .eq("email", initialData.email);
+            }
+          }
+        }
+
+        if (foundMembership) {
+          setExistingMembership(foundMembership);
+        }
+      }
     };
-    checkOwner();
-  }, [open, currentOrganization]);
+
+    checkOwnerAndMembership();
+
+    // Reset when modal closes
+    return () => {
+      setExistingMembership(null);
+      setRoleUpdated(false);
+    };
+  }, [open, currentOrganization, initialData?.email]);
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    watch,
     trigger,
     formState: { errors },
   } = useForm<EmployeeFormData>({
@@ -167,6 +238,9 @@ export function EmployeeForm({
           system_role: "none",
         },
   });
+
+  // watch is available if needed for reactive form state
+  void watch;
 
   // Reset step when modal opens
   useEffect(() => {
@@ -206,9 +280,11 @@ export function EmployeeForm({
         }
       });
 
+      let inviteSent = false;
+
       if (data.system_role !== "none") {
         if (!data.email) {
-          throw new Error("Email is required to invite a user to the system.");
+          throw new Error("Email is required to assign a system role.");
         }
 
         // Check for owner limit
@@ -226,26 +302,46 @@ export function EmployeeForm({
             .eq("role", "owner")
             .is("accepted_at", null);
 
-          if ((memberCount || 0) + (inviteCount || 0) > 0) {
+          // Allow if we're updating the existing owner's role
+          const isUpdatingSameUser = existingMembership?.role === "owner";
+          if (
+            !isUpdatingSameUser &&
+            (memberCount || 0) + (inviteCount || 0) > 0
+          ) {
             throw new Error("This organization already has an owner.");
           }
         }
 
-        // Create invitation with full_name for display on accept-invite page
-        const { error: inviteError } = await supabase
-          .from("org_invites")
-          .insert({
-            org_id: currentOrganization.id,
-            email: data.email,
-            role: data.system_role as any,
-            full_name: data.full_name,
-            invited_by: (await supabase.auth.getUser()).data.user?.id,
-          });
+        // Check if this person already has a system account
+        if (existingMembership) {
+          // Update their existing membership role directly
+          const { error: updateError } = await supabase
+            .from("organization_memberships")
+            .update({ role: data.system_role })
+            .eq("id", existingMembership.id);
 
-        if (inviteError) {
-          if (inviteError.code === "23505")
-            throw new Error("An invitation for this email already exists.");
-          throw inviteError;
+          if (updateError) throw updateError;
+
+          setRoleUpdated(true);
+        } else {
+          // New user - create invitation
+          const { error: inviteError } = await supabase
+            .from("org_invites")
+            .insert({
+              org_id: currentOrganization.id,
+              email: data.email,
+              role: data.system_role as any,
+              full_name: data.full_name,
+              invited_by: (await supabase.auth.getUser()).data.user?.id,
+            });
+
+          if (inviteError) {
+            if (inviteError.code === "23505")
+              throw new Error("An invitation for this email already exists.");
+            throw inviteError;
+          }
+
+          inviteSent = true;
         }
       }
 
@@ -272,11 +368,25 @@ export function EmployeeForm({
         if (error) throw error;
       }
 
+      // Invalidate all related queries to ensure fresh data everywhere
       await queryClient.invalidateQueries({
         queryKey: ["employees", currentOrganization.id],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["employee"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["employee-membership"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["employee-invite"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["organization-members"],
+      });
 
-      if (data.system_role !== "none") {
+      if (inviteSent) {
+        // Show invite success screen with link
         const { data: inviteData } = await supabase
           .from("org_invites")
           .select("token")
@@ -286,6 +396,14 @@ export function EmployeeForm({
           .single();
 
         setInviteToken(inviteData?.token || null);
+        setLastInviteEmail(data.email || "");
+        setShowSuccess(true);
+      } else if (
+        roleUpdated ||
+        (existingMembership && data.system_role !== "none")
+      ) {
+        // Show role updated success
+        setRoleUpdated(true);
         setLastInviteEmail(data.email || "");
         setShowSuccess(true);
       } else {
@@ -341,34 +459,53 @@ export function EmployeeForm({
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
               <CheckCircle2 className="h-6 w-6" />
             </div>
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold text-slate-900">Invite Sent!</h2>
-              <p className="text-sm text-slate-500">
-                An invitation email has been sent to{" "}
-                <strong>{lastInviteEmail}</strong>.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-              <code className="text-[10px] flex-1 truncate text-left">
-                {`${window.location.origin}${
-                  import.meta.env.BASE_URL
-                }?page=accept-invite&token=${inviteToken}`}
-              </code>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 text-xs"
-                onClick={() => {
-                  const url = `${window.location.origin}${
-                    import.meta.env.BASE_URL
-                  }?page=accept-invite&token=${inviteToken}`;
-                  navigator.clipboard.writeText(url);
-                  alert("Copied!");
-                }}
-              >
-                Copy
-              </Button>
-            </div>
+            {roleUpdated ? (
+              // Role update success (existing user)
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-slate-900">
+                  Role Updated!
+                </h2>
+                <p className="text-sm text-slate-500">
+                  <strong>{lastInviteEmail}</strong>'s role has been updated
+                  successfully. They will see their new permissions the next
+                  time they log in.
+                </p>
+              </div>
+            ) : (
+              // New invite success
+              <>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-bold text-slate-900">
+                    Invite Sent!
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    An invitation email has been sent to{" "}
+                    <strong>{lastInviteEmail}</strong>.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                  <code className="text-[10px] flex-1 truncate text-left">
+                    {`${window.location.origin}${
+                      import.meta.env.BASE_URL
+                    }?page=accept-invite&token=${inviteToken}`}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      const url = `${window.location.origin}${
+                        import.meta.env.BASE_URL
+                      }?page=accept-invite&token=${inviteToken}`;
+                      navigator.clipboard.writeText(url);
+                      alert("Copied!");
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </>
+            )}
             <Button onClick={handleClose} className="w-full bg-[#3D5A3D]">
               Done
             </Button>
@@ -542,29 +679,61 @@ export function EmployeeForm({
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-[#3D5A3D]" />
-                    System Access & Invites
+                    System Access
                   </h3>
+
+                  {/* Show current role badge if existing member */}
+                  {existingMembership && (
+                    <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-blue-800">
+                          Active System User
+                        </p>
+                        <p className="text-[11px] text-blue-600">
+                          Current role:{" "}
+                          <strong className="capitalize">
+                            {existingMembership.role}
+                          </strong>
+                        </p>
+                      </div>
+                      <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    </div>
+                  )}
+
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-slate-700">
-                        Assign System Role
+                        {existingMembership
+                          ? "Update Role"
+                          : "Assign System Role"}
                       </label>
                       <select
                         {...register("system_role")}
                         className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20"
                       >
-                        <option value="none">No System Access</option>
-                        <option value="owner" disabled={hasOwner}>
-                          Owner {hasOwner ? "(Already Assigned)" : ""}
+                        <option value="none">
+                          {existingMembership
+                            ? "Keep Current Role"
+                            : "No System Access"}
+                        </option>
+                        <option
+                          value="owner"
+                          disabled={
+                            hasOwner && existingMembership?.role !== "owner"
+                          }
+                        >
+                          Owner{" "}
+                          {hasOwner && existingMembership?.role !== "owner"
+                            ? "(Already Assigned)"
+                            : ""}
                         </option>
                         <option value="admin">Administrator</option>
                         <option value="dispatch">Dispatcher</option>
-                        <option value="employee">Staff / Employee</option>
                       </select>
                       <p className="text-[11px] text-slate-500 leading-relaxed italic mt-2">
-                        Choosing a role will trigger a system invitation to the
-                        email provided in step 1. Invites can be accepted
-                        immediately.
+                        {existingMembership
+                          ? "Changing the role will take effect immediately. The user will see their new permissions on their next login."
+                          : "Selecting a role will send an invitation email to the address provided in step 1."}
                       </p>
                     </div>
                   </div>

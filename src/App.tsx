@@ -8,6 +8,7 @@ import { Dashboard } from "./components/dashboard";
 import { PatientsPage } from "./components/patients-page";
 import { DriversPage } from "./components/drivers-page";
 import { EmployeesPage } from "./components/employees-page";
+import { EmployeeDetailsPage } from "./components/employee-details-page";
 import { UploadPage } from "./components/upload-page";
 import { AccountPage } from "./components/account-page";
 import { BillingPage } from "./components/billing-page";
@@ -36,6 +37,7 @@ export const pages = [
   "drivers",
   "driver-details",
   "employees",
+  "employee-details",
   "upload",
   "review_import",
   "account",
@@ -91,6 +93,7 @@ function AppContent() {
 
   const [patientId, setPatientId] = useQueryState("id");
   const [driverId, setDriverId] = useQueryState("driverId");
+  const [employeeId, setEmployeeId] = useQueryState("employeeId");
   const [tripId, setTripId] = useQueryState("tripId");
   const [modalType, setModalType] = useQueryState("modal");
   const [fromPage, setFromPage] = useQueryState("from");
@@ -289,7 +292,26 @@ function AppContent() {
       case "employees":
         return (
           <DashboardPage title="Employees">
-            <EmployeesPage />
+            <EmployeesPage
+              onEmployeeClick={(id) => {
+                setEmployeeId(id);
+                setFromPage("employees");
+                setCurrentPage("employee-details");
+              }}
+            />
+          </DashboardPage>
+        );
+      case "employee-details":
+        return (
+          <DashboardPage title="Employee Details">
+            <EmployeeDetailsPage
+              id={employeeId || ""}
+              onBack={() => {
+                setCurrentPage((fromPage as Page) || "employees");
+                setEmployeeId(null);
+                setFromPage(null);
+              }}
+            />
           </DashboardPage>
         );
       case "upload":
@@ -430,6 +452,7 @@ function AppContent() {
             // Keep clear state when navigating between main modules
             if (page !== "patient-details") setPatientId(null);
             if (page !== "driver-details") setDriverId(null);
+            if (page !== "employee-details") setEmployeeId(null);
             setFromPage(null);
             setSection(null);
             if (page !== "trip-details") {

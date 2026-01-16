@@ -140,6 +140,8 @@ export function AppSidebar({
               currentPage === item.url ||
               (item.url === "patients" && currentPage === "patient-details") ||
               (item.url === "drivers" && currentPage === "driver-details") ||
+              (item.url === "employees" &&
+                currentPage === "employee-details") ||
               (item.url === "trips" && currentPage === "trip-details") ||
               (item.url === "client-credits" &&
                 currentPage === "client-credits") ||
