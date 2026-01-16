@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryState } from "nuqs";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, User, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 
 export function AcceptInvitePage() {
@@ -12,6 +12,7 @@ export function AcceptInvitePage() {
 
   const [loading, setLoading] = useState(true);
   const [invite, setInvite] = useState<any>(null);
+  const [inviteeName, setInviteeName] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -20,11 +21,10 @@ export function AcceptInvitePage() {
   // Auth form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthing, setIsAuthing] = useState(false);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
 
   useEffect(() => {
     if (!token) {
@@ -35,22 +35,53 @@ export function AcceptInvitePage() {
 
     async function fetchInvite() {
       try {
-        const { data, error } = await supabase
+        // 1. Fetch the invite details
+        const { data: inviteData, error: inviteError } = await supabase
           .from("org_invites")
           .select("*, organizations(name)")
           .eq("token", token)
           .is("accepted_at", null)
           .single();
 
-        if (error) {
+        if (inviteError) {
           setError("Invalid or expired invitation.");
+          setLoading(false);
+          return;
+        }
+
+        // Check expiration
+        if (new Date(inviteData.expires_at) < new Date()) {
+          setError("This invitation has expired.");
+          setLoading(false);
+          return;
+        }
+
+        setInvite(inviteData);
+        setEmail(inviteData.email);
+
+        // 2. Try to fetch the invitee's name from the employees table
+        const { data: employeeData } = await supabase
+          .from("employees")
+          .select("full_name")
+          .eq("org_id", inviteData.org_id)
+          .eq("email", inviteData.email)
+          .maybeSingle();
+
+        if (employeeData?.full_name) {
+          setInviteeName(employeeData.full_name);
         } else {
-          // Check expiration
-          if (new Date(data.expires_at) < new Date()) {
-            setError("This invitation has expired.");
-          } else {
-            setInvite(data);
-            setEmail(data.email);
+          // Fallback: try drivers table if this is a driver invite
+          if (inviteData.role === "driver") {
+            const { data: driverData } = await supabase
+              .from("drivers")
+              .select("full_name")
+              .eq("org_id", inviteData.org_id)
+              .eq("email", inviteData.email)
+              .maybeSingle();
+
+            if (driverData?.full_name) {
+              setInviteeName(driverData.full_name);
+            }
           }
         }
       } catch (err) {
@@ -89,8 +120,7 @@ export function AcceptInvitePage() {
 
       if (memberError) {
         if (memberError.code === "23505") {
-          // already a member, just mark invite as used?
-          // Actually, mark it as used is fine
+          // already a member, just mark invite as used
         } else {
           throw memberError;
         }
@@ -104,7 +134,7 @@ export function AcceptInvitePage() {
 
       if (updateError) throw updateError;
 
-      // 3. If driver, ensure driver record exists and is linked
+      // 3. Link user to their employee/driver record
       if (invite.role === "driver") {
         const { data: existingDriver } = await supabase
           .from("drivers")
@@ -124,12 +154,27 @@ export function AcceptInvitePage() {
             user_id: user.id,
             full_name:
               user.user_metadata?.full_name ||
-              fullName ||
+              inviteeName ||
               user.email?.split("@")[0] ||
               "Driver",
             email: user.email,
             status: "available",
           });
+        }
+      } else {
+        // Link to employee record
+        const { data: existingEmployee } = await supabase
+          .from("employees")
+          .select("id")
+          .eq("org_id", invite.org_id)
+          .eq("email", invite.email)
+          .maybeSingle();
+
+        if (existingEmployee) {
+          await supabase
+            .from("employees")
+            .update({ user_id: user.id })
+            .eq("id", existingEmployee.id);
         }
       }
 
@@ -156,6 +201,47 @@ export function AcceptInvitePage() {
       setError(err.message || "Failed to join organization.");
     } finally {
       setProcessing(false);
+    }
+  };
+
+  // Custom sign up that automatically logs in after (since email confirmation is disabled)
+  const handleRegister = async () => {
+    if (!password || password.length < 6) {
+      setAuthError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setIsAuthing(true);
+    setAuthError(null);
+
+    try {
+      // Sign up with the invitee's name (fetched from employee/driver record)
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: inviteeName || email.split("@")[0] },
+        },
+      });
+
+      if (signUpError) {
+        setAuthError(signUpError.message);
+        return;
+      }
+
+      // Since email confirmation is disabled, the user should be automatically logged in
+      // If not, we sign them in manually
+      if (!data.session && data.user) {
+        const { error: signInError } = await signIn(email, password);
+        if (signInError) {
+          setAuthError(signInError.message);
+        }
+      }
+      // If session exists, the auth listener will pick it up and trigger handleAccept
+    } catch (err: any) {
+      setAuthError(err.message);
+    } finally {
+      setIsAuthing(false);
     }
   };
 
@@ -233,60 +319,56 @@ export function AcceptInvitePage() {
 
             {authMode === "register" ? (
               <>
+                {/* Name field - read-only, fetched from employee/driver record */}
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <User className="h-3 w-3" />
                     Full Name
                   </label>
                   <input
                     type="text"
-                    placeholder="Enter your name"
-                    className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:ring-2 focus:ring-[#3D5A3D]/20 outline-none"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full h-11 px-4 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 font-medium"
+                    value={inviteeName || "—"}
+                    disabled
                   />
+                  <p className="text-[10px] text-slate-400">
+                    Name provided by your organization
+                  </p>
                 </div>
 
+                {/* Email field - read-only */}
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Email Address
                   </label>
                   <input
                     type="email"
-                    placeholder="name@company.com"
                     className="w-full h-11 px-4 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
                     value={email}
                     disabled
                   />
                 </div>
 
+                {/* Password field - editable */}
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Password
+                  <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <Lock className="h-3 w-3" />
+                    Create Password
                   </label>
                   <input
                     type="password"
                     placeholder="Min. 6 characters"
-                    className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:ring-2 focus:ring-[#3D5A3D]/20 outline-none"
+                    className="w-full h-11 px-4 rounded-lg border border-slate-200 focus:ring-2 focus:ring-[#3D5A3D]/20 outline-none transition-all"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoFocus
                   />
                 </div>
 
                 <Button
-                  onClick={async () => {
-                    setIsAuthing(true);
-                    setAuthError(null);
-                    try {
-                      const { error } = await signUp(email, password, fullName);
-                      if (error) setAuthError(error.message);
-                    } catch (err: any) {
-                      setAuthError(err.message);
-                    } finally {
-                      setIsAuthing(false);
-                    }
-                  }}
-                  disabled={isAuthing || authLoading}
-                  className="w-full h-11 bg-[#3D5A3D] hover:bg-[#2E4A2E]"
+                  onClick={handleRegister}
+                  disabled={isAuthing || authLoading || !password}
+                  className="w-full h-11 bg-[#3D5A3D] hover:bg-[#2E4A2E] transition-colors"
                 >
                   {isAuthing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
