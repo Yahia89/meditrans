@@ -75,9 +75,24 @@ export function AppSidebar({
   onNavigate,
   ...props
 }: AppSidebarProps) {
-  const { isSuperAdmin, isOwner, isAdmin, isDriver } = usePermissions();
+  const {
+    isSuperAdmin,
+    isDriver,
+    canViewEmployees,
+    canUploadFiles,
+    canViewMedicaid,
+  } = usePermissions();
 
   let navItems = [...data.navMain];
+
+  // Filter nav items based on permissions
+  navItems = navItems.filter((item) => {
+    // Employees: only visible to admin+
+    if (item.url === "employees" && !canViewEmployees) return false;
+    // Upload: only visible to admin+
+    if (item.url === "upload" && !canUploadFiles) return false;
+    return true;
+  });
 
   if (isDriver) {
     navItems = navItems.filter((item) => item.title === "Trips");
@@ -88,8 +103,8 @@ export function AppSidebar({
     });
   }
 
-  // Add Client Credits to owners and admins only
-  if (isOwner || isAdmin) {
+  // Add Medicaid Billing and Client Credits to owners and admins only
+  if (canViewMedicaid) {
     navItems.push({
       title: "Medicaid Billing",
       url: "medicaid-billing" as Page,

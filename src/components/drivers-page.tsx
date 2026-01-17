@@ -35,6 +35,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { DriverDetailsPage } from "@/components/driver-details-page";
 import { Checkbox } from "@/components/ui/checkbox";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface Driver {
   id: string;
@@ -186,13 +187,17 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
   const { isDemoMode, navigateTo } = useOnboarding();
   const { currentOrganization } = useOrganization();
+  const { canEditDrivers } = usePermissions();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
+  // Use permission flag for driver management (admin+ only)
+  const canManageDrivers = canEditDrivers;
+
   const handleBulkDelete = async () => {
-    if (selectedIds.size === 0 || isDemoMode) return;
+    if (selectedIds.size === 0 || isDemoMode || !canManageDrivers) return;
     setIsDeleting(true);
 
     try {
@@ -245,7 +250,8 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                   .split("_")
                   .map(
                     (word: string) =>
-                      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                      word.charAt(0).toUpperCase() +
+                      word.slice(1).toLowerCase(),
                   )
                   .join(" ")
               : d.vehicle_info || "Unknown",
@@ -275,7 +281,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             driver_record_issue_date: d.driver_record_issue_date || "",
             driver_record_expiration: d.driver_record_expiration || "",
             notes: d.notes || "",
-          } as Driver)
+          }) as Driver,
       );
     },
     enabled: !!currentOrganization,
@@ -294,7 +300,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
     }));
     exportToExcel(
       exportData,
-      `drivers_${new Date().toISOString().split("T")[0]}`
+      `drivers_${new Date().toISOString().split("T")[0]}`,
     );
   };
 
@@ -466,16 +472,20 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             {isDemoMode && <DemoIndicator />}
           </div>
           <p className="text-sm text-slate-500">
-            Manage driver fleet and availability
+            {canManageDrivers
+              ? "Manage driver fleet and availability"
+              : "View driver fleet and availability"}
           </p>
         </div>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
-        >
-          <Plus size={18} weight="bold" />
-          Add Driver
-        </Button>
+        {canManageDrivers && (
+          <Button
+            onClick={() => setShowAddForm(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
+          >
+            <Plus size={18} weight="bold" />
+            Add Driver
+          </Button>
+        )}
       </div>
 
       {/* Driver Form (Add/Edit) */}
@@ -614,7 +624,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
               "flex items-center justify-center p-2 rounded-md transition-colors",
               viewMode === "bento"
                 ? "bg-[#3D5A3D] text-white"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
             )}
           >
             <GridFour
@@ -628,7 +638,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
               "flex items-center justify-center p-2 rounded-md transition-colors",
               viewMode === "list"
                 ? "bg-[#3D5A3D] text-white"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
             )}
           >
             <List size={18} weight={viewMode === "list" ? "fill" : "regular"} />
@@ -642,7 +652,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
           "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200",
           selectedIds.size > 0
             ? "bg-indigo-50 border-indigo-200 shadow-sm"
-            : "bg-slate-50 border-slate-200"
+            : "bg-slate-50 border-slate-200",
         )}
       >
         <div className="flex items-center gap-2">
@@ -656,7 +666,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
           <span
             className={cn(
               "text-sm font-medium transition-colors",
-              selectedIds.size > 0 ? "text-indigo-900" : "text-slate-500"
+              selectedIds.size > 0 ? "text-indigo-900" : "text-slate-500",
             )}
           >
             {selectedIds.size} driver{selectedIds.size !== 1 ? "s" : ""}{" "}
@@ -674,7 +684,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
               "transition-all duration-200",
               selectedIds.size > 0
                 ? "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
-                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent"
+                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent",
             )}
           >
             <Trash className="mr-2 h-3.5 w-3.5" />
@@ -690,7 +700,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
               "transition-all duration-200",
               selectedIds.size > 0
                 ? "border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300"
-                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent"
+                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent",
             )}
           >
             Clear Selection
@@ -708,7 +718,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                 "rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5",
                 selectedIds.has(driver.id)
                   ? "border-[#3D5A3D] ring-2 ring-[#3D5A3D]/20"
-                  : "border-slate-200"
+                  : "border-slate-200",
               )}
             >
               <div className="flex items-start justify-between mb-4">
@@ -749,7 +759,8 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                       "bg-[#E8F5E9] text-[#2E7D32]",
                     driver.status === "on-trip" &&
                       "bg-[#E3F2FD] text-[#1976D2]",
-                    driver.status === "offline" && "bg-slate-100 text-slate-600"
+                    driver.status === "offline" &&
+                      "bg-slate-100 text-slate-600",
                   )}
                 >
                   {driver.status === "on-trip"
@@ -802,7 +813,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                     className={cn(
                       driver.status === "on-trip"
                         ? "text-[#1976D2]"
-                        : "text-slate-400"
+                        : "text-slate-400",
                     )}
                   />
                   <span className="text-sm text-slate-600">
@@ -905,7 +916,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                     key={driver.id}
                     className={cn(
                       "hover:bg-slate-50/50 transition-colors cursor-pointer",
-                      selectedIds.has(driver.id) && "bg-indigo-50"
+                      selectedIds.has(driver.id) && "bg-indigo-50",
                     )}
                     onClick={() => handleDriverSelect(driver.id)}
                   >
@@ -983,7 +994,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                           driver.status === "on-trip" &&
                             "bg-[#E3F2FD] text-[#1976D2]",
                           driver.status === "offline" &&
-                            "bg-slate-100 text-slate-600"
+                            "bg-slate-100 text-slate-600",
                         )}
                       >
                         {driver.status === "on-trip"
@@ -1042,7 +1053,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
           <span className="font-semibold text-slate-900">
             {Math.min(
               (currentPage - 1) * ITEMS_PER_PAGE + 1,
-              filteredDrivers.length
+              filteredDrivers.length,
             )}
           </span>{" "}
           -{" "}
@@ -1079,7 +1090,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                   "rounded-lg w-9",
                   page === currentPage
                     ? "bg-[#3D5A3D] hover:bg-[#2E4A2E]"
-                    : "border-slate-200"
+                    : "border-slate-200",
                 )}
               >
                 {page}

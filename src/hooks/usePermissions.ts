@@ -21,7 +21,7 @@ export function usePermissions() {
       return !restrictedActions.includes(action);
     }
 
-    // Dispatch: can view drivers, patients, create/manage trips, but not manage employees or billing
+    // Dispatch: Dashboard + Trips (full), Patients/Drivers (view only), NO employees/uploads/billing/medicaid
     if (userRole === "dispatch") {
       const allowedActions = [
         "view_dashboard",
@@ -31,7 +31,8 @@ export function usePermissions() {
         "create_trips",
         "assign_trips",
         "edit_trips",
-        "upload_files",
+        "delete_trips",
+        "complete_trips",
       ];
       return allowedActions.includes(action);
     }
@@ -63,16 +64,22 @@ export function usePermissions() {
   );
   const isOwner = userRole === "owner" || isSuperAdmin;
   const isAdmin = userRole === "admin" || isOwner;
-  const isDispatch = userRole === "dispatch" || isAdmin;
+  const isDispatchOnly = userRole === "dispatch";
+  const isDispatch = isDispatchOnly || isAdmin;
   const isEmployee = userRole === "employee" || isDispatch;
   const isDriver = userRole === "driver";
 
-  // Can manage users (invite, edit roles, etc.)
-  const canManageUsers = isAdmin;
-  // Can manage trips (create, assign, edit)
-  const canManageTrips = isDispatch;
-  // Can view employees list
-  const canViewEmployees = isAdmin;
+  // Granular permission flags
+  const canManageUsers = isAdmin; // Add/edit/invite employees
+  const canManageTrips = isDispatch; // Create, assign, edit trips
+  const canViewEmployees = isAdmin; // Only admin+ can see employees page
+  const canUploadFiles = isAdmin; // Only admin+ can use upload feature
+  const canViewBilling = isAdmin; // Only admin+ can see billing
+  const canViewMedicaid = isAdmin; // Only admin+ can see medicaid
+  const canViewNotifications = isAdmin; // Only admin+ can see notifications
+  const canEditPatients = isAdmin; // Dispatch can only view patients
+  const canEditDrivers = isAdmin; // Dispatch can only view drivers
+  const canEditOwnName = isAdmin; // Dispatch cannot change their own name
 
   return {
     can,
@@ -81,10 +88,18 @@ export function usePermissions() {
     isOwner,
     isAdmin,
     isDispatch,
+    isDispatchOnly,
     isEmployee,
     isDriver,
     canManageUsers,
     canManageTrips,
     canViewEmployees,
+    canUploadFiles,
+    canViewBilling,
+    canViewMedicaid,
+    canViewNotifications,
+    canEditPatients,
+    canEditDrivers,
+    canEditOwnName,
   };
 }

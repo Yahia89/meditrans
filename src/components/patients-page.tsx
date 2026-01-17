@@ -175,7 +175,7 @@ export function PatientsPage({
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const { isDemoMode, navigateTo } = useOnboarding();
   const { currentOrganization } = useOrganization();
-  const { isAdmin, isOwner } = usePermissions();
+  const { canEditPatients } = usePermissions();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
@@ -210,7 +210,8 @@ export function PatientsPage({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const canManagePatients = isAdmin || isOwner;
+  // Use permission flag for patient management (admin+ only)
+  const canManagePatients = canEditPatients;
 
   const { data: realPatients, isLoading } = useQuery({
     queryKey: ["patients", currentOrganization?.id],
@@ -286,7 +287,7 @@ export function PatientsPage({
     }));
     exportToExcel(
       exportData,
-      `patients_${new Date().toISOString().split("T")[0]}`
+      `patients_${new Date().toISOString().split("T")[0]}`,
     );
   };
 
@@ -625,7 +626,7 @@ export function PatientsPage({
               "flex items-center justify-center p-2 rounded-md transition-colors",
               viewMode === "bento"
                 ? "bg-[#3D5A3D] text-white"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
             )}
           >
             <GridFour
@@ -639,7 +640,7 @@ export function PatientsPage({
               "flex items-center justify-center p-2 rounded-md transition-colors",
               viewMode === "list"
                 ? "bg-[#3D5A3D] text-white"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
             )}
           >
             <List size={18} weight={viewMode === "list" ? "fill" : "regular"} />
@@ -653,7 +654,7 @@ export function PatientsPage({
           "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200",
           selectedIds.size > 0
             ? "bg-indigo-50 border-indigo-200 shadow-sm"
-            : "bg-slate-50 border-slate-200"
+            : "bg-slate-50 border-slate-200",
         )}
       >
         <div className="flex items-center gap-2">
@@ -667,7 +668,7 @@ export function PatientsPage({
           <span
             className={cn(
               "text-sm font-medium transition-colors",
-              selectedIds.size > 0 ? "text-indigo-900" : "text-slate-500"
+              selectedIds.size > 0 ? "text-indigo-900" : "text-slate-500",
             )}
           >
             {selectedIds.size} client{selectedIds.size !== 1 ? "s" : ""}{" "}
@@ -685,7 +686,7 @@ export function PatientsPage({
               "transition-all duration-200",
               selectedIds.size > 0
                 ? "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
-                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent"
+                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent",
             )}
           >
             <Trash className="mr-2 h-3.5 w-3.5" />
@@ -701,7 +702,7 @@ export function PatientsPage({
               "transition-all duration-200",
               selectedIds.size > 0
                 ? "border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300"
-                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent"
+                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent",
             )}
           >
             Clear Selection
@@ -719,7 +720,7 @@ export function PatientsPage({
                 "rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5",
                 selectedIds.has(patient.id)
                   ? "border-[#3D5A3D] ring-2 ring-[#3D5A3D]/20"
-                  : "border-slate-200"
+                  : "border-slate-200",
               )}
             >
               <div className="flex items-start justify-between mb-4">
@@ -763,7 +764,7 @@ export function PatientsPage({
                     "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
                     patient.status === "active"
                       ? "bg-[#E8F5E9] text-[#2E7D32]"
-                      : "bg-slate-100 text-slate-600"
+                      : "bg-slate-100 text-slate-600",
                   )}
                 >
                   {patient.status.charAt(0).toUpperCase() +
@@ -920,7 +921,7 @@ export function PatientsPage({
                     className={cn(
                       "hover:bg-slate-50/50 transition-colors",
                       canManagePatients && "cursor-pointer",
-                      selectedIds.has(patient.id) && "bg-indigo-50"
+                      selectedIds.has(patient.id) && "bg-indigo-50",
                     )}
                   >
                     <td
@@ -997,7 +998,7 @@ export function PatientsPage({
                           "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
                           patient.status === "active"
                             ? "bg-[#E8F5E9] text-[#2E7D32]"
-                            : "bg-slate-100 text-slate-600"
+                            : "bg-slate-100 text-slate-600",
                         )}
                       >
                         {patient.status.charAt(0).toUpperCase() +
@@ -1062,7 +1063,7 @@ export function PatientsPage({
           <span className="font-semibold text-slate-900">
             {Math.min(
               (currentPage - 1) * ITEMS_PER_PAGE + 1,
-              filteredPatients.length
+              filteredPatients.length,
             )}
           </span>{" "}
           -{" "}
@@ -1099,7 +1100,7 @@ export function PatientsPage({
                   "rounded-lg w-9",
                   page === currentPage
                     ? "bg-[#3D5A3D] hover:bg-[#2E4A2E]"
-                    : "border-slate-200"
+                    : "border-slate-200",
                 )}
               >
                 {page}

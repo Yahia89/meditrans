@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import {
   UserCircle,
-  Lock,
   At,
   Phone,
   FloppyDisk,
@@ -20,22 +19,13 @@ import { Button } from "@/components/ui/button";
 
 export function AccountPage() {
   const { user, profile, refresh } = useAuth();
-  const { isDriver } = usePermissions();
+  const { canEditOwnName } = usePermissions();
 
   // Profile State
   const [profileLoading, setProfileLoading] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [profileFeedback, setProfileFeedback] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
-
-  // Password State
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordFeedback, setPasswordFeedback] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
@@ -54,12 +44,18 @@ export function AccountPage() {
     setProfileLoading(true);
     setProfileFeedback(null);
     try {
+      // Only update fields the user can edit
+      const updateData: { full_name?: string; phone?: string } = {};
+
+      // Only include full_name if user has permission to edit it
+      if (canEditOwnName) {
+        updateData.full_name = fullName;
+      }
+      updateData.phone = phone;
+
       const { error } = await supabase
         .from("user_profiles")
-        .update({
-          full_name: fullName,
-          phone: phone,
-        })
+        .update(updateData)
         .eq("user_id", user.id);
 
       if (error) throw error;
@@ -81,42 +77,11 @@ export function AccountPage() {
     }
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      setPasswordFeedback({
-        type: "error",
-        message: "Passwords do not match.",
-      });
-      return;
-    }
-
-    setPasswordLoading(true);
-    setPasswordFeedback(null);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) throw error;
-
-      setNewPassword("");
-      setConfirmPassword("");
-      setPasswordFeedback({
-        type: "success",
-        message: "Password updated successfully.",
-      });
-      setTimeout(() => setPasswordFeedback(null), 3000);
-    } catch (error: any) {
-      console.error("Error updating password:", error);
-      setPasswordFeedback({
-        type: "error",
-        message: error.message || "Failed to update password.",
-      });
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
+  // Check if form has changes (considering name edit permissions)
+  const hasChanges = canEditOwnName
+    ? fullName !== (profile?.full_name || "") ||
+      phone !== (profile?.phone || "")
+    : phone !== (profile?.phone || "");
 
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-10 p-8">
@@ -128,9 +93,7 @@ export function AccountPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Account Settings
           </h1>
-          <p className="text-slate-500">
-            Manage your profile information and account security.
-          </p>
+          <p className="text-slate-500">Manage your profile information.</p>
         </div>
       </header>
 
@@ -183,15 +146,20 @@ export function AccountPage() {
                     placeholder="Enter your name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    disabled={isDriver}
+                    disabled={!canEditOwnName}
                     className={`pl-10 h-11 rounded-xl border-slate-200 transition-all ${
-                      isDriver
+                      !canEditOwnName
                         ? "bg-slate-100/50 text-slate-500 cursor-not-allowed"
                         : "bg-slate-50/50 focus:bg-white"
                     }`}
                     required
                   />
                 </div>
+                {!canEditOwnName && (
+                  <p className="text-[10px] text-slate-400 font-medium px-1 mt-1">
+                    Contact an administrator to change your name.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -211,12 +179,7 @@ export function AccountPage() {
                     placeholder="Add phone number"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    disabled={isDriver}
-                    className={`pl-10 h-11 rounded-xl border-slate-200 transition-all ${
-                      isDriver
-                        ? "bg-slate-100/50 text-slate-500 cursor-not-allowed"
-                        : "bg-slate-50/50 focus:bg-white"
-                    }`}
+                    className="pl-10 h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
                   />
                 </div>
               </div>
@@ -250,131 +213,23 @@ export function AccountPage() {
               </div>
             </div>
 
-            {!isDriver && (
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  disabled={
-                    profileLoading ||
-                    (fullName === (profile?.full_name || "") &&
-                      phone === (profile?.phone || ""))
-                  }
-                  className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-8 h-11 font-bold transition-all shadow-lg shadow-slate-200"
-                >
-                  {profileLoading ? (
-                    <CircleNotch className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <FloppyDisk weight="duotone" className="mr-2 h-4 w-4" />
-                  )}
-                  Update Profile
-                </Button>
-              </div>
-            )}
+            <div className="pt-2">
+              <Button
+                type="submit"
+                disabled={profileLoading || !hasChanges}
+                className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-8 h-11 font-bold transition-all shadow-lg shadow-slate-200"
+              >
+                {profileLoading ? (
+                  <CircleNotch className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FloppyDisk weight="duotone" className="mr-2 h-4 w-4" />
+                )}
+                Update Profile
+              </Button>
+            </div>
           </form>
         </div>
       </section>
-
-      {/* Security Section */}
-      {!isDriver && (
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 text-slate-900">
-            <Lock weight="duotone" className="w-5 h-5 text-amber-500" />
-            <h2 className="text-xl font-bold">Security & Password</h2>
-          </div>
-
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <form onSubmit={handleUpdatePassword} className="p-8 space-y-6">
-              {passwordFeedback && (
-                <div
-                  className={`p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
-                    passwordFeedback.type === "success"
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                      : "bg-red-50 text-red-700 border border-red-100"
-                  }`}
-                >
-                  {passwordFeedback.type === "success" ? (
-                    <CheckCircle weight="duotone" className="w-5 h-5" />
-                  ) : (
-                    <WarningCircle weight="duotone" className="w-5 h-5" />
-                  )}
-                  <p className="text-sm font-bold">
-                    {passwordFeedback.message}
-                  </p>
-                </div>
-              )}
-
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="new_password"
-                    className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
-                  >
-                    New Password
-                  </Label>
-                  <div className="relative">
-                    <Lock
-                      weight="duotone"
-                      className="absolute left-3 top-3.5 h-4 w-4 text-slate-400"
-                    />
-                    <Input
-                      id="new_password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="pl-10 h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="confirm_password"
-                    className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
-                  >
-                    Confirm Password
-                  </Label>
-                  <div className="relative">
-                    <Lock
-                      weight="duotone"
-                      className="absolute left-3 top-3.5 h-4 w-4 text-slate-400"
-                    />
-                    <Input
-                      id="confirm_password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pl-10 h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  disabled={
-                    passwordLoading ||
-                    !newPassword ||
-                    newPassword !== confirmPassword
-                  }
-                  className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-8 h-11 font-bold transition-all shadow-lg shadow-slate-200"
-                >
-                  {passwordLoading ? (
-                    <CircleNotch className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Lock weight="duotone" className="mr-2 h-4 w-4" />
-                  )}
-                  Update Password
-                </Button>
-              </div>
-            </form>
-          </div>
-        </section>
-      )}
     </div>
   );
 }

@@ -30,7 +30,7 @@ export function NavUser() {
   const { isMobile } = useSidebar();
   const { user, profile, signOut } = useAuth();
   const [, setPage] = useQueryState("page");
-  const { isDriver } = usePermissions();
+  const { canViewBilling, canViewNotifications } = usePermissions();
 
   // Derive display values from auth context
   const name =
@@ -105,17 +105,17 @@ export function NavUser() {
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              {!isDriver && (
-                <>
-                  <DropdownMenuItem onClick={() => setPage("billing")}>
-                    <CreditCard />
-                    Billing
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setPage("notifications")}>
-                    <Bell />
-                    Notifications
-                  </DropdownMenuItem>
-                </>
+              {canViewBilling && (
+                <DropdownMenuItem onClick={() => setPage("billing")}>
+                  <CreditCard />
+                  Billing
+                </DropdownMenuItem>
+              )}
+              {canViewNotifications && (
+                <DropdownMenuItem onClick={() => setPage("notifications")}>
+                  <Bell />
+                  Notifications
+                </DropdownMenuItem>
               )}
             </DropdownMenuGroup>
 

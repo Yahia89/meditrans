@@ -18,7 +18,7 @@ interface DashboardProps {
 
 export function Dashboard({ onNavigateToCredits }: DashboardProps) {
   const { dataState, isDemoMode } = useOnboarding();
-  const { isAdmin, isEmployee } = usePermissions();
+  const { isAdmin, isEmployee, isDispatch } = usePermissions();
   const [section] = useQueryState("section");
 
   useEffect(() => {
@@ -38,7 +38,8 @@ export function Dashboard({ onNavigateToCredits }: DashboardProps) {
   const isInitialState =
     (dataState === "empty" || dataState === "onboarding") && !isDemoMode;
 
-  const showAdminSections = isAdmin || isEmployee;
+  // Dispatchers should see the full dashboard just like admins
+  const showAdminSections = isAdmin || isEmployee || isDispatch;
 
   return (
     <div className="space-y-10 pb-10 max-w-[1600px] mx-auto">

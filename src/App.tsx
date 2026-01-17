@@ -88,7 +88,7 @@ function AppContent() {
     "page",
     parseAsStringLiteral(pages)
       .withDefault("dashboard")
-      .withOptions({ history: "push" }) // Creates history entry for back/forward nav
+      .withOptions({ history: "push" }), // Creates history entry for back/forward nav
   );
 
   const [patientId, setPatientId] = useQueryState("id");
@@ -122,7 +122,16 @@ function AppContent() {
         "medicaid-billing",
       ],
       employee: ["founder", "billing", "medicaid-billing"],
-      dispatch: ["founder", "employees", "billing", "medicaid-billing"],
+      // Dispatch: No employees, no upload, no billing, no notifications, no medicaid
+      dispatch: [
+        "founder",
+        "employees",
+        "upload",
+        "review_import",
+        "billing",
+        "notifications",
+        "medicaid-billing",
+      ],
       admin: ["founder"],
       owner: ["founder"],
     };
