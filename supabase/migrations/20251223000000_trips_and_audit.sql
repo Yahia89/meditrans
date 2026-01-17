@@ -1,3 +1,18 @@
+-- 0. Create is_member_of helper function if not exists (required for RLS policies)
+CREATE OR REPLACE FUNCTION public.is_member_of(_org_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_memberships
+    WHERE user_id = auth.uid()
+      AND org_id = _org_id
+  );
+$$;
+
 -- 1. Safely add committed_by to org_uploads (only if table exists)
 DO $$
 BEGIN
