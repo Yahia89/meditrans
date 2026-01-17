@@ -87,13 +87,21 @@ export function AcceptInvitePage() {
     setError(null);
 
     try {
-      // 1. Create membership
+      // Get the invitee's name (from invite record)
+      const displayName =
+        invite.full_name ||
+        user.user_metadata?.full_name ||
+        user.email?.split("@")[0] ||
+        "User";
+
+      // 1. Create membership (include email for easier lookups)
       const { error: memberError } = await supabase
         .from("organization_memberships")
         .insert({
           org_id: invite.org_id,
           user_id: user.id,
           role: invite.role,
+          email: user.email, // Store email for easier lookups
           is_primary: true,
         });
 
@@ -117,25 +125,30 @@ export function AcceptInvitePage() {
       if (invite.role === "driver") {
         const { data: existingDriver } = await supabase
           .from("drivers")
-          .select("id")
+          .select("id, full_name")
           .eq("org_id", invite.org_id)
           .eq("email", invite.email)
           .maybeSingle();
 
         if (existingDriver) {
+          // Update existing driver with user_id and ensure full_name is set
           await supabase
             .from("drivers")
-            .update({ user_id: user.id })
+            .update({
+              user_id: user.id,
+              // Only update name if it was a placeholder or missing
+              ...((!existingDriver.full_name ||
+                existingDriver.full_name === "Driver") && {
+                full_name: displayName,
+              }),
+            })
             .eq("id", existingDriver.id);
         } else {
+          // Create new driver record
           await supabase.from("drivers").insert({
             org_id: invite.org_id,
             user_id: user.id,
-            full_name:
-              user.user_metadata?.full_name ||
-              inviteeName ||
-              user.email?.split("@")[0] ||
-              "Driver",
+            full_name: displayName,
             email: user.email,
             status: "available",
           });
@@ -144,30 +157,54 @@ export function AcceptInvitePage() {
         // Link to employee record
         const { data: existingEmployee } = await supabase
           .from("employees")
-          .select("id")
+          .select("id, full_name")
           .eq("org_id", invite.org_id)
           .eq("email", invite.email)
           .maybeSingle();
 
         if (existingEmployee) {
+          // Update existing employee with user_id and ensure full_name is set
           await supabase
             .from("employees")
-            .update({ user_id: user.id })
+            .update({
+              user_id: user.id,
+              // Only update name if it was a placeholder or missing
+              ...((!existingEmployee.full_name ||
+                existingEmployee.full_name === "User") && {
+                full_name: displayName,
+              }),
+            })
             .eq("id", existingEmployee.id);
         }
       }
 
-      // 4. Update user profile default org if they don't have one
+      // 4. Update user profile with full_name and default org
       const { data: profile } = await supabase
         .from("user_profiles")
-        .select("default_org_id")
+        .select("default_org_id, full_name")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (profile && !profile.default_org_id) {
+      const profileUpdates: Record<string, any> = {};
+
+      // Set default org if not set
+      if (!profile?.default_org_id) {
+        profileUpdates.default_org_id = invite.org_id;
+      }
+
+      // Set full_name if not set or is placeholder
+      if (
+        !profile?.full_name ||
+        profile.full_name === "User" ||
+        profile.full_name.includes("@")
+      ) {
+        profileUpdates.full_name = displayName;
+      }
+
+      if (Object.keys(profileUpdates).length > 0) {
         await supabase
           .from("user_profiles")
-          .update({ default_org_id: invite.org_id })
+          .update(profileUpdates)
           .eq("user_id", user.id);
       }
 
