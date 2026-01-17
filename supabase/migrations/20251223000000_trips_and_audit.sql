@@ -1,5 +1,15 @@
--- 1. Add committed_by to org_uploads
-ALTER TABLE public.org_uploads ADD COLUMN IF NOT EXISTS committed_by uuid REFERENCES auth.users(id);
+-- 1. Safely add committed_by to org_uploads (only if table exists)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'org_uploads'
+    ) THEN
+        ALTER TABLE public.org_uploads ADD COLUMN IF NOT EXISTS committed_by uuid REFERENCES auth.users(id);
+    END IF;
+END $$;
 
 -- 2. Safely create or update upload_source enum
 DO $$ 
@@ -25,10 +35,20 @@ BEGIN
     END IF;
 END $$;
 
--- 3. Update staging_records record_type constraint
-ALTER TABLE public.staging_records DROP CONSTRAINT IF EXISTS staging_records_record_type_check;
-ALTER TABLE public.staging_records ADD CONSTRAINT staging_records_record_type_check 
-CHECK (record_type = ANY (ARRAY['driver'::text, 'patient'::text, 'employee'::text, 'trip'::text]));
+-- 3. Safely update staging_records record_type constraint (only if table exists)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'staging_records'
+    ) THEN
+        ALTER TABLE public.staging_records DROP CONSTRAINT IF EXISTS staging_records_record_type_check;
+        ALTER TABLE public.staging_records ADD CONSTRAINT staging_records_record_type_check 
+        CHECK (record_type = ANY (ARRAY['driver'::text, 'patient'::text, 'employee'::text, 'trip'::text]));
+    END IF;
+END $$;
 
 -- 4. Create trips table
 CREATE TABLE IF NOT EXISTS public.trips (
