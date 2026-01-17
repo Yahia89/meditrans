@@ -260,7 +260,7 @@ export function EmployeeForm({
   const updateCustomField = (
     index: number,
     field: "key" | "value",
-    value: string
+    value: string,
   ) => {
     const updated = [...customFields];
     updated[index][field] = value;
@@ -345,7 +345,12 @@ export function EmployeeForm({
         }
       }
 
-      const employeeData = {
+      // Determine the system_role to save
+      // If user selected a role (not "none"), use it; otherwise keep existing or null
+      const systemRoleToSave =
+        data.system_role !== "none" ? data.system_role : null;
+
+      const employeeData: Record<string, any> = {
         org_id: currentOrganization.id,
         full_name: data.full_name,
         email: data.email || null,
@@ -356,6 +361,11 @@ export function EmployeeForm({
         notes: data.notes || null,
         custom_fields: Object.keys(fieldsObj).length > 0 ? fieldsObj : null,
       };
+
+      // Only include system_role if a role is selected (not keeping current)
+      if (data.system_role !== "none") {
+        employeeData.system_role = systemRoleToSave;
+      }
 
       if (initialData?.id) {
         const { error } = await supabase
@@ -545,7 +555,7 @@ export function EmployeeForm({
                             "bg-[#3D5A3D]/10 text-[#3D5A3D] hover:bg-[#3D5A3D]/20 cursor-pointer",
                           !isActive &&
                             !isCompleted &&
-                            "text-slate-400 cursor-not-allowed"
+                            "text-slate-400 cursor-not-allowed",
                         )}
                         disabled={!isCompleted && !isActive}
                       >
@@ -554,7 +564,7 @@ export function EmployeeForm({
                             "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all",
                             isActive && "bg-white/20 scale-110",
                             isCompleted && "bg-[#3D5A3D] text-white",
-                            !isActive && !isCompleted && "bg-slate-200"
+                            !isActive && !isCompleted && "bg-slate-200",
                           )}
                         >
                           {isCompleted ? (
@@ -573,7 +583,7 @@ export function EmployeeForm({
                         <ChevronRight
                           className={cn(
                             "w-4 h-4 mx-1",
-                            isCompleted ? "text-[#3D5A3D]" : "text-slate-300"
+                            isCompleted ? "text-[#3D5A3D]" : "text-slate-300",
                           )}
                         />
                       )}
@@ -603,7 +613,7 @@ export function EmployeeForm({
                       placeholder="Sarah Johnson"
                       className={cn(
                         "h-9",
-                        errors.full_name && "border-red-500"
+                        errors.full_name && "border-red-500",
                       )}
                     />
                     {errors.full_name && (
