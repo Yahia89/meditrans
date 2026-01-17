@@ -49,7 +49,7 @@ serve(async (req) => {
         driver:drivers!driver_id(id, current_lat, current_lng),
         patient:patients!patient_id(id, phone, sms_opt_out),
         organization:organizations!org_id(sms_notifications_enabled)
-      `
+      `,
       )
       .eq("id", trip_id)
       .single();
@@ -63,7 +63,7 @@ serve(async (req) => {
     console.log("Trip Status:", trip.status);
     console.log(
       "Org SMS Enabled:",
-      trip.organization?.sms_notifications_enabled
+      trip.organization?.sms_notifications_enabled,
     );
     console.log("Patient Phone (raw):", trip.patient?.phone);
     console.log("Patient Opt-Out:", trip.patient?.sms_opt_out);
@@ -76,14 +76,14 @@ serve(async (req) => {
       console.log("SKIPPED: Org SMS disabled");
       return new Response(
         JSON.stringify({ status: "skipped", reason: "Org SMS disabled" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
     if (trip.patient?.sms_opt_out) {
       console.log("SKIPPED: Patient opted out");
       return new Response(
         JSON.stringify({ status: "skipped", reason: "Patient opted out" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
     // Check for en_route status - this is when driver is on the way to pickup
@@ -94,14 +94,14 @@ serve(async (req) => {
           status: "skipped",
           reason: `Trip not en_route (current: ${trip.status})`,
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
     if (trip.eta_sms_sent_at) {
       console.log("SKIPPED: SMS already sent at", trip.eta_sms_sent_at);
       return new Response(
         JSON.stringify({ status: "skipped", reason: "SMS already sent" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -113,17 +113,23 @@ serve(async (req) => {
           status: "skipped",
           reason: "No driver location available",
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     console.log("All validations passed, proceeding to ETA calculation");
 
     // 3. Calculate ETA with Google Maps Distance Matrix
-    const googleApiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
+    // Note: We use a separate server-side API key without HTTP referrer restrictions
+    // because Edge Functions call the API server-to-server (no referrer header)
+    const googleApiKey =
+      Deno.env.get("GOOGLE_MAPS_SERVER_API_KEY") ||
+      Deno.env.get("GOOGLE_MAPS_API_KEY");
     if (!googleApiKey) {
-      console.error("Missing Google Maps API Key");
-      throw new Error("Configuration Error: Missing GOOGLE_MAPS_API_KEY");
+      console.error(
+        "Missing Google Maps API Key (checked GOOGLE_MAPS_SERVER_API_KEY and GOOGLE_MAPS_API_KEY)",
+      );
+      throw new Error("Configuration Error: Missing Google Maps API Key");
     }
 
     const origin = `${trip.driver.current_lat},${trip.driver.current_lng}`;
@@ -132,7 +138,7 @@ serve(async (req) => {
     console.log("Calculating ETA from:", origin, "to:", destination);
 
     const mapsUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(
-      origin
+      origin,
     )}&destinations=${encodeURIComponent(destination)}&key=${googleApiKey}`;
 
     const mapsRes = await fetch(mapsUrl);
@@ -149,7 +155,7 @@ serve(async (req) => {
           reason: "Could not calculate ETA",
           mapsError: mapsData.status,
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -180,7 +186,7 @@ serve(async (req) => {
         "Phone normalized:",
         trip.patient.phone,
         "->",
-        normalizedPhone
+        normalizedPhone,
       );
       console.log("From number:", telnyxFrom);
 
@@ -228,7 +234,7 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({ status: "sent", eta_minutes: durationMinutes }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       } else {
         console.error("Telnyx Error", smsData);
@@ -251,7 +257,7 @@ serve(async (req) => {
         eta_minutes: durationMinutes,
         message: "ETA > 5 mins, no SMS sent",
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Function error:", error);
