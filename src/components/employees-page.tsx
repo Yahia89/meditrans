@@ -56,6 +56,8 @@ interface Employee {
   status: "active" | "on-leave" | "inactive";
   notes?: string | null;
   custom_fields?: Record<string, string> | null;
+  system_role?: string | null; // Synced from organization_memberships via trigger
+  user_id?: string | null;
 }
 
 const ITEMS_PER_PAGE = 5;
@@ -190,17 +192,10 @@ function formatRoleName(role: string | null): string {
   return roleMap[role.toLowerCase()] || role;
 }
 
-// Role badge component - now uses RBAC role from organization_memberships
-function RoleBadge({
-  employee,
-  memberPresenceMap,
-}: {
-  employee: Employee;
-  memberPresenceMap: Map<string, OrganizationMember>;
-}) {
-  // Get RBAC role from organization_memberships (single source of truth)
-  const member = memberPresenceMap.get(employee.email?.toLowerCase() || "");
-  const rbacRole = member?.role || null;
+// Role badge component - now uses system_role directly from employees table
+function RoleBadge({ employee }: { employee: Employee }) {
+  // system_role is synced from organization_memberships via database trigger
+  const rbacRole = employee.system_role || null;
 
   if (!rbacRole) {
     return (
@@ -226,7 +221,7 @@ function RoleBadge({
     <span
       className={cn(
         "inline-flex items-center px-2 py-1 rounded-md text-xs font-medium",
-        colorClass
+        colorClass,
       )}
     >
       {formatRoleName(rbacRole)}
@@ -344,7 +339,9 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
               | "inactive",
             notes: e.notes,
             custom_fields: e.custom_fields,
-          } as Employee)
+            system_role: e.system_role, // Synced from organization_memberships
+            user_id: e.user_id,
+          }) as Employee,
       );
     },
     enabled: !!currentOrganization,
@@ -363,7 +360,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
     }));
     exportToExcel(
       exportData,
-      `employees_${new Date().toISOString().split("T")[0]}`
+      `employees_${new Date().toISOString().split("T")[0]}`,
     );
   };
 
@@ -393,8 +390,8 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   const employees = hasRealData
     ? realEmployees
     : isDemoMode
-    ? demoEmployees
-    : [];
+      ? demoEmployees
+      : [];
 
   const filteredEmployees = employees.filter((employee) => {
     // Search filter
@@ -705,7 +702,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
             value={statusFilter}
             onChange={(e) =>
               setStatusFilter(
-                e.target.value as "all" | "online" | "away" | "offline"
+                e.target.value as "all" | "online" | "away" | "offline",
               )
             }
             className="h-10 w-full appearance-none pl-4 pr-10 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D] cursor-pointer"
@@ -738,7 +735,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
               "flex items-center justify-center p-2 rounded-md transition-colors",
               viewMode === "bento"
                 ? "bg-[#3D5A3D] text-white"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
             )}
           >
             <GridFour
@@ -752,7 +749,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
               "flex items-center justify-center p-2 rounded-md transition-colors",
               viewMode === "list"
                 ? "bg-[#3D5A3D] text-white"
-                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
             )}
           >
             <List size={18} weight={viewMode === "list" ? "fill" : "regular"} />
@@ -766,7 +763,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
           "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200",
           selectedIds.size > 0
             ? "bg-indigo-50 border-indigo-200 shadow-sm"
-            : "bg-slate-50 border-slate-200"
+            : "bg-slate-50 border-slate-200",
         )}
       >
         <div className="flex items-center gap-2">
@@ -780,7 +777,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
           <span
             className={cn(
               "text-sm font-medium transition-colors",
-              selectedIds.size > 0 ? "text-indigo-900" : "text-slate-500"
+              selectedIds.size > 0 ? "text-indigo-900" : "text-slate-500",
             )}
           >
             {selectedIds.size > 0 ? (
@@ -812,7 +809,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
               "transition-all duration-200",
               selectedIds.size > 0
                 ? "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
-                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent"
+                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent",
             )}
           >
             <Trash className="mr-2 h-3.5 w-3.5" />
@@ -828,7 +825,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
               "transition-all duration-200",
               selectedIds.size > 0
                 ? "border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300"
-                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent"
+                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent",
             )}
           >
             Clear Selection
@@ -847,7 +844,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                 "rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer",
                 selectedIds.has(employee.id)
                   ? "border-indigo-500 ring-2 ring-indigo-500/20"
-                  : "border-slate-200"
+                  : "border-slate-200",
               )}
             >
               <div className="flex items-start justify-between mb-4">
@@ -871,17 +868,14 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                       {employee.name}
                     </h3>
                     <div className="flex items-center gap-2 mt-1.5">
-                      <RoleBadge
-                        employee={employee}
-                        memberPresenceMap={memberPresenceMap}
-                      />
+                      <RoleBadge employee={employee} />
                     </div>
                   </div>
                 </div>
                 {/* Real-time presence indicator */}
                 {(() => {
                   const member = memberPresenceMap.get(
-                    employee.email?.toLowerCase() || ""
+                    employee.email?.toLowerCase() || "",
                   );
                   const presenceStatus = member?.presence_status || "offline";
                   return (
@@ -1038,7 +1032,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                       className={cn(
                         "group transition-all duration-200 hover:bg-slate-50 cursor-pointer",
                         selectedIds.has(employee.id) &&
-                          "bg-indigo-50/50 hover:bg-indigo-50"
+                          "bg-indigo-50/50 hover:bg-indigo-50",
                       )}
                     >
                       <td
@@ -1091,15 +1085,12 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <RoleBadge
-                          employee={employee}
-                          memberPresenceMap={memberPresenceMap}
-                        />
+                        <RoleBadge employee={employee} />
                       </td>
                       <td className="px-6 py-4">
                         {(() => {
                           const member = memberPresenceMap.get(
-                            employee.email?.toLowerCase() || ""
+                            employee.email?.toLowerCase() || "",
                           );
                           const presenceStatus =
                             member?.presence_status || "offline";
@@ -1175,7 +1166,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
           <span className="font-semibold text-slate-900">
             {Math.min(
               (currentPage - 1) * ITEMS_PER_PAGE + 1,
-              filteredEmployees.length
+              filteredEmployees.length,
             )}
           </span>{" "}
           -{" "}
@@ -1212,7 +1203,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                   "rounded-lg w-9",
                   page === currentPage
                     ? "bg-[#3D5A3D] hover:bg-[#2E4A2E]"
-                    : "border-slate-200"
+                    : "border-slate-200",
                 )}
               >
                 {page}

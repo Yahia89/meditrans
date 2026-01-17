@@ -42,6 +42,7 @@ interface Employee {
   phone: string | null;
   department: string | null;
   role: string | null;
+  system_role: string | null; // Synced from organization_memberships via trigger
   status: string;
   hire_date: string | null;
   notes: string | null;
@@ -98,7 +99,7 @@ function RoleBadge({ rbacRole }: { rbacRole: string | null }) {
     <span
       className={cn(
         "inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium",
-        colorClass
+        colorClass,
       )}
     >
       {formatRoleName(rbacRole)}
@@ -136,54 +137,8 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
     enabled: !!id,
   });
 
-  // Fetch organization membership to get RBAC role (single source of truth)
-  const { data: membershipData } = useQuery({
-    queryKey: [
-      "employee-membership",
-      employee?.org_id,
-      employee?.user_id,
-      employee?.email,
-    ],
-    queryFn: async () => {
-      if (!employee?.org_id) return null;
-
-      // Method 1: Try by user_id if available
-      if (employee.user_id) {
-        const { data, error } = await supabase
-          .from("organization_memberships")
-          .select("role, user_id, email")
-          .eq("org_id", employee.org_id)
-          .eq("user_id", employee.user_id)
-          .maybeSingle();
-
-        if (!error && data) return data;
-      }
-
-      // Method 2: Fallback to email lookup
-      if (employee.email) {
-        const { data, error } = await supabase
-          .from("organization_memberships")
-          .select("role, user_id, email")
-          .eq("org_id", employee.org_id)
-          .eq("email", employee.email)
-          .maybeSingle();
-
-        if (!error && data) {
-          // Auto-fix: Link user_id to employee if missing
-          if (data.user_id && !employee.user_id) {
-            await supabase
-              .from("employees")
-              .update({ user_id: data.user_id })
-              .eq("id", employee.id);
-          }
-          return data;
-        }
-      }
-
-      return null;
-    },
-    enabled: !!employee?.org_id && (!!employee?.user_id || !!employee?.email),
-  });
+  // System role now comes directly from employees.system_role (synced via database trigger)
+  // No need for separate membership lookup - it's already in the employee record
 
   // Fetch existing invitation for this employee's email
   const { data: inviteStatus, refetch: refetchInvite } = useQuery({
@@ -231,7 +186,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
       if (error) {
         if (error.code === "23505") {
           throw new Error(
-            "An active invitation for this email already exists."
+            "An active invitation for this email already exists.",
           );
         }
         throw error;
@@ -394,9 +349,9 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                   employee.status === "ACTIVE" || employee.status === "active"
                     ? "bg-emerald-100 text-emerald-700"
                     : employee.status === "ON_LEAVE" ||
-                      employee.status === "on-leave"
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-slate-100 text-slate-700"
+                        employee.status === "on-leave"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-slate-100 text-slate-700",
                 )}
               >
                 {employee.status.replace("_", " ")}
@@ -434,8 +389,8 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                 inviteButtonConfig.disabled
                   ? "text-slate-400"
                   : inviteStatus?.accepted_at
-                  ? "text-green-600 border-green-100"
-                  : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700"
+                    ? "text-green-600 border-green-100"
+                    : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700",
               )}
             >
               {sendInviteMutation.isPending ? (
@@ -468,7 +423,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
             "px-6 py-3 text-sm font-medium border-b-2 transition-colors",
             activeTab === "overview"
               ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
           )}
         >
           Overview
@@ -479,7 +434,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
             "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
             activeTab === "documents"
               ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
           )}
         >
           Documents
@@ -488,7 +443,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
               "px-2 py-0.5 rounded-full text-[10px] font-bold",
               activeTab === "documents"
                 ? "bg-[#3D5A3D] text-white"
-                : "bg-slate-100 text-slate-500"
+                : "bg-slate-100 text-slate-500",
             )}
           >
             {docCount}
@@ -500,7 +455,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
             "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
             activeTab === "trips"
               ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
           )}
         >
           Work History
@@ -529,7 +484,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                           System Role
                         </p>
                         <div className="mt-1.5">
-                          <RoleBadge rbacRole={membershipData?.role || null} />
+                          <RoleBadge rbacRole={employee?.system_role || null} />
                         </div>
                       </div>
                     </div>
@@ -653,7 +608,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                       <div
                         className={cn(
                           "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-4 border-white shadow-sm z-10",
-                          event.bg
+                          event.bg,
                         )}
                       >
                         <event.icon className={cn("w-5 h-5", event.color)} />
@@ -694,7 +649,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
             <div className="space-y-4">
               <div className="flex items-center justify-between py-2 border-b border-slate-50">
                 <span className="text-sm text-slate-500">System Role</span>
-                <RoleBadge rbacRole={membershipData?.role || null} />
+                <RoleBadge rbacRole={employee?.system_role || null} />
               </div>
               <div className="flex items-center justify-between py-2 border-b border-slate-50">
                 <span className="text-sm text-slate-500">System Access</span>
@@ -704,12 +659,12 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                     employee.user_id || inviteStatus?.accepted_at
                       ? "text-emerald-600"
                       : inviteStatus &&
-                        new Date(inviteStatus.expires_at) > new Date()
-                      ? "text-amber-600"
-                      : inviteStatus &&
-                        new Date(inviteStatus.expires_at) <= new Date()
-                      ? "text-red-500"
-                      : "text-slate-400"
+                          new Date(inviteStatus.expires_at) > new Date()
+                        ? "text-amber-600"
+                        : inviteStatus &&
+                            new Date(inviteStatus.expires_at) <= new Date()
+                          ? "text-red-500"
+                          : "text-slate-400",
                   )}
                 >
                   {employee.user_id || inviteStatus?.accepted_at ? (
@@ -748,7 +703,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                       "text-sm",
                       new Date(inviteStatus.expires_at) < new Date()
                         ? "text-red-500 font-semibold"
-                        : "text-slate-900"
+                        : "text-slate-900",
                     )}
                   >
                     {formatDate(inviteStatus.expires_at)}
