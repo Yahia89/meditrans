@@ -190,18 +190,19 @@ export function DriverDetailsPage({
         await supabase.from("org_invites").delete().eq("id", inviteStatus.id);
       }
 
-      // Create new invitation
+      // Create new invitation with driver's name
       const { error } = await supabase.from("org_invites").insert({
         org_id: currentOrganization.id,
         email: driver.email,
         role: "driver" as any,
+        full_name: driver.full_name, // Store driver's name for accept-invite page
         invited_by: (await supabase.auth.getUser()).data.user?.id,
       });
 
       if (error) {
         if (error.code === "23505") {
           throw new Error(
-            "An active invitation for this email already exists."
+            "An active invitation for this email already exists.",
           );
         }
         throw error;
@@ -326,7 +327,7 @@ export function DriverDetailsPage({
               <span
                 className={cn(
                   "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                  statusInfo.className
+                  statusInfo.className,
                 )}
               >
                 {statusInfo.label}
@@ -364,8 +365,8 @@ export function DriverDetailsPage({
                 inviteButtonConfig.disabled
                   ? "text-slate-400"
                   : inviteStatus?.accepted_at
-                  ? "text-green-600 border-green-100"
-                  : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700"
+                    ? "text-green-600 border-green-100"
+                    : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700",
               )}
             >
               {sendInviteMutation.isPending ? (
@@ -398,7 +399,7 @@ export function DriverDetailsPage({
             "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
             activeTab === "overview"
               ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
           )}
         >
           Overview
@@ -409,7 +410,7 @@ export function DriverDetailsPage({
             "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
             activeTab === "documents"
               ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
           )}
         >
           Documents
@@ -418,7 +419,7 @@ export function DriverDetailsPage({
               "px-2 py-0.5 rounded-full text-[10px] font-bold",
               activeTab === "documents"
                 ? "bg-[#3D5A3D] text-white"
-                : "bg-slate-100 text-slate-500"
+                : "bg-slate-100 text-slate-500",
             )}
           >
             {docCount}
@@ -430,7 +431,7 @@ export function DriverDetailsPage({
             "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
             activeTab === "trips"
               ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
           )}
         >
           Trip History
@@ -439,7 +440,7 @@ export function DriverDetailsPage({
               "px-2 py-0.5 rounded-full text-[10px] font-bold",
               activeTab === "trips"
                 ? "bg-[#3D5A3D] text-white"
-                : "bg-slate-100 text-slate-500"
+                : "bg-slate-100 text-slate-500",
             )}
           >
             {tripCount}
@@ -617,7 +618,7 @@ export function DriverDetailsPage({
                               new Date(driver.insurance_expiration_date) <
                                 new Date()
                               ? "text-red-600 font-bold"
-                              : ""
+                              : "",
                           )}
                         >
                           {driver.insurance_expiration_date
@@ -680,7 +681,7 @@ export function DriverDetailsPage({
                               {value as string}
                             </span>
                           </div>
-                        )
+                        ),
                       )}
                     </div>
                   </div>
@@ -750,7 +751,7 @@ export function DriverDetailsPage({
                     "text-sm font-semibold",
                     driver.status.toLowerCase() === "available"
                       ? "text-emerald-600"
-                      : "text-slate-600"
+                      : "text-slate-600",
                   )}
                 >
                   {driver.status.toUpperCase()}
@@ -770,12 +771,12 @@ export function DriverDetailsPage({
                     driver.user_id || inviteStatus?.accepted_at
                       ? "text-emerald-600"
                       : inviteStatus &&
-                        new Date(inviteStatus.expires_at) > new Date()
-                      ? "text-amber-600"
-                      : inviteStatus &&
-                        new Date(inviteStatus.expires_at) <= new Date()
-                      ? "text-red-500"
-                      : "text-slate-400"
+                          new Date(inviteStatus.expires_at) > new Date()
+                        ? "text-amber-600"
+                        : inviteStatus &&
+                            new Date(inviteStatus.expires_at) <= new Date()
+                          ? "text-red-500"
+                          : "text-slate-400",
                   )}
                 >
                   {driver.user_id || inviteStatus?.accepted_at ? (
