@@ -1,10 +1,26 @@
 -- 1. Add committed_by to org_uploads
 ALTER TABLE public.org_uploads ADD COLUMN IF NOT EXISTS committed_by uuid REFERENCES auth.users(id);
 
--- 2. Update upload_source enum
+-- 2. Safely create or update upload_source enum
 DO $$ 
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_enum JOIN pg_type ON pg_enum.enumtypid = pg_type.oid WHERE pg_type.typname = 'upload_source' AND enumlabel = 'trips') THEN
+    -- Create enum if it does not exist
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'upload_source'
+    ) THEN
+        CREATE TYPE public.upload_source AS ENUM ('default');
+    END IF;
+
+    -- Add 'trips' value if missing
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_enum
+        JOIN pg_type ON pg_enum.enumtypid = pg_type.oid
+        WHERE pg_type.typname = 'upload_source'
+          AND enumlabel = 'trips'
+    ) THEN
         ALTER TYPE public.upload_source ADD VALUE 'trips';
     END IF;
 END $$;
