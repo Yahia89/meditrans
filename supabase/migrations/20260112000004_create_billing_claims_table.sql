@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS billing_claims (
   response_data JSONB,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  created_by UUID REFERENCES profiles(id),
+  created_by UUID REFERENCES user_profiles(user_id),
   CONSTRAINT valid_status CHECK (status IN ('draft', 'ready', 'validated', 'generated', 'submitted', 'accepted', 'rejected', 'paid'))
 );
 
