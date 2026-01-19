@@ -87,7 +87,7 @@ function RelatedTripsTimeline({
         d.getDate(),
         0,
         0,
-        0
+        0,
       ).toISOString();
       const end = new Date(
         d.getFullYear(),
@@ -95,7 +95,7 @@ function RelatedTripsTimeline({
         d.getDate(),
         23,
         59,
-        59
+        59,
       ).toISOString();
 
       const { data, error } = await supabase
@@ -131,7 +131,7 @@ function RelatedTripsTimeline({
               (sum, t) =>
                 sum +
                 (Number(t.actual_distance_miles || t.distance_miles) || 0),
-              0
+              0,
             );
             return (
               <div key={trip.id} className="relative pl-10 group">
@@ -141,7 +141,7 @@ function RelatedTripsTimeline({
                     "absolute left-0 top-1 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all duration-300 z-10",
                     isCurrent
                       ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200"
-                      : "bg-white border-slate-200 text-slate-400 group-hover:border-blue-300 group-hover:text-blue-400"
+                      : "bg-white border-slate-200 text-slate-400 group-hover:border-blue-300 group-hover:text-blue-400",
                   )}
                 >
                   <span className="text-xs font-bold">{idx + 1}</span>
@@ -154,14 +154,14 @@ function RelatedTripsTimeline({
                     "rounded-xl border p-3 transition-all cursor-pointer",
                     isCurrent
                       ? "bg-blue-50 border-blue-200 ring-1 ring-blue-100 pointer-events-none"
-                      : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-md"
+                      : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-md",
                   )}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span
                       className={cn(
                         "text-sm font-bold",
-                        isCurrent ? "text-blue-900" : "text-slate-700"
+                        isCurrent ? "text-blue-900" : "text-slate-700",
                       )}
                     >
                       {new Date(trip.pickup_time).toLocaleTimeString([], {
@@ -175,8 +175,8 @@ function RelatedTripsTimeline({
                         trip.status === "completed"
                           ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                           : trip.status === "in_progress"
-                          ? "bg-blue-100 text-blue-700 border-blue-200"
-                          : "bg-slate-100 text-slate-600 border-slate-200"
+                            ? "bg-blue-100 text-blue-700 border-blue-200"
+                            : "bg-slate-100 text-slate-600 border-slate-200",
                       )}
                     >
                       {trip.status.replace("_", " ")}
@@ -212,14 +212,14 @@ function RelatedTripsTimeline({
                           "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold",
                           isCurrent
                             ? "bg-blue-100 text-blue-700"
-                            : "bg-slate-100 text-slate-600"
+                            : "bg-slate-100 text-slate-600",
                         )}
                       >
                         <Path weight="bold" className="w-3.5 h-3.5" />
                         {Math.ceil(
                           Number(
-                            trip.actual_distance_miles || trip.distance_miles
-                          )
+                            trip.actual_distance_miles || trip.distance_miles,
+                          ),
                         )}{" "}
                         miles
                       </div>
@@ -256,7 +256,7 @@ export function TripDetails({
   onNavigate,
 }: TripDetailsProps) {
   const { user, profile } = useAuth();
-  const { isAdmin, isOwner } = usePermissions();
+  const { canManageTrips } = usePermissions();
   const queryClient = useQueryClient();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [statusToUpdate, setStatusToUpdate] = useState<TripStatus | null>(null);
@@ -274,7 +274,7 @@ export function TripDetails({
                     *,
                     patient:patients(id, full_name, phone, email, created_at, user_id),
                     driver:drivers(id, full_name, phone, email, user_id, vehicle_info)
-                `
+                `,
         )
         .eq("id", tripId)
         .single();
@@ -368,7 +368,7 @@ export function TripDetails({
       try {
         if (trip && import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
           const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
-            trip.pickup_location
+            trip.pickup_location,
           )}&destination=${encodeURIComponent(trip.dropoff_location)}&key=${
             import.meta.env.VITE_GOOGLE_MAPS_API_KEY
           }`;
@@ -442,7 +442,7 @@ export function TripDetails({
   if (!trip) return <div>Trip not found</div>;
 
   const isDesignatedDriver = trip.driver?.user_id === user?.id;
-  const canManage = isAdmin || isOwner;
+  const canManage = canManageTrips;
 
   const handleStatusUpdate = (status: TripStatus) => {
     if (status === "cancelled" || status === "no_show") {
@@ -508,7 +508,7 @@ export function TripDetails({
     // Sort by date descending (most recent first)
     return events.sort(
       (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
   };
 
@@ -591,11 +591,11 @@ export function TripDetails({
                       trip.status === "completed"
                         ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                         : trip.status === "in_progress"
-                        ? "bg-blue-50 text-blue-700 border-blue-100"
-                        : trip.status === "cancelled" ||
-                          trip.status === "no_show"
-                        ? "bg-red-50 text-red-700 border-red-100"
-                        : "bg-slate-50 text-slate-600 border-slate-200"
+                          ? "bg-blue-50 text-blue-700 border-blue-100"
+                          : trip.status === "cancelled" ||
+                              trip.status === "no_show"
+                            ? "bg-red-50 text-red-700 border-red-100"
+                            : "bg-slate-50 text-slate-600 border-slate-200",
                     )}
                   >
                     {trip.status.replace("_", " ")}
@@ -672,7 +672,7 @@ export function TripDetails({
                             year: "numeric",
                             month: "long",
                             day: "numeric",
-                          }
+                          },
                         )}
                       </p>
                     </div>
@@ -745,7 +745,7 @@ export function TripDetails({
 
                   {/* Terminal Statuses (Secondary) */}
                   {!["completed", "cancelled", "no_show"].includes(
-                    trip.status
+                    trip.status,
                   ) && (
                     <>
                       <Button
@@ -973,7 +973,7 @@ export function TripDetails({
 
                 // Extract distance from update message if present
                 const distanceMatch = item.status.match(
-                  /DISTANCE:\s*([\d.]+)\s*MILES?/i
+                  /DISTANCE:\s*([\d.]+)\s*MILES?/i,
                 );
                 const distance = distanceMatch
                   ? parseFloat(distanceMatch[1])
@@ -999,18 +999,18 @@ export function TripDetails({
                         isCompleted
                           ? "bg-emerald-50 border-emerald-200"
                           : isCancelOrReject
-                          ? "bg-red-50 border-red-200"
-                          : isRequest
-                          ? "bg-amber-50 border-amber-200"
-                          : isAssigned
-                          ? "bg-blue-50 border-blue-200"
-                          : isUpdate
-                          ? "bg-slate-50 border-slate-200"
-                          : isSignature
-                          ? "bg-indigo-50 border-indigo-200"
-                          : isCreated
-                          ? "bg-slate-50 border-slate-200"
-                          : "bg-slate-50 border-slate-150"
+                            ? "bg-red-50 border-red-200"
+                            : isRequest
+                              ? "bg-amber-50 border-amber-200"
+                              : isAssigned
+                                ? "bg-blue-50 border-blue-200"
+                                : isUpdate
+                                  ? "bg-slate-50 border-slate-200"
+                                  : isSignature
+                                    ? "bg-indigo-50 border-indigo-200"
+                                    : isCreated
+                                      ? "bg-slate-50 border-slate-200"
+                                      : "bg-slate-50 border-slate-150",
                       )}
                     >
                       {isCompleted ? (
@@ -1078,7 +1078,7 @@ export function TripDetails({
                                         "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium",
                                         isDistanceChange
                                           ? "bg-blue-50 text-blue-600 border border-blue-100"
-                                          : "bg-slate-100 text-slate-600"
+                                          : "bg-slate-100 text-slate-600",
                                       )}
                                     >
                                       {isDistanceChange && (
@@ -1100,10 +1100,10 @@ export function TripDetails({
                                 isCompleted
                                   ? "text-emerald-700"
                                   : isCancelOrReject
-                                  ? "text-red-600"
-                                  : isRequest
-                                  ? "text-amber-600"
-                                  : "text-slate-800"
+                                    ? "text-red-600"
+                                    : isRequest
+                                      ? "text-amber-600"
+                                      : "text-slate-800",
                               )}
                             >
                               {displayStatus}
@@ -1264,7 +1264,7 @@ export function TripDetails({
                   "rounded-xl font-bold h-11 px-8 shadow-lg",
                   statusToUpdate === "cancelled"
                     ? "bg-red-600 hover:bg-red-700 text-white shadow-red-200/50"
-                    : "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-200/50"
+                    : "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-200/50",
                 )}
               >
                 Confirm{" "}

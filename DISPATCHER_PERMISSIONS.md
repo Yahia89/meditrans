@@ -174,6 +174,21 @@ const canManageDrivers = canEditDrivers;
 {canManageDrivers && <Button>Add Driver</Button>}
 ```
 
+### `src/components/trips/TripDetails.tsx`
+
+```typescript
+const { canManageTrips } = usePermissions();
+const canManage = canManageTrips;
+
+// Edit, Delete, Cancel, and status change buttons visible for dispatchers
+{canManage && (
+  <>
+    <Button onClick={() => onEdit(tripId)}>Edit</Button>
+    <Button onClick={() => setIsDeleteDialogOpen(true)}>Delete</Button>
+  </>
+)}
+```
+
 ### `src/components/account-page.tsx`
 
 ```typescript
@@ -248,4 +263,4 @@ const { canEditOwnName } = usePermissions();
 ---
 
 **Implementation Date**: January 2026
-**Last Updated**: January 17, 2026
+**Last Updated**: January 19, 2026
