@@ -21,7 +21,7 @@ export const VEHICLE_TYPE_NEEDS = [
 export const WAIVER_TYPES = [
   "Elderly Waiver (EW)",
   "MSHO",
-  "CADD",
+  "CADI",
   "BI Waiver",
   "CAC Waiver",
   "Other",

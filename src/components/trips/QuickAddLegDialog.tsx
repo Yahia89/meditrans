@@ -113,34 +113,12 @@ export function QuickAddLegDialog({
     enabled: !!currentOrganization,
   });
 
-  // Fetch Employees (who might also be drivers)
-  const { data: employees } = useQuery({
-    queryKey: ["employees-form", currentOrganization?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("id, full_name, email, phone")
-        .eq("org_id", currentOrganization?.id)
-        .order("full_name");
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!currentOrganization,
-  });
-
   const allPotentialDrivers = useMemo(
     () =>
-      [
-        ...(drivers || []).map((d) => ({ ...d, type: "driver" as const })),
-        ...(employees || [])
-          .filter((e) => !(drivers || []).some((d) => d.email === e.email))
-          .map((e) => ({
-            ...e,
-            type: "employee" as const,
-            vehicle_type: null as string | null,
-          })),
-      ].sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")),
-    [drivers, employees]
+      (drivers || [])
+        .map((d) => ({ ...d, type: "driver" as const }))
+        .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")),
+    [drivers],
   );
 
   // Fetch Patient Details to check vehicle needs
@@ -162,7 +140,7 @@ export function QuickAddLegDialog({
     const need = patientDetails?.vehicle_type_need;
     if (!need) return allPotentialDrivers;
     return allPotentialDrivers.filter((d) =>
-      canDriverServePatient(d.vehicle_type, need)
+      canDriverServePatient(d.vehicle_type, need),
     );
   }, [allPotentialDrivers, patientDetails]);
 

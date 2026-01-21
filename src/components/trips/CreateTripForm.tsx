@@ -44,7 +44,7 @@ const GOOGLE_MAPS_LIBRARIES: (
 // Vehicle type compatibility matrix
 const canDriverServePatient = (
   driverVehicleType: string | null,
-  patientNeed: string | null
+  patientNeed: string | null,
 ): boolean => {
   if (!patientNeed || patientNeed === "COMMON CARRIER") return true;
   if (!driverVehicleType) return false;
@@ -124,7 +124,9 @@ export function CreateTripForm({
   // Helper to update the currently active leg
   const updateActiveLeg = (updates: Partial<TripDraft>) => {
     setTripLegs((prev) =>
-      prev.map((leg) => (leg.id === activeLegId ? { ...leg, ...updates } : leg))
+      prev.map((leg) =>
+        leg.id === activeLegId ? { ...leg, ...updates } : leg,
+      ),
     );
   };
 
@@ -161,7 +163,7 @@ export function CreateTripForm({
 
   const handleLocationSelect = async (
     field: "pickup_location" | "dropoff_location",
-    value: string
+    value: string,
   ) => {
     if (!value) {
       // Manual clear or typing
@@ -198,8 +200,8 @@ export function CreateTripForm({
                   distance_miles: metrics.distance_miles,
                   duration_minutes: metrics.duration_minutes,
                 }
-              : leg
-          )
+              : leg,
+          ),
         );
       }
     }
@@ -238,7 +240,7 @@ export function CreateTripForm({
             ? existingTrip.trip_type
             : "OTHER",
           other_trip_type: TRIP_TYPES.some(
-            (t) => t.value === existingTrip.trip_type
+            (t) => t.value === existingTrip.trip_type,
           )
             ? ""
             : existingTrip.trip_type || "",
@@ -272,7 +274,7 @@ export function CreateTripForm({
       const startOfMonth = new Date(
         now.getFullYear(),
         now.getMonth(),
-        1
+        1,
       ).toISOString();
       const endOfMonth = new Date(
         now.getFullYear(),
@@ -280,7 +282,7 @@ export function CreateTripForm({
         0,
         23,
         59,
-        59
+        59,
       ).toISOString();
 
       const { data: tripCounts, error: tripsError } = await supabase
@@ -299,7 +301,7 @@ export function CreateTripForm({
           tripCounts?.filter((t) => t.patient_id === p.id).length || 0;
         const creditInfo = calculateCreditStatus(
           p.monthly_credit,
-          completedCount * ESTIMATED_COST_PER_TRIP
+          completedCount * ESTIMATED_COST_PER_TRIP,
         );
         return {
           ...p,
@@ -326,33 +328,12 @@ export function CreateTripForm({
     enabled: !!currentOrganization,
   });
 
-  const { data: employees } = useQuery({
-    queryKey: ["employees-form", currentOrganization?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("id, full_name, email, phone")
-        .eq("org_id", currentOrganization?.id)
-        .order("full_name");
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!currentOrganization,
-  });
-
   const allPotentialDrivers = useMemo(
     () =>
-      [
-        ...(drivers || []).map((d) => ({ ...d, type: "driver" as const })),
-        ...(employees || [])
-          .filter((e) => !(drivers || []).some((d) => d.email === e.email))
-          .map((e) => ({
-            ...e,
-            type: "employee" as const,
-            vehicle_type: null as string | null,
-          })),
-      ].sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")),
-    [drivers, employees]
+      (drivers || [])
+        .map((d) => ({ ...d, type: "driver" as const }))
+        .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")),
+    [drivers],
   );
 
   // Derived state for the current leg
@@ -362,7 +343,7 @@ export function CreateTripForm({
   const compatibleDrivers = useMemo(() => {
     if (!patientVehicleNeed) return allPotentialDrivers;
     return allPotentialDrivers.filter((d) =>
-      canDriverServePatient(d.vehicle_type, patientVehicleNeed)
+      canDriverServePatient(d.vehicle_type, patientVehicleNeed),
     );
   }, [allPotentialDrivers, patientVehicleNeed]);
 
@@ -416,11 +397,11 @@ export function CreateTripForm({
     try {
       // Validate all legs have time and locations
       const invalidLeg = tripLegs.find(
-        (l) => !l.pickup_time || !l.pickup_location || !l.dropoff_location
+        (l) => !l.pickup_time || !l.pickup_location || !l.dropoff_location,
       );
       if (invalidLeg) {
         setConflictError(
-          "Missing trip details. Please ensure pickup time, origin, and destination are all set."
+          "Missing trip details. Please ensure pickup time, origin, and destination are all set.",
         );
         setActiveLegId(invalidLeg.id);
         toggleLoading(false);
@@ -431,7 +412,7 @@ export function CreateTripForm({
       for (const leg of tripLegs) {
         // Create a proper Date object and get ISO string for consistent DB comparison
         const pickupDateTimeUTC = new Date(
-          `${leg.pickup_date}T${leg.pickup_time}`
+          `${leg.pickup_date}T${leg.pickup_time}`,
         ).toISOString();
 
         // Check Patient Conflict
@@ -445,7 +426,7 @@ export function CreateTripForm({
         if (patientConflicts && patientConflicts.length > 0) {
           // Filter out self and the primary trip being edited
           const realConflicts = patientConflicts.filter(
-            (c) => c.id !== leg.db_id && c.id !== tripId
+            (c) => c.id !== leg.db_id && c.id !== tripId,
           );
           if (realConflicts.length > 0) {
             const patientName =
@@ -453,7 +434,7 @@ export function CreateTripForm({
               "Patient";
 
             setConflictError(
-              `Unable to Schedule: ${patientName} already has another trip scheduled at this exact time.`
+              `Unable to Schedule: ${patientName} already has another trip scheduled at this exact time.`,
             );
             setActiveLegId(leg.id);
             toggleLoading(false);
@@ -475,7 +456,7 @@ export function CreateTripForm({
               (c) =>
                 c.id !== leg.db_id &&
                 c.id !== tripId &&
-                c.patient_id !== leg.patient_id // ALLOW if same patient (multi-leg sequence)
+                c.patient_id !== leg.patient_id, // ALLOW if same patient (multi-leg sequence)
             );
 
             if (realDriverConflicts.length > 0) {
@@ -489,7 +470,7 @@ export function CreateTripForm({
                 .join(", ");
 
               setConflictError(
-                `Driver Conflict: ${driverName} is already assigned to a trip for ${otherPatientNames} at this time.`
+                `Driver Conflict: ${driverName} is already assigned to a trip for ${otherPatientNames} at this time.`,
               );
               setActiveLegId(leg.id);
               toggleLoading(false);
@@ -502,42 +483,11 @@ export function CreateTripForm({
       // Process each leg
       for (const leg of tripLegs) {
         const pickupDateTime = new Date(
-          `${leg.pickup_date}T${leg.pickup_time}`
+          `${leg.pickup_date}T${leg.pickup_time}`,
         );
 
         let finalDriverId = leg.driver_id;
-
-        // Check/Create driver logic (same as before)
-        if (finalDriverId) {
-          const selectedEntity = allPotentialDrivers.find(
-            (p) => p.id === finalDriverId
-          );
-          if (selectedEntity && selectedEntity.type === "employee") {
-            const { data: existingDriver } = await supabase
-              .from("drivers")
-              .select("id")
-              .eq("email", selectedEntity.email)
-              .single();
-
-            if (existingDriver) {
-              finalDriverId = existingDriver.id;
-            } else {
-              const { data: newDriver, error: driverError } = await supabase
-                .from("drivers")
-                .insert({
-                  org_id: currentOrganization.id,
-                  full_name: selectedEntity.full_name,
-                  email: selectedEntity.email,
-                  phone: selectedEntity.phone,
-                  active: true,
-                })
-                .select()
-                .single();
-              if (driverError) throw driverError;
-              finalDriverId = newDriver.id;
-            }
-          }
-        }
+        // Logic for employee -> driver conversion removed. Driver must be selected from drivers list.
 
         // Determine final status
         let finalStatus = leg.status;
@@ -682,7 +632,7 @@ export function CreateTripForm({
                   onClick={() => setActiveLegId(leg.id)}
                   className={cn(
                     "relative pl-6 pb-6 cursor-pointer group transition-all",
-                    index === tripLegs.length - 1 ? "pb-0" : "" // No padding needed for last line if purely visual, but gap handles it
+                    index === tripLegs.length - 1 ? "pb-0" : "", // No padding needed for last line if purely visual, but gap handles it
                   )}
                 >
                   {/* Timeline Line */}
@@ -697,8 +647,8 @@ export function CreateTripForm({
                       activeLegId === leg.id
                         ? "bg-blue-600 border-blue-600 text-white"
                         : isValid
-                        ? "bg-white border-emerald-400 text-emerald-500"
-                        : "bg-white border-slate-300 text-slate-300 group-hover:border-blue-300"
+                          ? "bg-white border-emerald-400 text-emerald-500"
+                          : "bg-white border-slate-300 text-slate-300 group-hover:border-blue-300",
                     )}
                   >
                     {isValid ? (
@@ -714,7 +664,7 @@ export function CreateTripForm({
                       "rounded-lg border p-3 text-sm transition-all",
                       activeLegId === leg.id
                         ? "bg-white border-blue-200 shadow-md ring-1 ring-blue-100"
-                        : "bg-white border-slate-200 hover:border-blue-200 hover:shadow-sm"
+                        : "bg-white border-slate-200 hover:border-blue-200 hover:shadow-sm",
                     )}
                   >
                     <div className="flex justify-between items-start mb-2">
@@ -753,7 +703,7 @@ export function CreateTripForm({
                         <span
                           className={cn(
                             "line-clamp-1",
-                            !leg.pickup_location && "text-slate-400 italic"
+                            !leg.pickup_location && "text-slate-400 italic",
                           )}
                         >
                           {leg.pickup_location || "Origin"}
@@ -764,7 +714,7 @@ export function CreateTripForm({
                         <span
                           className={cn(
                             "line-clamp-1",
-                            !leg.dropoff_location && "text-slate-400 italic"
+                            !leg.dropoff_location && "text-slate-400 italic",
                           )}
                         >
                           {leg.dropoff_location || "Destination"}
@@ -850,7 +800,7 @@ export function CreateTripForm({
                       className={cn(
                         isDisabled && "text-slate-400 bg-slate-50",
                         !hasNoCredit && isLow && "text-red-400",
-                        p.creditInfo.status === "mid" && "text-amber-600"
+                        p.creditInfo.status === "mid" && "text-amber-600",
                       )}
                     >
                       {p.full_name} {p.monthly_credit ? `(${pct}% credit)` : ""}{" "}
@@ -884,7 +834,6 @@ export function CreateTripForm({
                     {d.vehicle_type
                       ? ` (${d.vehicle_type.replace("_", " ")})`
                       : ""}
-                    {d.type === "employee" ? " - Staff" : ""}
                   </option>
                 ))}
               </select>
