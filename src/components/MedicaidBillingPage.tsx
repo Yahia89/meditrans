@@ -83,7 +83,7 @@ export function MedicaidBillingPage() {
         return {
           submitted: data.filter((c) => c.status === "submitted").length,
           accepted: data.filter(
-            (c) => c.status === "accepted" || c.status === "paid"
+            (c) => c.status === "accepted" || c.status === "paid",
           ).length,
           rejected: data.filter((c) => c.status === "rejected").length,
         };
@@ -143,7 +143,7 @@ export function MedicaidBillingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">
-            Medicaid Billing
+            Medicaid Billing (coming soon)
           </h1>
           <p className="text-slate-500">
             {isBillingConfigured

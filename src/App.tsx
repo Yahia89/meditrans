@@ -50,6 +50,7 @@ export const pages = [
   "client-credits",
   "driver-history",
   "medicaid-billing",
+  "live-tracking",
 ] as const;
 
 export type Page = (typeof pages)[number];
@@ -66,6 +67,7 @@ import { ErrorBoundary } from "./components/error-boundary";
 
 import { MedicaidBillingPage } from "./components/MedicaidBillingPage";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
+import { LiveTrackingPage } from "./components/live/LiveTrackingPage";
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
@@ -120,8 +122,9 @@ function AppContent() {
         "founder",
         "client-credits",
         "medicaid-billing",
+        "live-tracking",
       ],
-      employee: ["founder", "billing", "medicaid-billing"],
+      employee: ["founder", "billing", "medicaid-billing", "live-tracking"],
       // Dispatch: No employees, no upload, no billing, no notifications, no medicaid
       dispatch: [
         "founder",
@@ -438,6 +441,12 @@ function AppContent() {
         return (
           <DashboardPage title="Medicaid Electronic Billing">
             <MedicaidBillingPage />
+          </DashboardPage>
+        );
+      case "live-tracking":
+        return (
+          <DashboardPage title="Live Operations">
+            <LiveTrackingPage />
           </DashboardPage>
         );
       default:

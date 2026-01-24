@@ -12,6 +12,7 @@ import {
   Coins,
   Clock,
   FileText,
+  Broadcast,
 } from "@phosphor-icons/react";
 
 import { NavUser } from "@/components/nav-user";
@@ -46,6 +47,11 @@ const data = {
       icon: MapTrifold,
     },
     {
+      title: "Live",
+      url: "live-tracking" as Page,
+      icon: Broadcast,
+    },
+    {
       title: "Patients",
       url: "patients" as Page,
       icon: UsersThree,
@@ -78,6 +84,7 @@ export function AppSidebar({
   const {
     isSuperAdmin,
     isDriver,
+    isDispatch,
     canViewEmployees,
     canUploadFiles,
     canViewMedicaid,
@@ -91,6 +98,10 @@ export function AppSidebar({
     if (item.url === "employees" && !canViewEmployees) return false;
     // Upload: only visible to admin+
     if (item.url === "upload" && !canUploadFiles) return false;
+
+    // Live: only visible to dispatch+ (owner, admin, dispatch)
+    if (item.url === "live-tracking" && !isDispatch) return false;
+
     return true;
   });
 
@@ -160,8 +171,11 @@ export function AppSidebar({
               (item.url === "trips" && currentPage === "trip-details") ||
               (item.url === "client-credits" &&
                 currentPage === "client-credits") ||
+              (item.url === "client-credits" &&
+                currentPage === "client-credits") ||
               (item.url === "medicaid-billing" &&
-                currentPage === "medicaid-billing");
+                currentPage === "medicaid-billing") ||
+              (item.url === "live-tracking" && currentPage === "live-tracking");
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
