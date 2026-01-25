@@ -28,6 +28,16 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { cn, formatPhoneNumber } from "@/lib/utils";
+import { useLoadScript } from "@react-google-maps/api";
+import { AddressAutocomplete } from "@/components/trips/AddressAutocomplete";
+
+// Libraries must be defined outside component to avoid re-loading
+const GOOGLE_MAPS_LIBRARIES: (
+  | "places"
+  | "geometry"
+  | "drawing"
+  | "visualization"
+)[] = ["places"];
 
 // Schema for employee form
 const employeeSchema = z.object({
@@ -39,6 +49,7 @@ const employeeSchema = z.object({
     .regex(/^\(\d{3}\) \d{3}-\d{4}$/, "Invalid phone format (555) 555-5555")
     .optional()
     .or(z.literal("")),
+  address: z.string().optional(), // New address field
   role: z.string().optional(),
   department: z.string().optional(),
   hire_date: z.string().optional(),
@@ -96,7 +107,15 @@ export function EmployeeForm({
 }: EmployeeFormProps) {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load Google Maps API
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
+
   const [currentStep, setCurrentStep] = useState(1);
   const [customFields, setCustomFields] = useState<CustomField[]>(() => {
     if (initialData?.custom_fields) {
@@ -221,6 +240,7 @@ export function EmployeeForm({
           full_name: initialData.full_name,
           email: initialData.email || "",
           phone: initialData.phone ? formatPhoneNumber(initialData.phone) : "",
+          address: (initialData as any).address || "",
           role: initialData.role || "",
           department: initialData.department || "",
           hire_date: initialData.hire_date || "",
@@ -231,6 +251,7 @@ export function EmployeeForm({
           full_name: "",
           email: "",
           phone: "",
+          address: "",
           role: "",
           department: "",
           hire_date: "",
@@ -355,6 +376,7 @@ export function EmployeeForm({
         full_name: data.full_name,
         email: data.email || null,
         phone: data.phone || null,
+        address: data.address || null,
         role: data.role || null,
         department: data.department || null,
         hire_date: data.hire_date || null,
@@ -650,6 +672,28 @@ export function EmployeeForm({
                         className={cn("h-9", errors.phone && "border-red-500")}
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Address
+                    </label>
+                    <AddressAutocomplete
+                      isLoaded={isLoaded}
+                      onAddressSelect={(place) => {
+                        if (place.formatted_address) {
+                          setValue("address", place.formatted_address, {
+                            shouldValidate: true,
+                          });
+                        }
+                      }}
+                      {...register("address")}
+                      onChange={(val) => {
+                        setValue("address", val, { shouldValidate: true });
+                      }}
+                      placeholder="123 Main St, City, State ZIP"
+                      className="h-9"
+                    />
                   </div>
                 </div>
               )}

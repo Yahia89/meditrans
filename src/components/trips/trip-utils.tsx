@@ -32,6 +32,7 @@ export const TRIP_TYPES = [
   { value: "METHADONE CLINICS", label: "Methadone Clinics" },
   { value: "DIALYSIS", label: "Dialysis" },
   { value: "REGULAR TRANSPORTATION", label: "Regular Transportation" },
+  { value: "WILL CALL", label: "Will Call" },
   { value: "OTHER", label: "Other" },
 ] as const;
 
@@ -49,7 +50,7 @@ export const TimePicker = ({
   const updateTime = (
     newHour: string,
     newMinute: string,
-    newPeriod: string
+    newPeriod: string,
   ) => {
     onChange(formatTime(newHour, newMinute, newPeriod));
   };
@@ -95,7 +96,7 @@ export const TimePicker = ({
 // Vehicle type compatibility matrix
 export const canDriverServePatient = (
   driverVehicleType: string | null,
-  patientNeed: string | null
+  patientNeed: string | null,
 ): boolean => {
   if (!patientNeed || patientNeed === "COMMON CARRIER") return true;
   if (!driverVehicleType) return false;

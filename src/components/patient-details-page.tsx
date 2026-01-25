@@ -25,7 +25,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatPhoneNumber } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PatientForm } from "@/components/forms/patient-form";
 import { DocumentManager } from "@/components/document-manager";
@@ -78,6 +78,19 @@ const statusColors: Record<TripStatus, string> = {
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return "Not specified";
+
+  // Handle YYYY-MM-DD specifically to avoid timezone off-by-one errors
+  if (dateStr.length === 10 && dateStr.includes("-")) {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    // Create date using local components
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+
   return new Date(dateStr).toLocaleDateString(undefined, {
     year: "numeric",
     month: "long",
@@ -109,7 +122,7 @@ export function PatientDetailsPage({
   });
   const [tripPage, setTripPage] = useState(1);
   const [tripStatusFilter, setTripStatusFilter] = useState<TripStatus | "all">(
-    "all"
+    "all",
   );
 
   const canManagePatients = isAdmin || isOwner;
@@ -140,7 +153,7 @@ export function PatientDetailsPage({
           `
           *,
           driver:drivers(id, full_name, phone, vehicle_info)
-        `
+        `,
         )
         .eq("patient_id", id)
         .order("pickup_time", { ascending: false });
@@ -170,7 +183,7 @@ export function PatientDetailsPage({
     const startOfMonth = new Date(
       tripMonth.getFullYear(),
       tripMonth.getMonth(),
-      1
+      1,
     );
     const endOfMonth = new Date(
       tripMonth.getFullYear(),
@@ -178,7 +191,7 @@ export function PatientDetailsPage({
       0,
       23,
       59,
-      59
+      59,
     );
 
     return allTrips.filter((trip) => {
@@ -205,13 +218,13 @@ export function PatientDetailsPage({
 
   const goToPrevMonth = () => {
     setTripMonth(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
     );
   };
 
   const goToNextMonth = () => {
     setTripMonth(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
     );
   };
 
@@ -312,7 +325,7 @@ export function PatientDetailsPage({
               "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
               activeTab === "overview"
                 ? "border-[#3D5A3D] text-[#3D5A3D]"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
             )}
           >
             Overview
@@ -323,7 +336,7 @@ export function PatientDetailsPage({
               "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
               activeTab === "documents"
                 ? "border-[#3D5A3D] text-[#3D5A3D]"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
             )}
           >
             Documents
@@ -332,7 +345,7 @@ export function PatientDetailsPage({
                 "px-2 py-0.5 rounded-full text-[10px] font-bold",
                 activeTab === "documents"
                   ? "bg-[#3D5A3D] text-white"
-                  : "bg-slate-100 text-slate-500"
+                  : "bg-slate-100 text-slate-500",
               )}
             >
               {docCount}
@@ -344,7 +357,7 @@ export function PatientDetailsPage({
               "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
               activeTab === "trips"
                 ? "border-[#3D5A3D] text-[#3D5A3D]"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
             )}
           >
             Trip History
@@ -353,7 +366,7 @@ export function PatientDetailsPage({
                 "px-2 py-0.5 rounded-full text-[10px] font-bold",
                 activeTab === "trips"
                   ? "bg-[#3D5A3D] text-white"
-                  : "bg-slate-100 text-slate-500"
+                  : "bg-slate-100 text-slate-500",
               )}
             >
               {allTrips.length}
@@ -367,7 +380,7 @@ export function PatientDetailsPage({
                 "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
                 activeTab === "credits"
                   ? "border-[#3D5A3D] text-[#3D5A3D]"
-                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
               )}
             >
               <Coins weight="duotone" className="w-4 h-4" />
@@ -378,7 +391,7 @@ export function PatientDetailsPage({
                     "px-2 py-0.5 rounded-full text-[10px] font-bold",
                     activeTab === "credits"
                       ? "bg-[#3D5A3D] text-white"
-                      : "bg-emerald-100 text-emerald-700"
+                      : "bg-emerald-100 text-emerald-700",
                   )}
                 >
                   ${patient.monthly_credit.toLocaleString()}
@@ -423,7 +436,9 @@ export function PatientDetailsPage({
                         Phone Number
                       </p>
                       <p className="text-slate-900 mt-0.5">
-                        {patient.phone || "Not specified"}
+                        {patient.phone
+                          ? formatPhoneNumber(patient.phone)
+                          : "Not specified"}
                       </p>
                     </div>
                   </div>
@@ -755,7 +770,7 @@ export function PatientDetailsPage({
                     <span
                       className={cn(
                         "px-2.5 py-0.5 rounded-full text-xs font-semibold border",
-                        statusColors[trip.status]
+                        statusColors[trip.status],
                       )}
                     >
                       {trip.status.replace("_", " ").toUpperCase()}

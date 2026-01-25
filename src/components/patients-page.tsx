@@ -17,7 +17,7 @@ import {
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { cn } from "@/lib/utils";
+import { cn, formatPhoneNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -780,7 +780,7 @@ export function PatientsPage({
                       weight="duotone"
                       className="text-slate-400"
                     />
-                    {patient.phone || "—"}
+                    {patient.phone ? formatPhoneNumber(patient.phone) : "—"}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <Envelope
@@ -961,7 +961,9 @@ export function PatientsPage({
                           className="text-slate-400 flex-shrink-0"
                         />
                         <span className="whitespace-nowrap">
-                          {patient.phone || "—"}
+                          {patient.phone
+                            ? formatPhoneNumber(patient.phone)
+                            : "—"}
                         </span>
                       </div>
                     </td>

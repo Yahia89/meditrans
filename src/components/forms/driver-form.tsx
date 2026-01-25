@@ -30,6 +30,16 @@ import {
   Mail,
 } from "lucide-react";
 import { cn, formatPhoneNumber } from "@/lib/utils";
+import { useLoadScript } from "@react-google-maps/api";
+import { AddressAutocomplete } from "@/components/trips/AddressAutocomplete";
+
+// Libraries must be defined outside component to avoid re-loading
+const GOOGLE_MAPS_LIBRARIES: (
+  | "places"
+  | "geometry"
+  | "drawing"
+  | "visualization"
+)[] = ["places"];
 
 // Vehicle type options
 const VEHICLE_TYPES = [
@@ -116,6 +126,13 @@ export function DriverForm({
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load Google Maps API
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
+
   const [currentStep, setCurrentStep] = useState(1);
   const [customFields, setCustomFields] = useState<CustomField[]>(() => {
     if (initialData?.custom_fields) {
@@ -611,8 +628,19 @@ export function DriverForm({
                       <label className="text-sm font-medium text-slate-700">
                         Address
                       </label>
-                      <Input
+                      <AddressAutocomplete
+                        isLoaded={isLoaded}
+                        onAddressSelect={(place) => {
+                          if (place.formatted_address) {
+                            setValue("address", place.formatted_address, {
+                              shouldValidate: true,
+                            });
+                          }
+                        }}
                         {...register("address")}
+                        onChange={(val) => {
+                          setValue("address", val, { shouldValidate: true });
+                        }}
                         placeholder="123 Main St, City, State ZIP"
                         className="h-9"
                       />

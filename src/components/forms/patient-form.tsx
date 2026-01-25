@@ -29,6 +29,17 @@ import {
   Check,
 } from "lucide-react";
 import { cn, formatPhoneNumber } from "@/lib/utils";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useLoadScript } from "@react-google-maps/api";
+import { AddressAutocomplete } from "@/components/trips/AddressAutocomplete";
+
+// Libraries must be defined outside component to avoid re-loading
+const GOOGLE_MAPS_LIBRARIES: (
+  | "places"
+  | "geometry"
+  | "drawing"
+  | "visualization"
+)[] = ["places"];
 
 // Vehicle type need options for patients
 import {
@@ -132,6 +143,13 @@ export function PatientForm({
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load Google Maps API
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
+
   const [currentStep, setCurrentStep] = useState(1);
   const [customFields, setCustomFields] = useState<CustomField[]>(() => {
     if (initialData?.custom_fields) {
@@ -239,7 +257,7 @@ export function PatientForm({
   const updateCustomField = (
     index: number,
     field: "key" | "value",
-    value: string
+    value: string,
   ) => {
     const updated = [...customFields];
     updated[index][field] = value;
@@ -259,11 +277,22 @@ export function PatientForm({
         }
       });
 
+      // Format patient phone to include +1 for SMS compatibility
+      let formattedPhone = data.phone;
+      if (data.phone) {
+        const cleaned = data.phone.replace(/[^\d]/g, "");
+        if (cleaned.length === 10) {
+          formattedPhone = `+1${cleaned}`;
+        } else if (cleaned.length === 11 && cleaned.startsWith("1")) {
+          formattedPhone = `+${cleaned}`;
+        }
+      }
+
       const patientData = {
         org_id: currentOrganization.id,
         full_name: data.full_name,
         email: data.email || null,
-        phone: data.phone || null,
+        phone: formattedPhone || null,
         dob: data.dob || null,
         date_of_birth: data.dob || null, // Legacy field
         primary_address: data.primary_address || null,
@@ -412,7 +441,7 @@ export function PatientForm({
                         "bg-[#3D5A3D]/10 text-[#3D5A3D] hover:bg-[#3D5A3D]/20 cursor-pointer",
                       !isActive &&
                         !isCompleted &&
-                        "text-slate-400 cursor-not-allowed"
+                        "text-slate-400 cursor-not-allowed",
                     )}
                     disabled={!isCompleted && !isActive}
                   >
@@ -421,7 +450,7 @@ export function PatientForm({
                         "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all",
                         isActive && "bg-white/20 scale-110",
                         isCompleted && "bg-[#3D5A3D] text-white",
-                        !isActive && !isCompleted && "bg-slate-200"
+                        !isActive && !isCompleted && "bg-slate-200",
                       )}
                     >
                       {isCompleted ? (
@@ -440,7 +469,7 @@ export function PatientForm({
                     <ChevronRight
                       className={cn(
                         "w-4 h-4 mx-1",
-                        isCompleted ? "text-[#3D5A3D]" : "text-slate-300"
+                        isCompleted ? "text-[#3D5A3D]" : "text-slate-300",
                       )}
                     />
                   )}
@@ -531,8 +560,23 @@ export function PatientForm({
                   <label className="text-sm font-medium text-slate-700">
                     Address
                   </label>
-                  <Input
+                  <AddressAutocomplete
+                    isLoaded={isLoaded}
+                    onAddressSelect={(place) => {
+                      if (place.formatted_address) {
+                        setValue("primary_address", place.formatted_address, {
+                          shouldValidate: true,
+                        });
+                        // Optionally extract county/city/state etc if needed?
+                        // For now just setting the full address string.
+                      }
+                    }}
                     {...register("primary_address")}
+                    onChange={(val) => {
+                      setValue("primary_address", val, {
+                        shouldValidate: true,
+                      });
+                    }}
                     placeholder="123 Main St, City, State ZIP"
                     className="h-9"
                   />
@@ -748,6 +792,12 @@ export function PatientForm({
                   </label>
                   <Input
                     {...register("case_manager_phone")}
+                    onChange={(e) => {
+                      const formatted = formatPhoneNumber(e.target.value);
+                      setValue("case_manager_phone", formatted, {
+                        shouldValidate: true,
+                      });
+                    }}
                     placeholder="(555) 123-4567"
                     className="h-9"
                   />
@@ -764,7 +814,7 @@ export function PatientForm({
                   placeholder="casemanager@example.com"
                   className={cn(
                     "h-9",
-                    errors.case_manager_email && "border-red-500"
+                    errors.case_manager_email && "border-red-500",
                   )}
                 />
                 {errors.case_manager_email && (

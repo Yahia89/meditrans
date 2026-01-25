@@ -294,6 +294,45 @@ export function TripDetails({
       if (error) throw error;
       return data as TripStatusHistory[];
     },
+    enabled: !!tripId,
+  });
+
+  // Fetch related trips for the journey timeline (same day) to pass to PDF
+  const { data: journeyTrips } = useQuery({
+    queryKey: ["patient-daily-trips", trip?.patient_id, trip?.pickup_time],
+    queryFn: async () => {
+      if (!trip?.patient_id || !trip?.pickup_time) return [];
+
+      const d = new Date(trip.pickup_time);
+      const start = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate(),
+        0,
+        0,
+        0,
+      ).toISOString();
+      const end = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate(),
+        23,
+        59,
+        59,
+      ).toISOString();
+
+      const { data, error } = await supabase
+        .from("trips")
+        .select("*")
+        .eq("patient_id", trip.patient_id)
+        .gte("pickup_time", start)
+        .lte("pickup_time", end)
+        .order("pickup_time", { ascending: true });
+
+      if (error) throw error;
+      return data as Trip[];
+    },
+    enabled: !!trip?.patient_id && !!trip?.pickup_time,
   });
 
   const updateStatusMutation = useMutation({
@@ -826,7 +865,9 @@ export function TripDetails({
 
                       <Button
                         variant="outline"
-                        onClick={() => generateTripSummaryPDF(trip)}
+                        onClick={() =>
+                          generateTripSummaryPDF(trip, journeyTrips || [])
+                        }
                         className="h-11 border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 font-bold px-4 rounded-xl gap-2 transition-all shadow-sm bg-white"
                       >
                         <FilePdf

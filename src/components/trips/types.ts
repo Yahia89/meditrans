@@ -7,7 +7,8 @@ export type TripStatus =
   | "in_progress"
   | "completed"
   | "cancelled"
-  | "no_show";
+  | "no_show"
+  | "waiting";
 
 export interface Trip {
   id: string;
