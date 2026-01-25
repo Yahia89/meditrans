@@ -25,6 +25,7 @@ import {
   FilePdf,
   DownloadSimple,
 } from "@phosphor-icons/react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -53,7 +54,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SignatureCaptureDialog, SignatureDisplay } from "./SignatureCapture";
 import { generateTripSummaryPDF } from "@/utils/pdf-generator";
 
@@ -70,11 +71,15 @@ function RelatedTripsTimeline({
   patientId,
   date,
   onNavigate,
+  canManage,
+  onEditMileage,
 }: {
   currentTripId: string;
   patientId: string;
   date: string;
   onNavigate: (id: string) => void;
+  canManage?: boolean;
+  onEditMileage?: (trip: Trip) => void;
 }) {
   const { data: trips } = useQuery({
     queryKey: ["patient-daily-trips", patientId, date],
@@ -151,10 +156,10 @@ function RelatedTripsTimeline({
                 <div
                   onClick={() => !isCurrent && onNavigate(trip.id)}
                   className={cn(
-                    "rounded-xl border p-3 transition-all cursor-pointer",
+                    "rounded-xl border p-3 transition-all",
                     isCurrent
-                      ? "bg-blue-50 border-blue-200 ring-1 ring-blue-100 pointer-events-none"
-                      : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-md",
+                      ? "bg-blue-50 border-blue-200 ring-1 ring-blue-100 cursor-default"
+                      : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-md cursor-pointer",
                   )}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -222,6 +227,21 @@ function RelatedTripsTimeline({
                           ),
                         )}{" "}
                         miles
+                        {isCurrent &&
+                          trip.status === "completed" &&
+                          canManage &&
+                          onEditMileage && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditMileage(trip);
+                              }}
+                              className="ml-1 p-1 hover:bg-blue-200 rounded-full text-blue-600 transition-colors"
+                              title="Edit Mileage"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                          )}
                       </div>
                     </div>
                   )}
@@ -248,6 +268,76 @@ function RelatedTripsTimeline({
   );
 }
 
+function EditMileageDialog({
+  isOpen,
+  onOpenChange,
+  trip,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  trip: Trip | null;
+  onConfirm: (miles: number) => void;
+}) {
+  const [miles, setMiles] = useState<string>("");
+
+  useEffect(() => {
+    if (trip && isOpen) {
+      setMiles(
+        (trip.actual_distance_miles || trip.distance_miles || 0).toString(),
+      );
+    }
+  }, [trip, isOpen]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onConfirm(parseFloat(miles));
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit Trip Mileage</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">
+              Actual Distance (Miles)
+            </label>
+            <div className="relative">
+              <Input
+                type="number"
+                step="0.1"
+                required
+                value={miles}
+                onChange={(e) => setMiles(e.target.value)}
+                className="pl-9"
+              />
+              <div className="absolute left-3 top-2.5 text-slate-400">
+                <Path className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">
+              Update the mileage for accurate billing and reporting.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">Save Changes</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function TripDetails({
   tripId,
   onEdit,
@@ -263,6 +353,9 @@ export function TripDetails({
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelExplanation, setCancelExplanation] = useState<string>("");
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
+  const [editingMileageTrip, setEditingMileageTrip] = useState<Trip | null>(
+    null,
+  );
 
   const { data: trip, isLoading } = useQuery({
     queryKey: ["trip", tripId],
@@ -373,6 +466,41 @@ export function TripDetails({
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
       queryClient.invalidateQueries({ queryKey: ["trips"] });
       queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
+    },
+  });
+
+  const updateMileageMutation = useMutation({
+    mutationFn: async ({
+      tripId,
+      miles,
+    }: {
+      tripId: string;
+      miles: number;
+    }) => {
+      const { error } = await supabase
+        .from("trips")
+        .update({
+          actual_distance_miles: miles,
+        })
+        .eq("id", tripId);
+
+      if (error) throw error;
+
+      await supabase.from("trip_status_history").insert({
+        trip_id: tripId,
+        status: `UPDATED: Distance ${miles} miles`,
+        actor_id: user?.id,
+        actor_name: profile?.full_name || user?.email || "System",
+      });
+    },
+    onSuccess: () => {
+      setEditingMileageTrip(null);
+      queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
+      queryClient.invalidateQueries({
+        queryKey: ["patient-daily-trips", trip?.patient_id],
+      });
     },
   });
 
@@ -897,6 +1025,8 @@ export function TripDetails({
               patientId={trip.patient_id}
               date={trip.pickup_time}
               onNavigate={(id) => onNavigate?.(id)}
+              canManage={canManage}
+              onEditMileage={(t) => setEditingMileageTrip(t)}
             />
           )}
 
@@ -1333,6 +1463,20 @@ export function TripDetails({
             isLoading={signatureCaptureMutation.isPending}
           />
         )}
+
+        <EditMileageDialog
+          isOpen={!!editingMileageTrip}
+          onOpenChange={(open) => !open && setEditingMileageTrip(null)}
+          trip={editingMileageTrip}
+          onConfirm={(miles) => {
+            if (editingMileageTrip) {
+              updateMileageMutation.mutate({
+                tripId: editingMileageTrip.id,
+                miles,
+              });
+            }
+          }}
+        />
       </div>
     </div>
   );

@@ -40,10 +40,12 @@ export const TimePicker = ({
   value,
   onChange,
   className,
+  disabled,
 }: {
   value: string;
   onChange: (val: string) => void;
   className?: string;
+  disabled?: boolean;
 }) => {
   const { hour, minute, period } = useMemo(() => parseTime(value), [value]);
 
@@ -58,9 +60,13 @@ export const TimePicker = ({
   return (
     <div className={cn("flex items-center gap-1", className)}>
       <select
+        disabled={disabled}
         value={hour}
         onChange={(e) => updateTime(e.target.value, minute, period)}
-        className="flex-1 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20"
+        className={cn(
+          "flex-1 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20",
+          disabled && "bg-slate-100 text-slate-400 cursor-not-allowed",
+        )}
       >
         {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
           <option key={h} value={h.toString().padStart(2, "0")}>
@@ -70,9 +76,13 @@ export const TimePicker = ({
       </select>
       <span className="text-slate-400 font-bold">:</span>
       <select
+        disabled={disabled}
         value={minute}
         onChange={(e) => updateTime(hour, e.target.value, period)}
-        className="flex-1 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20"
+        className={cn(
+          "flex-1 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20",
+          disabled && "bg-slate-100 text-slate-400 cursor-not-allowed",
+        )}
       >
         {/* 5 minute steps */}
         {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
@@ -82,9 +92,13 @@ export const TimePicker = ({
         ))}
       </select>
       <select
+        disabled={disabled}
         value={period}
         onChange={(e) => updateTime(hour, minute, e.target.value)}
-        className="w-20 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20"
+        className={cn(
+          "w-20 rounded-md border-slate-200 bg-white h-10 px-2 text-sm focus:ring-2 focus:ring-blue-500/20",
+          disabled && "bg-slate-100 text-slate-400 cursor-not-allowed",
+        )}
       >
         <option value="AM">AM</option>
         <option value="PM">PM</option>

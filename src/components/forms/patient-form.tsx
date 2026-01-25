@@ -27,6 +27,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Check,
+  AlertCircle,
 } from "lucide-react";
 import { cn, formatPhoneNumber } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -145,7 +146,7 @@ export function PatientForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load Google Maps API
-  const { isLoaded } = useLoadScript({
+  const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
@@ -484,6 +485,19 @@ export function PatientForm({
           onSubmit={handleSubmit(onSubmit)}
           className="flex-1 overflow-y-auto p-5"
         >
+          {/* Google Maps Error Alert */}
+          {loadError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <div>
+                <p className="font-bold text-sm">Google Maps failed to load</p>
+                <p className="text-xs mt-1">
+                  {loadError.message ||
+                    "Please check your API key configuration."}
+                </p>
+              </div>
+            </div>
+          )}
           {/* Step 1: Basic Information */}
           {currentStep === 1 && (
             <div className="space-y-4">

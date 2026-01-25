@@ -89,7 +89,7 @@ export function CreateTripForm({
   tripId, // If provided, we are in "Edit Mode" (for at least the primary trip)
 }: CreateTripFormProps) {
   // Load Google Maps API
-  const { isLoaded } = useLoadScript({
+  const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
@@ -396,9 +396,14 @@ export function CreateTripForm({
 
     try {
       // Validate all legs have time and locations
-      const invalidLeg = tripLegs.find(
-        (l) => !l.pickup_time || !l.pickup_location || !l.dropoff_location,
-      );
+      const invalidLeg = tripLegs.find((l) => {
+        const isWillCall = l.trip_type === "WILL CALL";
+        // For WILL CALL, pickup_time is optional
+        if (isWillCall) {
+          return !l.pickup_location || !l.dropoff_location;
+        }
+        return !l.pickup_time || !l.pickup_location || !l.dropoff_location;
+      });
       if (invalidLeg) {
         setConflictError(
           "Missing trip details. Please ensure pickup time, origin, and destination are all set.",
@@ -411,8 +416,14 @@ export function CreateTripForm({
       // Check for conflicts
       for (const leg of tripLegs) {
         // Create a proper Date object and get ISO string for consistent DB comparison
+        // Default to 00:00 for Will Call if time is missing
+        const timeToUse =
+          !leg.pickup_time && leg.trip_type === "WILL CALL"
+            ? "00:00"
+            : leg.pickup_time;
+
         const pickupDateTimeUTC = new Date(
-          `${leg.pickup_date}T${leg.pickup_time}`,
+          `${leg.pickup_date}T${timeToUse}`,
         ).toISOString();
 
         // Check Patient Conflict
@@ -482,9 +493,12 @@ export function CreateTripForm({
 
       // Process each leg
       for (const leg of tripLegs) {
-        const pickupDateTime = new Date(
-          `${leg.pickup_date}T${leg.pickup_time}`,
-        );
+        const timeToUse =
+          !leg.pickup_time && leg.trip_type === "WILL CALL"
+            ? "00:00"
+            : leg.pickup_time;
+
+        const pickupDateTime = new Date(`${leg.pickup_date}T${timeToUse}`);
 
         let finalDriverId = leg.driver_id;
         // Logic for employee -> driver conversion removed. Driver must be selected from drivers list.
@@ -759,6 +773,20 @@ export function CreateTripForm({
           onSubmit={handleSubmit}
           className="space-y-5"
         >
+          {/* Google Maps Error Alert */}
+          {loadError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <div>
+                <p className="font-bold text-sm">Google Maps failed to load</p>
+                <p className="text-xs mt-1">
+                  {loadError.message ||
+                    "Please check your API key configuration."}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Patient & Driver Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
             <div className="space-y-2">
@@ -973,6 +1001,7 @@ export function CreateTripForm({
               <TimePicker
                 value={currentLeg.pickup_time}
                 onChange={(t) => updateActiveLeg({ pickup_time: t })}
+                disabled={currentLeg.trip_type === "WILL CALL"}
               />
             </div>
             <div className="space-y-2">

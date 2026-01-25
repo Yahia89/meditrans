@@ -1,26 +1,34 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { Input } from "@/components/ui/input";
 
 // Note: We are using the native Google Maps JS API loaded in the parent context.
 
-interface AddressAutocompleteProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange"> {
+interface AddressAutocompleteProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "onChange"
+> {
   onAddressSelect: (place: google.maps.places.PlaceResult) => void;
   onChange?: (value: string) => void;
   isLoaded: boolean;
   value?: string;
 }
 
-export function AddressAutocomplete({
-  onAddressSelect,
-  onChange,
-  isLoaded,
-  value,
-  ...props
-}: AddressAutocompleteProps) {
+export const AddressAutocomplete = forwardRef<
+  HTMLInputElement,
+  AddressAutocompleteProps
+>(({ onAddressSelect, onChange, isLoaded, value, ...props }, ref) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const isSelectingRef = useRef(false);
+
+  // Merge refs so that React Hook Form can access the input while we also use it for Google Maps
+  useImperativeHandle(ref, () => inputRef.current as HTMLInputElement);
 
   // Memoize the callback to avoid recreating the listener
   const handlePlaceChanged = useCallback(() => {
@@ -54,7 +62,7 @@ export function AddressAutocomplete({
 
     autocompleteRef.current = new google.maps.places.Autocomplete(
       inputRef.current,
-      options
+      options,
     );
 
     autocompleteRef.current.addListener("place_changed", handlePlaceChanged);
@@ -90,4 +98,6 @@ export function AddressAutocomplete({
       autoComplete="off"
     />
   );
-}
+});
+
+AddressAutocomplete.displayName = "AddressAutocomplete";
