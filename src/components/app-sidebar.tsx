@@ -13,6 +13,7 @@ import {
   Clock,
   FileText,
   Broadcast,
+  Buildings,
 } from "@phosphor-icons/react";
 
 import { NavUser } from "@/components/nav-user";
@@ -129,11 +130,19 @@ export function AppSidebar({
   }
 
   if (isSuperAdmin) {
-    navItems.push({
-      title: "Founder Tool",
-      url: "founder" as Page,
-      icon: Shield,
-    });
+    // For Super Admin (Founder), clear everything else and show only specific tools
+    navItems = [
+      {
+        title: "Companies",
+        url: "companies" as Page,
+        icon: Buildings,
+      },
+      {
+        title: "Founder Tool",
+        url: "founder" as Page,
+        icon: Shield,
+      },
+    ];
   }
 
   return (

@@ -175,6 +175,16 @@ export function AcceptInvitePage() {
               }),
             })
             .eq("id", existingEmployee.id);
+        } else {
+          // Create new employee record for Owner/Admin/Dispatch who are new to the system
+          await supabase.from("employees").insert({
+            org_id: invite.org_id,
+            user_id: user.id,
+            full_name: displayName,
+            email: user.email,
+            role: invite.role, // "owner", "admin", "dispatcher"
+            status: "active",
+          });
         }
       }
 

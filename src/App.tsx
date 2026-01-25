@@ -51,6 +51,7 @@ export const pages = [
   "driver-history",
   "medicaid-billing",
   "live-tracking",
+  "companies",
 ] as const;
 
 export type Page = (typeof pages)[number];
@@ -68,6 +69,7 @@ import { ErrorBoundary } from "./components/error-boundary";
 import { MedicaidBillingPage } from "./components/MedicaidBillingPage";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
 import { LiveTrackingPage } from "./components/live/LiveTrackingPage";
+import { CompaniesPage } from "./components/admin/companies-page";
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
@@ -105,6 +107,9 @@ function AppContent() {
   useEffect(() => {
     if (loading || !user) return;
 
+    // Super Admin: Bypass all role-based page restrictions
+    if (isSuperAdmin) return;
+
     // Define restricted pages for each role
     // Hierarchy: owner > admin > dispatch > employee > driver
     const restrictions: Record<string, Page[]> = {
@@ -137,6 +142,7 @@ function AppContent() {
       ],
       admin: ["founder"],
       owner: ["founder"],
+      // Super admin has access to everything by default, but we will restrict per user request in Sidebar
     };
 
     const userRestrictedPages = restrictions[userRole || ""] || [];
@@ -447,6 +453,13 @@ function AppContent() {
         return (
           <DashboardPage title="Live Operations">
             <LiveTrackingPage />
+          </DashboardPage>
+        );
+      case "companies":
+        if (!isSuperAdmin) return null;
+        return (
+          <DashboardPage title="Companies">
+            <CompaniesPage onCreateClick={() => setCurrentPage("founder")} />
           </DashboardPage>
         );
       default:
