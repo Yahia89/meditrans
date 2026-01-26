@@ -152,20 +152,18 @@ export function LiveMap({
 
   // Prepare points for supercluster
   const points = useMemo(() => {
-    return drivers
-      .filter((d) => d.current_lat && d.current_lng)
-      .map((d) => ({
-        type: "Feature" as const,
-        properties: {
-          cluster: false,
-          driverId: d.id,
-          driver: d,
-        },
-        geometry: {
-          type: "Point" as const,
-          coordinates: [d.current_lng!, d.current_lat!],
-        },
-      }));
+    return drivers.map((d) => ({
+      type: "Feature" as const,
+      properties: {
+        cluster: false,
+        driverId: d.id,
+        driver: d,
+      },
+      geometry: {
+        type: "Point" as const,
+        coordinates: [d.lng, d.lat],
+      },
+    }));
   }, [drivers]);
 
   const { clusters, supercluster } = useSupercluster({
@@ -181,10 +179,8 @@ export function LiveMap({
       const bounds = new google.maps.LatLngBounds();
       let hasValidLoc = false;
       drivers.forEach((d) => {
-        if (d.current_lat && d.current_lng) {
-          bounds.extend({ lat: d.current_lat, lng: d.current_lng });
-          hasValidLoc = true;
-        }
+        bounds.extend({ lat: d.lat, lng: d.lng });
+        hasValidLoc = true;
       });
       if (hasValidLoc) {
         map.fitBounds(bounds);
@@ -200,8 +196,8 @@ export function LiveMap({
       // 1. Pan to driver
       if (map) {
         const driver = drivers.find((d) => d.id === selectedDriverId);
-        if (driver?.current_lat && driver?.current_lng) {
-          map.panTo({ lat: driver.current_lat, lng: driver.current_lng });
+        if (driver) {
+          map.panTo({ lat: driver.lat, lng: driver.lng });
           map.setZoom(15);
         }
       }
@@ -353,14 +349,20 @@ export function LiveMap({
                         : "bg-emerald-500 border-white text-white",
                   )}
                 >
-                  {isBusy ? (
-                    <NavigationArrow
-                      weight="fill"
-                      className="w-5 h-5 -rotate-45"
-                    />
-                  ) : (
-                    <CarProfile weight="fill" className="w-5 h-5" />
-                  )}
+                  <div
+                    className="flex items-center justify-center transition-transform duration-100 ease-linear"
+                    style={{
+                      transform: isBusy
+                        ? `rotate(${(driver.bearing || 0) - 45}deg)`
+                        : undefined,
+                    }}
+                  >
+                    {isBusy ? (
+                      <NavigationArrow weight="fill" className="w-5 h-5" />
+                    ) : (
+                      <CarProfile weight="fill" className="w-5 h-5" />
+                    )}
+                  </div>
                 </div>
 
                 {/* Tooltip */}

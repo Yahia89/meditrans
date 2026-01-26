@@ -1,95 +1,131 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { LiveDriver, LiveTrip } from "./types";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { interpolateLatLng, calculateBearing } from "@/lib/geo";
+import type { LiveDriver, LiveTrip } from "./types";
 
 export function useLiveTracking() {
   const { currentOrganization } = useOrganization();
   const [drivers, setDrivers] = useState<LiveDriver[]>([]);
   const [trips, setTrips] = useState<LiveTrip[]>([]);
   const [loading, setLoading] = useState(true);
+  const rafRef = useRef<number | null>(null);
 
-  const fetchData = useCallback(async () => {
+  // Animate loop
+  useEffect(() => {
+    function tick() {
+      setDrivers((prev) =>
+        prev.map((d) => {
+          if (!d.target) return d;
+
+          // Simple threshold to stop animating when "close enough"
+          const distSq =
+            Math.pow(d.lat - d.target.lat, 2) +
+            Math.pow(d.lng - d.target.lng, 2);
+          if (distSq < 0.000000001) return d;
+
+          const next = interpolateLatLng(
+            { lat: d.lat, lng: d.lng },
+            d.target,
+            0.15, // smoothing factor
+          );
+
+          return {
+            ...d,
+            lat: next.lat,
+            lng: next.lng,
+            bearing: calculateBearing({ lat: d.lat, lng: d.lng }, d.target),
+          };
+        }),
+      );
+
+      rafRef.current = requestAnimationFrame(tick);
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  // Initial fetch
+  useEffect(() => {
     if (!currentOrganization?.id) return;
 
-    try {
-      // 1. Fetch Drivers
-      const { data: driversData, error: driversError } = await supabase
-        .from("drivers")
-        .select(
-          "id, full_name, current_lat, current_lng, last_location_update, active",
-        )
-        .eq("org_id", currentOrganization.id);
+    (async () => {
+      try {
+        const { data: driversData } = await supabase
+          .from("drivers")
+          .select(
+            "id, full_name, current_lat, current_lng, last_location_update, active",
+          )
+          .eq("org_id", currentOrganization.id);
 
-      if (driversError) throw driversError;
+        const { data: tripsData } = await supabase
+          .from("trips")
+          .select(
+            `
+            id, 
+            status, 
+            driver_id, 
+            pickup_location, 
+            dropoff_location, 
+            pickup_time,
+            patient:patients(full_name),
+            driver:drivers(full_name)
+          `,
+          )
+          .eq("org_id", currentOrganization.id)
+          .in("status", ["en_route", "in_progress"]);
 
-      // 2. Fetch Active Trips
-      const { data: tripsData, error: tripsError } = await supabase
-        .from("trips")
-        .select(
-          `
-          id, 
-          status, 
-          driver_id, 
-          pickup_location, 
-          dropoff_location, 
-          pickup_time,
-          patient:patients(full_name),
-          driver:drivers(full_name)
-        `,
-        )
-        .eq("org_id", currentOrganization.id)
-        .in("status", ["en_route", "in_progress"]);
+        const formattedTrips: LiveTrip[] = (tripsData || []).map((t: any) => ({
+          id: t.id,
+          status: t.status,
+          driver_id: t.driver_id,
+          pickup_location: t.pickup_location,
+          dropoff_location: t.dropoff_location,
+          pickup_time: t.pickup_time,
+          patient: t.patient,
+          driver: t.driver,
+        }));
 
-      if (tripsError) throw tripsError;
+        setDrivers(
+          (driversData || []).map((d) => {
+            const activeTrip = formattedTrips.find((t) => t.driver_id === d.id);
+            let status: LiveDriver["status"] = "idle";
+            if (!d.active) status = "offline";
+            else if (activeTrip) status = "en_route";
 
-      // Transform trips to match LiveTrip interface
-      const formattedTrips: LiveTrip[] = (tripsData || []).map((t: any) => ({
-        id: t.id,
-        status: t.status,
-        driver_id: t.driver_id,
-        pickup_location: t.pickup_location,
-        dropoff_location: t.dropoff_location,
-        pickup_time: t.pickup_time,
-        patient: t.patient,
-        driver: t.driver,
-      }));
+            const lat = d.current_lat || 0;
+            const lng = d.current_lng || 0;
 
-      // Map derived status to drivers
-      const mappedDrivers: LiveDriver[] = (driversData || []).map((d) => {
-        const activeTrip = formattedTrips.find((t) => t.driver_id === d.id);
+            return {
+              ...d,
+              lat,
+              lng,
+              target: { lat, lng },
+              bearing: 0,
+              status,
+              active_trip_id: activeTrip?.id,
+            };
+          }),
+        );
 
-        let status: LiveDriver["status"] = "idle";
-        if (!d.active) status = "offline";
-        else if (activeTrip) status = "en_route"; // Simplified; distinguishing en_route vs in_progress if needed
-
-        return {
-          ...d,
-          status,
-          active_trip_id: activeTrip?.id,
-        };
-      });
-
-      setDrivers(mappedDrivers);
-      setTrips(formattedTrips);
-    } catch (err) {
-      console.error("Error fetching live tracking data:", err);
-    } finally {
-      setLoading(false);
-    }
+        setTrips(formattedTrips);
+      } catch (err) {
+        console.error("Error fetching live tracking data:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [currentOrganization?.id]);
 
-  // Initial Load
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Realtime Subscriptions
+  // Realtime
   useEffect(() => {
     if (!currentOrganization?.id) return;
 
     const channel = supabase
-      .channel("live-tracking")
+      .channel("drivers-live")
       .on(
         "postgres_changes",
         {
@@ -99,35 +135,61 @@ export function useLiveTracking() {
           filter: `org_id=eq.${currentOrganization.id}`,
         },
         (payload) => {
-          // Optimistic update for driver location
           setDrivers((prev) =>
-            prev.map((d) => {
-              if (d.id === payload.new.id) {
-                return {
-                  ...d,
-                  current_lat: payload.new.current_lat,
-                  current_lng: payload.new.current_lng,
-                  last_location_update: payload.new.last_location_update,
-                  active: payload.new.active,
-                };
-              }
-              return d;
-            }),
+            prev.map((d) =>
+              d.id === payload.new.id
+                ? {
+                    ...d,
+                    target: {
+                      lat: payload.new.current_lat,
+                      lng: payload.new.current_lng,
+                    },
+                    current_lat: payload.new.current_lat,
+                    current_lng: payload.new.current_lng,
+                    last_location_update: payload.new.last_location_update,
+                    active: payload.new.active,
+                  }
+                : d,
+            ),
           );
         },
       )
       .on(
         "postgres_changes",
         {
-          event: "*", // Listen to INSERT/UPDATE/DELETE for trips
+          event: "*",
           schema: "public",
           table: "trips",
           filter: `org_id=eq.${currentOrganization.id}`,
         },
         () => {
-          // Refetch everything on trip changes to keep derived state clean
-          // Debounce could be good here but keeping it simple for now
-          fetchData();
+          // Keep it simple and just refetch trips when they change
+          // (In a very high traffic app you'd want to be more surgical)
+          supabase
+            .from("trips")
+            .select(
+              `
+              id, status, driver_id, pickup_location, dropoff_location, pickup_time,
+              patient:patients(full_name), driver:drivers(full_name)
+            `,
+            )
+            .eq("org_id", currentOrganization.id)
+            .in("status", ["en_route", "in_progress"])
+            .then(({ data }) => {
+              if (data) {
+                const formatted = data.map((t: any) => ({
+                  id: t.id,
+                  status: t.status,
+                  driver_id: t.driver_id,
+                  pickup_location: t.pickup_location,
+                  dropoff_location: t.dropoff_location,
+                  pickup_time: t.pickup_time,
+                  patient: t.patient,
+                  driver: t.driver,
+                }));
+                setTrips(formatted);
+              }
+            });
         },
       )
       .subscribe();
@@ -135,7 +197,7 @@ export function useLiveTracking() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentOrganization?.id, fetchData]);
+  }, [currentOrganization?.id]);
 
   return { drivers, trips, loading };
 }

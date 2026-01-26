@@ -7,6 +7,11 @@ export interface LiveDriver {
   active: boolean; // if false, maybe offline
   status?: "en_route" | "idle" | "offline"; // derived status
   active_trip_id?: string;
+  // Animation state
+  lat: number;
+  lng: number;
+  target?: { lat: number; lng: number };
+  bearing?: number;
 }
 
 export interface LiveTrip {
