@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   CreditCard,
   ShieldCheck,
@@ -12,7 +11,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 export function BillingPage() {
   const { isOwner, isAdmin } = usePermissions();
@@ -80,7 +78,7 @@ export function BillingPage() {
                   Professional Plan
                 </h2>
                 <p className="text-slate-500">
-                  Billed monthly • Active since Jan 2025
+                  Billed monthly • Active since Jan {new Date().getFullYear()}
                 </p>
               </div>
             </div>
@@ -101,7 +99,9 @@ export function BillingPage() {
                 <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
                   Next Invoice
                 </p>
-                <p className="text-lg font-bold text-slate-900">Feb 1, 2026</p>
+                <p className="text-lg font-bold text-slate-900">
+                  Feb 1, {new Date().getFullYear() + 1}
+                </p>
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
@@ -198,10 +198,10 @@ export function BillingPage() {
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                        Invoice #TRN-{2025 - i}
+                        Invoice #TRN-{new Date().getFullYear() - i}
                       </p>
                       <p className="text-[10px] text-slate-500">
-                        Jan {i}, 2025
+                        Jan {i}, {new Date().getFullYear()}
                       </p>
                     </div>
                   </div>

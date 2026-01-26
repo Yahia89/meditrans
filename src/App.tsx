@@ -52,6 +52,7 @@ export const pages = [
   "medicaid-billing",
   "live-tracking",
   "companies",
+  "reset-password",
 ] as const;
 
 export type Page = (typeof pages)[number];
@@ -70,6 +71,7 @@ import { MedicaidBillingPage } from "./components/MedicaidBillingPage";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
 import { LiveTrackingPage } from "./components/live/LiveTrackingPage";
 import { CompaniesPage } from "./components/admin/companies-page";
+import { ResetPasswordPage } from "./components/reset-password-page";
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
@@ -175,6 +177,15 @@ function AppContent() {
     );
   }
 
+  // Handle password reset
+  if (currentPage === "reset-password") {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+        <ResetPasswordPage onBack={() => setCurrentPage("dashboard")} />
+      </div>
+    );
+  }
+
   // Show login page if not authenticated
   if (!user) {
     return (
@@ -214,7 +225,8 @@ function AppContent() {
               {/* Footer text */}
               <div className="mt-8 text-center">
                 <p className="text-xs text-slate-400 dark:text-slate-500">
-                  © 2025 MediTrans Pro. All rights reserved.
+                  © {new Date().getFullYear()} Future NEMT. All rights
+                  reserved.
                 </p>
               </div>
             </div>

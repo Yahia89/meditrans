@@ -76,12 +76,14 @@ const data = {
 };
 
 import { usePermissions } from "@/hooks/usePermissions";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 export function AppSidebar({
   currentPage,
   onNavigate,
   ...props
 }: AppSidebarProps) {
+  const { currentOrganization } = useOrganization();
   const {
     isSuperAdmin,
     isDriver,
@@ -159,7 +161,8 @@ export function AppSidebar({
               </div> */}
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">
-                  Future Transportation
+                  {currentOrganization?.name ||
+                    (isSuperAdmin ? "Future Transportation" : "Loading...")}
                 </span>
                 <span className="truncate text-xs">CRM System</span>
               </div>

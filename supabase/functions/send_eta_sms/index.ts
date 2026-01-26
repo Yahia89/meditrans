@@ -48,7 +48,7 @@ serve(async (req) => {
         *,
         driver:drivers!driver_id(id, current_lat, current_lng),
         patient:patients!patient_id(id, phone, sms_opt_out),
-        organization:organizations!org_id(sms_notifications_enabled)
+        organization:organizations!org_id(name, sms_notifications_enabled)
       `,
       )
       .eq("id", trip_id)
@@ -190,8 +190,7 @@ serve(async (req) => {
       );
       console.log("From number:", telnyxFrom);
 
-      const messageBody =
-        "Meditrans: Your driver is about 5 minutes away for your scheduled pickup. Reply STOP to opt out.";
+      const messageBody = `${trip.organization?.name || "MediTrans"}: Your driver is about 5 minutes away for your scheduled pickup. Reply STOP to opt out.`;
 
       console.log("Calling Telnyx API...");
 

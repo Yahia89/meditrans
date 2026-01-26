@@ -28,8 +28,18 @@ Deno.serve(async (req) => {
     if (orgError) throw orgError;
 
     // 2. Prepare Email Content
-    // Use the ?page= syntax for nuqs routing
+    const isOwnerInvite = record.role === "owner";
     const inviteUrl = `${SITE_URL}?page=accept-invite&token=${record.token}`;
+
+    const theme = {
+      primary: "#3D5A3D",
+      primaryHover: "#2E4A2E",
+      text: "#0f172a",
+      textMuted: "#64748b",
+      bg: "#f8fafc",
+      card: "#ffffff",
+      border: "#e2e8f0",
+    };
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -37,71 +47,84 @@ Deno.serve(async (req) => {
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-          <title>Join ${org.name}</title>
+          <title>${isOwnerInvite ? "Welcome to Future NEMT" : `Join ${org.name}`}</title>
           <style>
             @media only screen and (max-width: 620px) {
-              table.body h1 {
-                font-size: 26px !important;
-                margin-bottom: 16px !important;
-              }
-              table.body .wrapper {
-                padding: 32px 20px !important;
-              }
-              table.body .container {
-                padding: 20px 10px !important;
-                width: 100% !important;
-              }
+              .container { width: 100% !important; padding: 20px 10px !important; }
+              .content { padding: 32px 20px !important; }
+              .title { font-size: 24px !important; }
             }
           </style>
         </head>
-        <body style="background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; -webkit-font-smoothing: antialiased;">
-          <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; background-color: #f8fafc;">
+        <body style="background-color: ${theme.bg}; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; -webkit-font-smoothing: antialiased;">
+          <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; background-color: ${theme.bg};">
             <tr>
               <td align="center" style="padding: 40px 0;">
-                <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 580px;">
+                <table border="0" cellpadding="0" cellspacing="0" class="container" style="width: 100%; max-width: 600px; border-collapse: collapse;">
                   <tr>
-                    <td style="background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-                      <!-- Accent Bar -->
-                      <div style="height: 6px; background-color: #0f172a;"></div>
+                    <td style="background: ${theme.card}; border-radius: 24px; border: 1px solid ${theme.border}; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);">
+                      <!-- Header Accent -->
+                      <div style="height: 4px; background-color: ${theme.primary};"></div>
                       
-                      <div style="padding: 48px;">
-                        <!-- Logo & Brand -->
-                        <div style="margin-bottom: 40px;">
-                          <div style="display: flex; align-items: center; gap: 8px;">
-                            <img src="https://api.iconify.design/ph:user-circle-plus-bold.svg?color=%230f172a" width="32" height="32" style="vertical-align: middle;" alt="icon">
-                            <span style="font-size: 20px; font-weight: 800; letter-spacing: -0.025em; color: #0f172a; margin-left: 8px; vertical-align: middle;">MEDITRANS PRO</span>
+                      <div class="content" style="padding: 48px;">
+                        <!-- Logo Placeholder / Header -->
+                        <div style="margin-bottom: 32px; text-align: center;">
+                          <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background-color: ${theme.primary}10; border-radius: 20px; margin-bottom: 16px;">
+                            <img src="https://api.iconify.design/ph:${isOwnerInvite ? "buildings" : "user-plus"}-bold.svg?color=${encodeURIComponent(theme.primary)}" width="32" height="32" alt="icon">
+                          </div>
+                          <div style="font-size: 14px; font-weight: 700; color: ${theme.primary}; letter-spacing: 0.1em; text-transform: uppercase;">
+                            Future NEMT Platform
                           </div>
                         </div>
 
-                        <h1 style="color: #0f172a; font-size: 32px; font-weight: 700; line-height: 1.2; margin: 0 0 16px 0; letter-spacing: -0.05em;">You're Invited.</h1>
+                        <h1 class="title" style="color: ${theme.text}; font-size: 30px; font-weight: 800; line-height: 1.25; margin: 0 0 16px 0; text-align: center; letter-spacing: -0.025em;">
+                          ${isOwnerInvite ? "Your Digital Fleet Awaits." : "You're Invited."}
+                        </h1>
                         
-                        <p style="font-size: 17px; line-height: 1.6; color: #475569; margin: 0 0 32px 0;">
-                          <strong>${
-                            org.name
-                          }</strong> has invited you to join their digital fleet management platform as an <strong>${
-      record.role
-    }</strong>.
+                        <p style="font-size: 16px; line-height: 1.6; color: ${theme.textMuted}; margin: 0 0 32px 0; text-align: center;">
+                          ${
+                            isOwnerInvite
+                              ? `You are invited to the <strong>Future NEMT platform</strong> to manage your <strong>${org.name}</strong> fleet. Our suite of tools will help you streamline operations, track drivers in real-time, and automate billing.`
+                              : `You have been invited to join <strong>${org.name}</strong> as a <strong>${record.role}</strong> to help manage their digital transportation fleet.`
+                          }
                         </p>
                         
                         <!-- CTA Button -->
-                        <table border="0" cellpadding="0" cellspacing="0" style="width: auto; margin-bottom: 40px;">
-                          <tr>
-                            <td style="background-color: #0f172a; border-radius: 12px; text-align: center;"> 
-                              <a href="${inviteUrl}" target="_blank" style="display: inline-block; color: #ffffff; background-color: #0f172a; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 32px;">
-                                Accept Invitation
-                              </a> 
-                            </td>
-                          </tr>
-                        </table>
+                        <div style="text-align: center; margin-bottom: 40px;">
+                          <a href="${inviteUrl}" target="_blank" style="display: inline-block; color: #ffffff; background-color: ${theme.primary}; border-radius: 14px; font-size: 16px; font-weight: 600; text-decoration: none; padding: 18px 36px; box-shadow: 0 4px 6px -1px rgba(61, 90, 61, 0.2);">
+                            ${isOwnerInvite ? "Get Started Now" : "Accept & Join Fleet"}
+                          </a>
+                        </div>
                         
+                        <!-- Platform Highlights -->
+                        <div style="background-color: ${theme.bg}; border-radius: 16px; padding: 24px; margin-bottom: 32px; border: 1px solid ${theme.border};">
+                          <p style="font-size: 13px; font-weight: 700; color: ${theme.text}; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.05em;">What's inside:</p>
+                          <table border="0" cellpadding="0" cellspacing="0" style="width: 100%;">
+                            <tr>
+                              <td style="padding-bottom: 8px; font-size: 14px; color: ${theme.textMuted};">
+                                <span style="color: ${theme.primary}; margin-right: 8px;">•</span> Real-time Live Tracking
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="padding-bottom: 8px; font-size: 14px; color: ${theme.textMuted};">
+                                <span style="color: ${theme.primary}; margin-right: 8px;">•</span> Automated Dispatching
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="font-size: 14px; color: ${theme.textMuted};">
+                                <span style="color: ${theme.primary}; margin-right: 8px;">•</span> Medicaid Billing Integration
+                              </td>
+                            </tr>
+                          </table>
+                        </div>
+
                         <!-- Footer Info -->
-                        <div style="border-top: 1px solid #f1f5f9; padding-top: 32px;">
-                          <p style="font-size: 13px; color: #94a3b8; margin: 0 0 8px 0;">
-                            If you didn't expect this, you can ignore this message.
+                        <div style="border-top: 1px solid ${theme.border}; padding-top: 24px; text-align: center;">
+                          <p style="font-size: 12px; color: ${theme.textMuted}; margin: 0;">
+                            If you didn't expect this invitation, you can safely ignore this email.
                           </p>
-                          <p style="font-size: 13px; color: #94a3b8; margin: 0;">
-                            Button not working? Copy this link:<br>
-                            <a href="${inviteUrl}" style="color: #64748b; text-decoration: underline;">${inviteUrl}</a>
+                          <p style="font-size: 12px; color: ${theme.textMuted}; margin: 8px 0 0 0;">
+                            Need help? <a href="mailto:support@futrans.us" style="color: ${theme.primary}; text-decoration: none; font-weight: 600;">Contact Support</a>
                           </p>
                         </div>
                       </div>
@@ -110,8 +133,8 @@ Deno.serve(async (req) => {
                   
                   <tr>
                     <td style="padding: 32px 0; text-align: center;">
-                      <p style="font-size: 12px; color: #94a3b8; margin: 0;">
-                        &copy; ${new Date().getFullYear()} MediTrans CRM. Built for excellence in NEMT.
+                      <p style="font-size: 12px; color: ${theme.textMuted}; margin: 0; letter-spacing: 0.01em;">
+                        &copy; ${new Date().getFullYear()} Future Transport Platform. Built for excellence in NEMT.
                       </p>
                     </td>
                   </tr>
@@ -131,9 +154,11 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "MediTrans <info@techdevprime.com>",
+        from: "Future NEMT <info@techdevprime.com>",
         to: [record.email],
-        subject: `[Invite] Join ${org.name} on MediTrans`,
+        subject: isOwnerInvite
+          ? `Welcome to Future NEMT - Setup ${org.name}`
+          : `[Invite] Join ${org.name} on Future NEMT`,
         html: emailHtml,
       }),
     });
@@ -145,7 +170,9 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message =
+      error instanceof Error ? error.message : "An unknown error occurred";
+    return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });

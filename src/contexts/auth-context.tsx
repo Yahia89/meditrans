@@ -36,12 +36,12 @@ interface AuthContextType {
   loading: boolean;
   signIn: (
     email: string,
-    password: string
+    password: string,
   ) => Promise<{ error: AuthError | null }>;
   signUp: (
     email: string,
     password: string,
-    fullName?: string
+    fullName?: string,
   ) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
@@ -189,9 +189,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetPassword = async (email: string) => {
     const baseUrl = window.location.origin + (import.meta.env.BASE_URL || "/");
-    const redirectUrl = new URL("reset-password", baseUrl).toString();
+    const redirectUrl = new URL(baseUrl);
+    redirectUrl.searchParams.set("page", "reset-password");
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
+      redirectTo: redirectUrl.toString(),
     });
     return { error };
   };
