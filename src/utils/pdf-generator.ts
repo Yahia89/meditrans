@@ -158,6 +158,14 @@ export const generateTripSummaryPDF = (
     ],
   ];
 
+  if (trip.total_waiting_minutes && Number(trip.total_waiting_minutes) > 0) {
+    detailsData.push(["Wait Time", `${trip.total_waiting_minutes} minutes`]);
+  }
+
+  if (trip.notes) {
+    detailsData.push(["Notes", trip.notes]);
+  }
+
   // @ts-ignore
   autoTable(doc, {
     startY: currentY,

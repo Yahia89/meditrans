@@ -38,6 +38,8 @@ export interface Trip {
   // Actual trip metrics (captured during/after trip)
   actual_distance_miles?: number | null;
   actual_duration_minutes?: number | null;
+  total_waiting_minutes?: number | null;
+  waiting_start_time?: string | null;
   eta_sms_sent_at?: string | null;
   patient?: {
     id: string;
