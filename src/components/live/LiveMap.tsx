@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import {
   GoogleMap,
   useLoadScript,
@@ -123,6 +123,12 @@ export function LiveMap({
   const [directionsResponse, setDirectionsResponse] =
     useState<google.maps.DirectionsResult | null>(null);
 
+  // Use a ref for drivers to keep callbacks stable
+  const driversRef = useRef(drivers);
+  useEffect(() => {
+    driversRef.current = drivers;
+  }, [drivers]);
+
   // Clustering state
   const [bounds, setBounds] = useState<[number, number, number, number] | null>(
     null,
@@ -175,10 +181,11 @@ export function LiveMap({
 
   // Fit all drivers bounds (Zoom Out button)
   const fitAllDrivers = useCallback(() => {
-    if (map && drivers.length > 0) {
+    const currentDrivers = driversRef.current;
+    if (map && currentDrivers.length > 0) {
       const bounds = new google.maps.LatLngBounds();
       let hasValidLoc = false;
-      drivers.forEach((d) => {
+      currentDrivers.forEach((d: LiveDriver) => {
         bounds.extend({ lat: d.lat, lng: d.lng });
         hasValidLoc = true;
       });
@@ -186,64 +193,76 @@ export function LiveMap({
         map.fitBounds(bounds);
       }
     }
-  }, [map, drivers]);
+  }, [map]);
 
-  // Handle external selection
+  // 1. Update active driver state when selection changes
   useEffect(() => {
-    if (selectedDriverId) {
-      setActiveDriverId(selectedDriverId);
+    setActiveDriverId(selectedDriverId || null);
+  }, [selectedDriverId]);
 
-      // 1. Pan to driver
-      if (map) {
-        const driver = drivers.find((d) => d.id === selectedDriverId);
-        if (driver) {
-          map.panTo({ lat: driver.lat, lng: driver.lng });
-          map.setZoom(15);
-        }
-      }
-
-      // 2. Fetch route if active trip exists
-      const activeTrip = trips.find(
-        (t) =>
-          t.driver_id === selectedDriverId &&
-          (t.status === "en_route" || t.status === "in_progress"),
+  // 2. Initial Pan when a driver is selected (only runs once per selection)
+  useEffect(() => {
+    if (selectedDriverId && map) {
+      const driver = driversRef.current.find(
+        (d: LiveDriver) => d.id === selectedDriverId,
       );
-
-      if (
-        activeTrip &&
-        activeTrip.pickup_location &&
-        activeTrip.dropoff_location
-      ) {
-        const directionsService = new google.maps.DirectionsService();
-        directionsService.route(
-          {
-            origin: activeTrip.pickup_location,
-            destination: activeTrip.dropoff_location,
-            travelMode: google.maps.TravelMode.DRIVING,
-          },
-          (result, status) => {
-            if (status === google.maps.DirectionsStatus.OK) {
-              setDirectionsResponse(result);
-            } else {
-              setDirectionsResponse(null);
-            }
-          },
-        );
-      } else {
-        setDirectionsResponse(null);
+      if (driver) {
+        map.panTo({ lat: driver.lat, lng: driver.lng });
+        map.setZoom(15);
       }
+    }
+  }, [selectedDriverId, map]);
+
+  // 3. Memoize routing requirements to stabilize the directions effect
+  const routeParams = useMemo(() => {
+    if (!selectedDriverId) return null;
+    const activeTrip = trips.find(
+      (t) =>
+        t.driver_id === selectedDriverId &&
+        (t.status === "en_route" || t.status === "in_progress"),
+    );
+
+    if (!activeTrip?.pickup_location || !activeTrip?.dropoff_location) {
+      return null;
+    }
+
+    return {
+      tripId: activeTrip.id,
+      origin: activeTrip.pickup_location,
+      destination: activeTrip.dropoff_location,
+    };
+  }, [selectedDriverId, trips]);
+
+  // 4. Fetch route only when trip context changes (Origin/Destination/TripID)
+  useEffect(() => {
+    if (routeParams) {
+      const directionsService = new google.maps.DirectionsService();
+      directionsService.route(
+        {
+          origin: routeParams.origin,
+          destination: routeParams.destination,
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === google.maps.DirectionsStatus.OK) {
+            setDirectionsResponse(result);
+          } else {
+            console.error("Directions request failed:", status);
+            setDirectionsResponse(null);
+          }
+        },
+      );
     } else {
       setDirectionsResponse(null);
-      setActiveDriverId(null);
     }
-  }, [map, selectedDriverId, drivers, trips]);
+  }, [routeParams]);
 
   // Trigger initial fit bounds
   useEffect(() => {
     if (map && drivers.length > 0 && !selectedDriverId && !bounds) {
       fitAllDrivers();
     }
-  }, [map, drivers.length]);
+  }, [map, drivers.length, selectedDriverId, bounds, fitAllDrivers]);
 
   if (loadError) return <div className="p-4 text-red-500">Map Error</div>;
   if (!isLoaded)
