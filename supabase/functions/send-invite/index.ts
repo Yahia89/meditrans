@@ -67,10 +67,10 @@ Deno.serve(async (req) => {
                       <div style="height: 4px; background-color: ${theme.primary};"></div>
                       
                       <div class="content" style="padding: 48px;">
-                        <!-- Logo Placeholder / Header -->
+                        <!-- Logo -->
                         <div style="margin-bottom: 32px; text-align: center;">
-                          <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background-color: ${theme.primary}10; border-radius: 20px; margin-bottom: 16px;">
-                            <img src="https://api.iconify.design/ph:${isOwnerInvite ? "buildings" : "user-plus"}-bold.svg?color=${encodeURIComponent(theme.primary)}" width="32" height="32" alt="icon">
+                          <div style="margin-bottom: 16px;">
+                            <img src="${SITE_URL}logo_in_email.jpg" width="80" height="80" style="border-radius: 20px; object-fit: cover;" alt="Future NEMT Logo">
                           </div>
                           <div style="font-size: 14px; font-weight: 700; color: ${theme.primary}; letter-spacing: 0.1em; text-transform: uppercase;">
                             Future NEMT Platform
