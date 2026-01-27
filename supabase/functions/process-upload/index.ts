@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
     }
 
     // 3c. Convert to Objects using Detected Headers
-    let rows: any[] = []
+    const rows: any[] = []
     
     // Start reading *after* the header row
     for (let i = headerRowIndex + 1; i < rawRows.length; i++) {

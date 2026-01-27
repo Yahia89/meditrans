@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import "./App.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -63,6 +63,7 @@ import { DriverDetailsPage } from "./components/driver-details-page";
 import { TripDetails } from "./components/trips/TripDetails";
 import { TripDialog } from "./components/trips/TripDialog";
 import { TripsScheduler } from "./components/trips/TripsScheduler";
+import { BulkImportDialog } from "./components/trips/BulkImportDialog";
 import { ClientCreditsPage } from "./components/client-credits-page";
 import { DriverHistoryPage } from "./components/driver-history-page";
 import { ErrorBoundary } from "./components/error-boundary";
@@ -102,6 +103,7 @@ function AppContent() {
   const [employeeId, setEmployeeId] = useQueryState("employeeId");
   const [tripId, setTripId] = useQueryState("tripId");
   const [modalType, setModalType] = useQueryState("modal");
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const [fromPage, setFromPage] = useQueryState("from");
   const [_, setSection] = useQueryState("section");
 
@@ -225,8 +227,7 @@ function AppContent() {
               {/* Footer text */}
               <div className="mt-8 text-center">
                 <p className="text-xs text-slate-400 dark:text-slate-500">
-                  © {new Date().getFullYear()} Future NEMT. All rights
-                  reserved.
+                  © {new Date().getFullYear()} Future NEMT. All rights reserved.
                 </p>
               </div>
             </div>
@@ -408,6 +409,9 @@ function AppContent() {
               onCreateClick={
                 !isDriver ? () => setModalType("create") : undefined
               }
+              onBulkImportClick={
+                !isDriver ? () => setShowBulkImport(true) : undefined
+              }
               driverId={isDriver ? currentDriverId || undefined : undefined}
               onTripClick={(id) => {
                 setTripId(id);
@@ -534,6 +538,14 @@ function AppContent() {
             />
           </>
         )}
+
+        <BulkImportDialog
+          open={showBulkImport}
+          onOpenChange={setShowBulkImport}
+          onSuccess={() => {
+            setShowBulkImport(false);
+          }}
+        />
       </SidebarProvider>
     </OnboardingProvider>
   );

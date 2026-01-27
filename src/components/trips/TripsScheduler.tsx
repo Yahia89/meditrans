@@ -6,11 +6,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import {
-  Plus,
-  Loader2,
-  Calendar as CalendarIcon,
-  List,
-  LayoutGrid,
+  ChevronDown,
+  ChevronUp,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -19,10 +16,12 @@ import {
   MapPin,
   Car,
   User,
-  RefreshCw,
-  ChevronDown,
-  ChevronUp,
+  Calendar as CalendarIcon,
+  LayoutGrid,
+  List,
+  Loader2,
 } from "lucide-react";
+import { Plus, CloudArrowUp, ArrowClockwise } from "@phosphor-icons/react";
 import type { Trip, TripStatus } from "./types";
 import { cn } from "@/lib/utils";
 import { TripTimeline, TripTimelineVertical } from "./TripTimeline";
@@ -31,6 +30,7 @@ import { QuickAddLegDialog } from "./QuickAddLegDialog";
 
 interface TripsSchedulerProps {
   onCreateClick?: () => void;
+  onBulkImportClick?: () => void;
   onTripClick: (id: string) => void;
   patientId?: string;
   driverId?: string;
@@ -43,6 +43,7 @@ const statusColors: Record<TripStatus, string> = {
   en_route: "bg-purple-50 text-purple-700 border-purple-100",
   arrived: "bg-amber-50 text-amber-700 border-amber-100",
   in_progress: "bg-blue-100 text-blue-800 border-blue-200",
+  waiting: "bg-amber-100 text-amber-800 border-amber-200",
   completed: "bg-emerald-50 text-emerald-700 border-emerald-100",
   cancelled: "bg-red-50 text-red-700 border-red-100",
   no_show: "bg-orange-50 text-orange-700 border-orange-100",
@@ -83,6 +84,7 @@ function getMonthDates(date: Date): Date[] {
 
 export function TripsScheduler({
   onCreateClick,
+  onBulkImportClick,
   onTripClick,
   patientId,
   driverId,
@@ -93,7 +95,7 @@ export function TripsScheduler({
 
   // View state
   const [viewMode, setViewMode] = useState<"timeline" | "list" | "cards">(
-    "cards"
+    "cards",
   );
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
@@ -129,7 +131,7 @@ export function TripsScheduler({
           *,
           patient:patients(id, full_name, phone, created_at),
           driver:drivers(id, full_name, phone, user_id, vehicle_info)
-        `
+        `,
         )
         .eq("org_id", currentOrganization?.id)
         .order("pickup_time", { ascending: true });
@@ -220,7 +222,7 @@ export function TripsScheduler({
   // Active trips (in progress)
   const activeTrips = useMemo(
     () => filteredTrips.filter((t) => t.status === "in_progress"),
-    [filteredTrips]
+    [filteredTrips],
   );
 
   // Navigation handlers
@@ -281,22 +283,34 @@ export function TripsScheduler({
             </>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => refetch()}
-            className="h-9 px-3 gap-2"
+            className="h-10 px-4 gap-2 border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-medium"
           >
-            <RefreshCw className="w-4 h-4" />
+            <ArrowClockwise className="w-4 h-4" />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
+
+          {onBulkImportClick && (
+            <Button
+              onClick={onBulkImportClick}
+              variant="outline"
+              className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm rounded-xl h-10 px-5 gap-2 font-semibold"
+            >
+              <CloudArrowUp className="w-4 h-4" weight="bold" />
+              <span className="hidden sm:inline">Bulk Import</span>
+            </Button>
+          )}
+
           {onCreateClick && (
             <Button
               onClick={onCreateClick}
-              className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white shadow-sm rounded-xl h-10 px-5"
+              className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white shadow-sm rounded-xl h-10 px-5 gap-2 font-semibold"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" weight="bold" />
               New Trip
             </Button>
           )}
@@ -427,7 +441,7 @@ export function TripsScheduler({
                   "h-9 px-3 text-sm flex items-center gap-1.5 transition-colors",
                   viewMode === "timeline"
                     ? "bg-slate-100 text-slate-900"
-                    : "text-slate-500 hover:bg-slate-50"
+                    : "text-slate-500 hover:bg-slate-50",
                 )}
               >
                 <CalendarIcon className="w-4 h-4" />
@@ -438,7 +452,7 @@ export function TripsScheduler({
                   "h-9 px-3 text-sm flex items-center gap-1.5 transition-colors",
                   viewMode === "cards"
                     ? "bg-slate-100 text-slate-900"
-                    : "text-slate-500 hover:bg-slate-50"
+                    : "text-slate-500 hover:bg-slate-50",
                 )}
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -449,7 +463,7 @@ export function TripsScheduler({
                   "h-9 px-3 text-sm flex items-center gap-1.5 transition-colors",
                   viewMode === "list"
                     ? "bg-slate-100 text-slate-900"
-                    : "text-slate-500 hover:bg-slate-50"
+                    : "text-slate-500 hover:bg-slate-50",
                 )}
               >
                 <List className="w-4 h-4" />
@@ -462,7 +476,7 @@ export function TripsScheduler({
         <div
           className={cn(
             "grid grid-cols-7 gap-2 mt-4 transition-all duration-300",
-            isMonthExpanded ? "mb-6" : "mb-2"
+            isMonthExpanded ? "mb-6" : "mb-2",
           )}
         >
           {calendarDates.map((date) => {
@@ -481,9 +495,9 @@ export function TripsScheduler({
                   isSelected
                     ? "bg-[#3D5A3D] text-white shadow-lg border-[#3D5A3D] z-10 scale-105"
                     : isToday
-                    ? "bg-slate-100 text-slate-900 border-slate-200"
-                    : "bg-white hover:bg-slate-50 text-slate-600 border-transparent",
-                  !isCurrentMonth && isMonthExpanded && "opacity-40 grayscale"
+                      ? "bg-slate-100 text-slate-900 border-slate-200"
+                      : "bg-white hover:bg-slate-50 text-slate-600 border-transparent",
+                  !isCurrentMonth && isMonthExpanded && "opacity-40 grayscale",
                 )}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
@@ -498,7 +512,7 @@ export function TripsScheduler({
                       "mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full",
                       isSelected
                         ? "bg-white/20 text-white"
-                        : "bg-slate-200 text-slate-600"
+                        : "bg-slate-200 text-slate-600",
                     )}
                   >
                     {tripCount}
@@ -621,7 +635,7 @@ function TripCardsView({
         const sortedGroup = [...group].sort(
           (a, b) =>
             new Date(a.pickup_time).getTime() -
-            new Date(b.pickup_time).getTime()
+            new Date(b.pickup_time).getTime(),
         );
 
         return (
@@ -669,10 +683,10 @@ function TripCardsView({
                       trip.status === "completed"
                         ? "border-emerald-500 text-emerald-500"
                         : trip.status === "in_progress"
-                        ? "border-blue-500 text-blue-500"
-                        : trip.status === "cancelled"
-                        ? "border-red-200 text-red-300"
-                        : "border-slate-300 text-slate-400 group-hover:border-blue-400 group-hover:text-blue-400"
+                          ? "border-blue-500 text-blue-500"
+                          : trip.status === "cancelled"
+                            ? "border-red-200 text-red-300"
+                            : "border-slate-300 text-slate-400 group-hover:border-blue-400 group-hover:text-blue-400",
                     )}
                   >
                     {index + 1}
@@ -690,7 +704,7 @@ function TripCardsView({
                       <span
                         className={cn(
                           "px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide border",
-                          statusColors[trip.status]
+                          statusColors[trip.status],
                         )}
                       >
                         {trip.status.replace("_", " ")}
@@ -735,14 +749,14 @@ function TripCardsView({
                     onQuickAdd(
                       sortedGroup[0].patient_id,
                       patient?.full_name || "Patient",
-                      date
+                      date,
                     );
                   }}
                   variant="ghost"
-                  className="w-full h-auto min-h-[44px] py-2.5 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 group"
+                  className="w-full h-auto min-h-[44px] py-2.5 border border-slate-200 bg-white shadow-sm rounded-xl text-slate-500 hover:text-[#3D5A3D] hover:border-[#3D5A3D] hover:bg-[#3D5A3D]/5 transition-all flex items-center justify-center gap-2 group"
                 >
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white border-2 border-slate-100 flex items-center justify-center group-hover:border-blue-400 group-hover:text-blue-400 transition-colors flex-shrink-0">
-                    <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center group-hover:border-[#3D5A3D] group-hover:text-[#3D5A3D] transition-colors flex-shrink-0">
+                    <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" weight="bold" />
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                     Add Leg
@@ -843,7 +857,7 @@ function TripListView({
                 <span
                   className={cn(
                     "px-2.5 py-0.5 rounded-full text-xs font-semibold border",
-                    statusColors[trip.status]
+                    statusColors[trip.status],
                   )}
                 >
                   {trip.status.replace("_", " ").toUpperCase()}

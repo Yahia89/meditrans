@@ -500,7 +500,7 @@ export function CreateTripForm({
 
         const pickupDateTime = new Date(`${leg.pickup_date}T${timeToUse}`);
 
-        let finalDriverId = leg.driver_id;
+        const finalDriverId = leg.driver_id;
         // Logic for employee -> driver conversion removed. Driver must be selected from drivers list.
 
         // Determine final status

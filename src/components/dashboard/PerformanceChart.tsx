@@ -44,7 +44,7 @@ export function PerformanceChart() {
     queryFn: async () => {
       const now = new Date();
       let start: Date;
-      let end: Date = endOfDay(now);
+      const end: Date = endOfDay(now);
       let intervals: Date[];
       let dateFormat: string;
 

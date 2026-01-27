@@ -9,7 +9,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Loader2, ChevronLeft } from "lucide-react";
+import { Plus } from "@phosphor-icons/react";
 import { CreateTripForm } from "./CreateTripForm";
+import { BulkImportDialog } from "./BulkImportDialog";
 
 interface TripDialogProps {
   open: boolean;
@@ -25,6 +27,7 @@ export function TripDialog({
   onSuccess,
 }: TripDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   // Don't render anything when closed to ensure queries are cleaned up
   if (!open) return null;
@@ -51,14 +54,30 @@ export function TripDialog({
       >
         {/* Header - Fixed at top */}
         <DialogHeader className="p-6 pb-4 border-b border-slate-100 bg-white shrink-0">
-          <DialogTitle className="text-xl font-bold text-slate-900 tracking-tight">
-            {tripId ? "Edit Trip Details" : "Schedule New Trip"}
-          </DialogTitle>
-          <p className="text-sm text-slate-500 mt-1">
-            {tripId
-              ? "Update the trip information below"
-              : "Fill in the details to create a new trip"}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-bold text-slate-900 tracking-tight">
+                {tripId ? "Edit Trip Details" : "Schedule New Trip"}
+              </DialogTitle>
+              <p className="text-sm text-slate-500 mt-1">
+                {tripId
+                  ? "Update the trip information below"
+                  : "Fill in the details to create a new trip"}
+              </p>
+            </div>
+
+            {!tripId && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowBulkImport(true)}
+                className="gap-2 border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50 text-indigo-700 font-semibold transition-all shadow-sm"
+              >
+                <Plus size={18} weight="bold" />
+                Bulk Import
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         {/* Scrollable Content Area */}
@@ -75,6 +94,19 @@ export function TripDialog({
             />
           </div>
         </ScrollArea>
+
+        {/* Bulk Import Dialog */}
+        {!tripId && (
+          <BulkImportDialog
+            open={showBulkImport}
+            onOpenChange={setShowBulkImport}
+            onSuccess={() => {
+              setShowBulkImport(false);
+              onSuccess();
+              onOpenChange(false);
+            }}
+          />
+        )}
 
         {/* Footer - Fixed at bottom */}
         <DialogFooter className="p-6 border-t border-slate-100 bg-white flex items-center justify-end gap-3 shrink-0">
