@@ -123,6 +123,12 @@ export function LiveMap({
   const [directionsResponse, setDirectionsResponse] =
     useState<google.maps.DirectionsResult | null>(null);
 
+  // Directions cache to prevent redundant API requests
+  // Key format: "tripId|origin|destination"
+  const directionsCacheRef = useRef<Map<string, google.maps.DirectionsResult>>(
+    new Map(),
+  );
+
   // Use a ref for drivers to keep callbacks stable
   const driversRef = useRef(drivers);
   useEffect(() => {
@@ -156,20 +162,27 @@ export function LiveMap({
     }
   };
 
-  // Prepare points for supercluster
+  // Prepare points for supercluster - filter out invalid coordinates
   const points = useMemo(() => {
-    return drivers.map((d) => ({
-      type: "Feature" as const,
-      properties: {
-        cluster: false,
-        driverId: d.id,
-        driver: d,
-      },
-      geometry: {
-        type: "Point" as const,
-        coordinates: [d.lng, d.lat],
-      },
-    }));
+    return drivers
+      .filter(
+        (d) =>
+          Number.isFinite(d.lat) &&
+          Number.isFinite(d.lng) &&
+          (d.lat !== 0 || d.lng !== 0),
+      )
+      .map((d) => ({
+        type: "Feature" as const,
+        properties: {
+          cluster: false,
+          driverId: d.id,
+          driver: d,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [d.lng, d.lat],
+        },
+      }));
   }, [drivers]);
 
   const { clusters, supercluster } = useSupercluster({
@@ -234,8 +247,20 @@ export function LiveMap({
   }, [selectedDriverId, trips]);
 
   // 4. Fetch route only when trip context changes (Origin/Destination/TripID)
+  // Uses cache to prevent redundant API requests
   useEffect(() => {
     if (routeParams) {
+      // Create cache key from trip context
+      const cacheKey = `${routeParams.tripId}|${routeParams.origin}|${routeParams.destination}`;
+
+      // Check cache first
+      const cached = directionsCacheRef.current.get(cacheKey);
+      if (cached) {
+        setDirectionsResponse(cached);
+        return;
+      }
+
+      // Not in cache - fetch from API
       const directionsService = new google.maps.DirectionsService();
       directionsService.route(
         {
@@ -244,7 +269,9 @@ export function LiveMap({
           travelMode: google.maps.TravelMode.DRIVING,
         },
         (result, status) => {
-          if (status === google.maps.DirectionsStatus.OK) {
+          if (status === google.maps.DirectionsStatus.OK && result) {
+            // Store in cache for future requests
+            directionsCacheRef.current.set(cacheKey, result);
             setDirectionsResponse(result);
           } else {
             console.error("Directions request failed:", status);

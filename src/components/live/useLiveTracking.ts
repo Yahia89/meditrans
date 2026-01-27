@@ -1,52 +1,109 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { interpolateLatLng, calculateBearing } from "@/lib/geo";
 import type { LiveDriver, LiveTrip } from "./types";
+
+// Configuration constants
+const ANIMATION_FPS = 4; // 4 updates per second instead of 60
+const ANIMATION_INTERVAL = 1000 / ANIMATION_FPS;
+const INTERPOLATION_FACTOR = 0.25; // Slightly higher since we update less frequently
+const STOP_THRESHOLD_SQ = 0.000000001; // Stop animating when squared distance is below this
+const DELTA_THRESH_SQ = 0.0000001; // Ignore Supabase updates smaller than this (~10m)
+
+// Approximate squared distance (faster than calculating actual distance)
+function approxSqDist(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
+  const dLat = a.lat - b.lat;
+  const dLng = a.lng - b.lng;
+  return dLat * dLat + dLng * dLng;
+}
+
+// Interface for mutable position tracking
+interface PositionState {
+  lat: number;
+  lng: number;
+  target: { lat: number; lng: number };
+  bearing: number;
+}
 
 export function useLiveTracking() {
   const { currentOrganization } = useOrganization();
   const [drivers, setDrivers] = useState<LiveDriver[]>([]);
   const [trips, setTrips] = useState<LiveTrip[]>([]);
   const [loading, setLoading] = useState(true);
-  const rafRef = useRef<number | null>(null);
 
-  // Animate loop
-  useEffect(() => {
-    function tick() {
-      setDrivers((prev) =>
-        prev.map((d) => {
-          if (!d.target) return d;
+  // Mutable position state - avoids React re-renders on every interpolation step
+  const positionsRef = useRef<Map<string, PositionState>>(new Map());
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-          // Simple threshold to stop animating when "close enough"
-          const distSq =
-            Math.pow(d.lat - d.target.lat, 2) +
-            Math.pow(d.lng - d.target.lng, 2);
-          if (distSq < 0.000000001) return d;
+  // Flush positions from ref to React state (batched update)
+  const flushPositions = useCallback(() => {
+    const positions = positionsRef.current;
+    if (positions.size === 0) return;
 
-          const next = interpolateLatLng(
-            { lat: d.lat, lng: d.lng },
-            d.target,
-            0.15, // smoothing factor
-          );
+    setDrivers((prev) => {
+      let hasChanges = false;
+      const updated = prev.map((d) => {
+        const pos = positions.get(d.id);
+        if (!pos) return d;
 
+        // Check if position actually changed
+        if (
+          d.lat !== pos.lat ||
+          d.lng !== pos.lng ||
+          d.bearing !== pos.bearing
+        ) {
+          hasChanges = true;
           return {
             ...d,
-            lat: next.lat,
-            lng: next.lng,
-            bearing: calculateBearing({ lat: d.lat, lng: d.lng }, d.target),
+            lat: pos.lat,
+            lng: pos.lng,
+            target: pos.target,
+            bearing: pos.bearing,
           };
-        }),
-      );
+        }
+        return d;
+      });
 
-      rafRef.current = requestAnimationFrame(tick);
+      return hasChanges ? updated : prev;
+    });
+  }, []);
+
+  // Animation loop using setInterval (throttled to ANIMATION_FPS)
+  useEffect(() => {
+    function tick() {
+      const positions = positionsRef.current;
+
+      positions.forEach((pos, id) => {
+        // Skip if no target or already at target
+        const distSq = approxSqDist(pos, pos.target);
+        if (distSq < STOP_THRESHOLD_SQ) return;
+
+        // Interpolate towards target
+        const next = interpolateLatLng(pos, pos.target, INTERPOLATION_FACTOR);
+        const newBearing = calculateBearing(pos, pos.target);
+
+        // Update mutable ref (no React re-render)
+        positions.set(id, {
+          ...pos,
+          lat: next.lat,
+          lng: next.lng,
+          bearing: newBearing,
+        });
+      });
+
+      // Batch flush to React state
+      flushPositions();
     }
 
-    rafRef.current = requestAnimationFrame(tick);
+    intervalRef.current = setInterval(tick, ANIMATION_INTERVAL);
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [flushPositions]);
 
   // Initial fetch
   useEffect(() => {
@@ -89,27 +146,36 @@ export function useLiveTracking() {
           driver: t.driver,
         }));
 
-        setDrivers(
-          (driversData || []).map((d) => {
-            const activeTrip = formattedTrips.find((t) => t.driver_id === d.id);
-            let status: LiveDriver["status"] = "idle";
-            if (!d.active) status = "offline";
-            else if (activeTrip) status = "en_route";
+        // Initialize drivers and positionsRef together
+        const initialDrivers = (driversData || []).map((d) => {
+          const activeTrip = formattedTrips.find((t) => t.driver_id === d.id);
+          let status: LiveDriver["status"] = "idle";
+          if (!d.active) status = "offline";
+          else if (activeTrip) status = "en_route";
 
-            const lat = d.current_lat || 0;
-            const lng = d.current_lng || 0;
+          const lat = d.current_lat || 0;
+          const lng = d.current_lng || 0;
 
-            return {
-              ...d,
-              lat,
-              lng,
-              target: { lat, lng },
-              bearing: 0,
-              status,
-              active_trip_id: activeTrip?.id,
-            };
-          }),
-        );
+          // Initialize position in mutable ref
+          positionsRef.current.set(d.id, {
+            lat,
+            lng,
+            target: { lat, lng },
+            bearing: 0,
+          });
+
+          return {
+            ...d,
+            lat,
+            lng,
+            target: { lat, lng },
+            bearing: 0,
+            status,
+            active_trip_id: activeTrip?.id,
+          };
+        });
+
+        setDrivers(initialDrivers);
 
         setTrips(formattedTrips);
       } catch (err) {
@@ -135,17 +201,51 @@ export function useLiveTracking() {
           filter: `org_id=eq.${currentOrganization.id}`,
         },
         (payload) => {
+          const driverId = payload.new.id;
+          const newLat = payload.new.current_lat;
+          const newLng = payload.new.current_lng;
+
+          // Check if this is a significant position change
+          const existingPos = positionsRef.current.get(driverId);
+          if (existingPos && newLat != null && newLng != null) {
+            const delta = approxSqDist(existingPos.target, {
+              lat: newLat,
+              lng: newLng,
+            });
+
+            // Ignore tiny movements (reduces state churn)
+            if (delta < DELTA_THRESH_SQ) {
+              // Still update non-position fields
+              setDrivers((prev) =>
+                prev.map((d) =>
+                  d.id === driverId
+                    ? {
+                        ...d,
+                        last_location_update: payload.new.last_location_update,
+                        active: payload.new.active,
+                      }
+                    : d,
+                ),
+              );
+              return;
+            }
+
+            // Update target in mutable ref (animation loop will interpolate)
+            positionsRef.current.set(driverId, {
+              ...existingPos,
+              target: { lat: newLat, lng: newLng },
+            });
+          }
+
+          // Update React state for metadata and new target
           setDrivers((prev) =>
             prev.map((d) =>
-              d.id === payload.new.id
+              d.id === driverId
                 ? {
                     ...d,
-                    target: {
-                      lat: payload.new.current_lat,
-                      lng: payload.new.current_lng,
-                    },
-                    current_lat: payload.new.current_lat,
-                    current_lng: payload.new.current_lng,
+                    target: { lat: newLat, lng: newLng },
+                    current_lat: newLat,
+                    current_lng: newLng,
                     last_location_update: payload.new.last_location_update,
                     active: payload.new.active,
                   }
