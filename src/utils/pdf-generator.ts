@@ -41,7 +41,7 @@ export const generateTripSummaryPDF = (
     doc.setTextColor(30, 64, 175); // Blue 800
     doc.setFont("helvetica", "bold");
     doc.text(
-      `ETA SMS Sent: ${new Date(trip.eta_sms_sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+      `ETA SMS Sent at: ${new Date(trip.eta_sms_sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
       margin,
       headerY + 10,
     );
@@ -279,12 +279,22 @@ export const generateTripSummaryPDF = (
           : "N/A",
     ],
     [
-      "Actual Duration",
+      "Actual Duration of current leg",
       trip.actual_duration_minutes
         ? `${trip.actual_duration_minutes} minutes`
         : trip.duration_minutes
           ? `${trip.duration_minutes} (est) minutes`
           : "N/A",
+    ],
+    [
+      "Total Legs Duration",
+      journeyTrips.length > 0
+        ? `${journeyTrips.reduce((acc, leg) => acc + (Number(leg.actual_duration_minutes) || Number(leg.duration_minutes) || 0), 0)} minutes`
+        : trip.actual_duration_minutes
+          ? `${trip.actual_duration_minutes} minutes`
+          : trip.duration_minutes
+            ? `${trip.duration_minutes} (est) minutes`
+            : "N/A",
     ],
   ];
 
