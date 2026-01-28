@@ -1,10 +1,12 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { Trip } from "@/components/trips/types";
+import type { Trip, TripStatusHistory } from "@/components/trips/types";
 
 export const generateTripSummaryPDF = (
   trip: Trip,
   journeyTrips: Trip[] = [],
+  history: TripStatusHistory[] = [],
+  orgName?: string,
 ) => {
   // Initialize with compression enabled for smaller file sizes
   const doc = new jsPDF({
@@ -15,34 +17,73 @@ export const generateTripSummaryPDF = (
   const margin = 14;
 
   // --- Header ---
-  doc.setFontSize(22);
-  doc.setTextColor(30, 41, 59); // Slate 800
-  doc.text("Journal Summary Report", margin, 20);
+  if (orgName) {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(51, 65, 85); // Slate 700
+    doc.text(orgName.toUpperCase(), margin, 18);
+    doc.setFontSize(22);
+    doc.text("Journal Summary Report", margin, 28);
+  } else {
+    doc.setFontSize(22);
+    doc.setTextColor(30, 41, 59); // Slate 800
+    doc.text("Journal Summary Report", margin, 20);
+  }
 
   doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139); // Slate 500
-  doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, 26);
-  doc.text(`Reference Trip ID: ${trip.id}`, margin, 31);
+  const headerY = orgName ? 34 : 26;
+  doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, headerY);
+  doc.text(`Trip ID: ${trip.id}`, margin, headerY + 5);
+
+  if (trip.eta_sms_sent_at) {
+    doc.setTextColor(30, 64, 175); // Blue 800
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      `ETA SMS Sent: ${new Date(trip.eta_sms_sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+      margin,
+      headerY + 10,
+    );
+  }
 
   // --- Patient Info Block ---
   doc.setFillColor(248, 250, 252); // Slate 50
   doc.setDrawColor(226, 232, 240); // Slate 200
-  doc.roundedRect(margin, 38, pageWidth - margin * 2, 24, 2, 2, "FD");
+  const patientBlockY = orgName ? 48 : 38;
+  doc.roundedRect(
+    margin,
+    patientBlockY,
+    pageWidth - margin * 2,
+    24,
+    2,
+    2,
+    "FD",
+  );
 
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139); // Slate 500
-  doc.text("PATIENT", margin + 5, 45);
-  doc.text("SCHEDULED DATE", margin + 80, 45);
-  doc.text("TOTAL LEGS", margin + 140, 45);
+  doc.setFont("helvetica", "normal");
+  doc.text("PATIENT", margin + 5, patientBlockY + 7);
+  doc.text("SCHEDULED DATE", margin + 80, patientBlockY + 7);
+  doc.text("TOTAL LEGS", margin + 140, patientBlockY + 7);
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(15, 23, 42); // Slate 900
-  doc.text(trip.patient?.full_name || "N/A", margin + 5, 52);
-  doc.text(new Date(trip.pickup_time).toLocaleDateString(), margin + 80, 52);
-  doc.text((journeyTrips.length || 1).toString(), margin + 140, 52);
+  doc.text(trip.patient?.full_name || "N/A", margin + 5, patientBlockY + 14);
+  doc.text(
+    new Date(trip.pickup_time).toLocaleDateString(),
+    margin + 80,
+    patientBlockY + 14,
+  );
+  doc.text(
+    (journeyTrips.length || 1).toString(),
+    margin + 140,
+    patientBlockY + 14,
+  );
 
-  let currentY = 75;
+  let currentY = patientBlockY + 35;
 
   // --- Journey Timeline Section ---
   if (journeyTrips && journeyTrips.length > 0) {
@@ -57,7 +98,13 @@ export const generateTripSummaryPDF = (
         hour: "2-digit",
         minute: "2-digit",
       });
-      const route = `${leg.pickup_location}\n↓\n${leg.dropoff_location}`;
+
+      const cleanLocation = (loc: string) =>
+        loc.replace(/[!“"']+$|^\s*|\s*$/g, "").trim();
+      const pickup = cleanLocation(leg.pickup_location);
+      const dropoff = cleanLocation(leg.dropoff_location);
+      const route = `From: ${pickup}\nTo: ${dropoff}`;
+
       const distance = leg.actual_distance_miles
         ? `${Math.ceil(Number(leg.actual_distance_miles))} mi`
         : leg.distance_miles
@@ -84,19 +131,22 @@ export const generateTripSummaryPDF = (
         cellPadding: 4,
         lineColor: [226, 232, 240],
         lineWidth: 0.1,
+        halign: "center", // Center things by default
+        valign: "middle", // Vertical centering
       },
       headStyles: {
         fillColor: [241, 245, 249],
         textColor: [71, 85, 105],
         fontStyle: "bold",
-        lineWidth: 0, // No separate border for header
+        lineWidth: 0,
+        halign: "center",
       },
       columnStyles: {
         0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 20 },
-        2: { cellWidth: "auto" },
-        3: { cellWidth: 25, fontSize: 8 },
-        4: { cellWidth: 15, halign: "right" },
+        1: { cellWidth: 28, halign: "center" }, // Increased width for time
+        2: { cellWidth: "auto", halign: "left" }, // Route left-aligned but padded
+        3: { cellWidth: 35, fontSize: 8, halign: "center" },
+        4: { cellWidth: 15, halign: "center" },
       },
       didParseCell: (data) => {
         // Styling status cells based on value
@@ -109,6 +159,78 @@ export const generateTripSummaryPDF = (
           } else {
             data.cell.styles.textColor = [59, 130, 246];
           }
+        }
+      },
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // --- Activity History Section ---
+  if (history && history.length > 0) {
+    // Check if we need a new page
+    if (currentY > doc.internal.pageSize.height - 40) {
+      doc.addPage();
+      currentY = 20;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(30, 41, 59);
+    doc.text("Activity History", margin, currentY);
+    currentY += 8;
+
+    const historyData = history.map((item) => {
+      const date = new Date(item.created_at);
+      const timeStr = date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const dateStr = date.toLocaleDateString();
+
+      let statusText = item.status.replace(/_/g, " ").toUpperCase();
+      if (statusText.startsWith("UPDATED:")) {
+        statusText = statusText.replace("UPDATED:", "UPDATED").trim();
+      }
+
+      return [`${dateStr}\n${timeStr}`, statusText, item.actor_name];
+    });
+
+    // @ts-ignore
+    autoTable(doc, {
+      startY: currentY,
+      head: [["Date/Time", "Activity", "Performed By"]],
+      body: historyData,
+      theme: "plain",
+      styles: {
+        fontSize: 8,
+        cellPadding: 4,
+        lineColor: [241, 245, 249],
+        lineWidth: 0.1,
+        valign: "middle", // Vertical centering
+      },
+      headStyles: {
+        fillColor: [248, 250, 252],
+        textColor: [100, 116, 139],
+        fontStyle: "bold",
+        fontSize: 7,
+      },
+      columnStyles: {
+        0: { cellWidth: 25, halign: "center" },
+        1: { cellWidth: "auto", fontStyle: "bold" },
+        2: { cellWidth: 40, halign: "center" },
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 1) {
+          const text = data.cell.raw as string;
+          if (text.includes("COMPLETED"))
+            data.cell.styles.textColor = [16, 185, 129];
+          else if (text.includes("CANCEL") || text.includes("NO SHOW"))
+            data.cell.styles.textColor = [239, 68, 68];
+          else if (text.includes("EN ROUTE"))
+            data.cell.styles.textColor = [147, 51, 234];
+          else if (text.includes("ASSIGNED"))
+            data.cell.styles.textColor = [59, 130, 246];
         }
       },
     });
@@ -156,6 +278,14 @@ export const generateTripSummaryPDF = (
           ? `${Math.ceil(Number(trip.distance_miles))} (est) miles`
           : "N/A",
     ],
+    [
+      "Actual Duration",
+      trip.actual_duration_minutes
+        ? `${trip.actual_duration_minutes} minutes`
+        : trip.duration_minutes
+          ? `${trip.duration_minutes} (est) minutes`
+          : "N/A",
+    ],
   ];
 
   if (trip.total_waiting_minutes && Number(trip.total_waiting_minutes) > 0) {
@@ -171,7 +301,12 @@ export const generateTripSummaryPDF = (
     startY: currentY,
     body: detailsData,
     theme: "plain",
-    styles: { fontSize: 10, cellPadding: 2, textColor: [51, 65, 85] },
+    styles: {
+      fontSize: 10,
+      cellPadding: 3,
+      textColor: [51, 65, 85],
+      valign: "middle",
+    },
     columnStyles: {
       0: { fontStyle: "bold", cellWidth: 40, textColor: [100, 116, 139] },
       1: { cellWidth: "auto" },
@@ -206,30 +341,12 @@ export const generateTripSummaryPDF = (
       );
     }
   } else if (trip.signature_data) {
-    // Show Signer Info
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-
-    let infoY = currentY + 5;
-    if (trip.signed_by_name) {
-      doc.text(`Signed by: ${trip.signed_by_name}`, margin + 5, infoY + 5);
-      infoY += 5;
-    }
-    if (trip.signature_captured_at) {
-      doc.text(
-        `Time: ${new Date(trip.signature_captured_at).toLocaleString()}`,
-        margin + 5,
-        infoY + 5,
-      );
-    }
-
     // Add Signature Image
     try {
       const imgProps = doc.getImageProperties(trip.signature_data);
-      // Constrain within the box
-      const maxWidth = 80;
-      const maxHeight = signatureBoxHeight - 5;
+      // Center visually and make slightly larger
+      const maxWidth = 100;
+      const maxHeight = signatureBoxHeight - 14;
 
       let finalWidth = maxWidth;
       let finalHeight = (imgProps.height * maxWidth) / imgProps.width;
@@ -239,25 +356,49 @@ export const generateTripSummaryPDF = (
         finalWidth = (imgProps.width * maxHeight) / imgProps.height;
       }
 
-      // Center the signature visually in the box, or places it nicely
+      // Center the signature visually in the box
       doc.addImage(
         trip.signature_data,
         "PNG",
-        pageWidth - margin - finalWidth - 5, // Right aligned in the box
-        currentY + 2,
+        (pageWidth - finalWidth) / 2, // Center visually
+        currentY + (signatureBoxHeight - finalHeight) / 2 - 2, // Center vertically
         finalWidth,
         finalHeight,
         undefined,
         "FAST", // Compression
       );
+
+      // Show Signer Info - Centered at the bottom of the box
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139); // Slate 500
+      let signerInfo = "";
+      if (trip.signed_by_name)
+        signerInfo += `Signed by: ${trip.signed_by_name}  |  `;
+      if (trip.signature_captured_at)
+        signerInfo += `Captured: ${new Date(trip.signature_captured_at).toLocaleString()}`;
+
+      if (signerInfo) {
+        doc.text(signerInfo, pageWidth / 2, currentY + signatureBoxHeight - 4, {
+          align: "center",
+        });
+      }
     } catch (e) {
       console.error("Error adding signature image to PDF", e);
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(10);
+      doc.setTextColor(148, 163, 184);
+      doc.text("Error loading signature.", pageWidth / 2, currentY + 20, {
+        align: "center",
+      });
     }
   } else {
     doc.setFont("helvetica", "italic");
     doc.setFontSize(10);
     doc.setTextColor(148, 163, 184);
-    doc.text("No signature recorded.", margin + 5, currentY + 20);
+    doc.text("No signature recorded.", pageWidth / 2, currentY + 20, {
+      align: "center",
+    });
   }
 
   // --- Footer ---
@@ -267,7 +408,7 @@ export const generateTripSummaryPDF = (
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
     doc.text(
-      `Future Transportation CRM - Page ${i} of ${pageCount}`,
+      `${orgName || "Future NEMT Transportation"} - Page ${i} of ${pageCount}`,
       pageWidth / 2,
       doc.internal.pageSize.height - 10,
       { align: "center" },

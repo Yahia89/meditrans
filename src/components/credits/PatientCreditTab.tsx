@@ -19,9 +19,11 @@ import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { CreditEntryDialog } from "./CreditEntryDialog";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   calculateCreditStatus,
-  ESTIMATED_COST_PER_TRIP,
+  calculateTripCost,
+  type OrganizationFees,
 } from "@/lib/credit-utils";
 
 interface PatientCreditTabProps {
@@ -42,6 +44,9 @@ interface Trip {
   trip_type: string;
   pickup_location: string;
   dropoff_location: string;
+  actual_distance_miles: number | null;
+  distance_miles: number | null;
+  total_waiting_minutes: number | null;
 }
 
 // Moved to @/lib/credit-utils.ts
@@ -57,6 +62,7 @@ export function PatientCreditTab({
   serviceType,
 }: PatientCreditTabProps) {
   const { isOwner, isAdmin } = usePermissions();
+  const { currentOrganization } = useOrganization();
   const canManageCredits = isOwner || isAdmin;
 
   // Month navigation
@@ -72,7 +78,7 @@ export function PatientCreditTab({
   const startOfMonth = new Date(
     selectedMonth.getFullYear(),
     selectedMonth.getMonth(),
-    1
+    1,
   );
   const endOfMonth = new Date(
     selectedMonth.getFullYear(),
@@ -80,9 +86,26 @@ export function PatientCreditTab({
     0,
     23,
     59,
-    59
+    59,
   );
   const daysInMonth = endOfMonth.getDate();
+
+  // Fetch organization fees
+  const { data: fees } = useQuery({
+    queryKey: ["organization_fees", currentOrganization?.id],
+    queryFn: async () => {
+      if (!currentOrganization?.id) return null;
+      const { data, error } = await supabase
+        .from("organization_fees")
+        .select("*")
+        .eq("org_id", currentOrganization.id)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error;
+      return data as OrganizationFees;
+    },
+    enabled: !!currentOrganization?.id,
+  });
 
   // Fetch trips for this month
   const { data: trips = [], isLoading } = useQuery({
@@ -91,7 +114,7 @@ export function PatientCreditTab({
       const { data, error } = await supabase
         .from("trips")
         .select(
-          "id, pickup_time, status, trip_type, pickup_location, dropoff_location"
+          "id, pickup_time, status, trip_type, pickup_location, dropoff_location, actual_distance_miles, distance_miles, total_waiting_minutes",
         )
         .eq("patient_id", patientId)
         .gte("pickup_time", startOfMonth.toISOString())
@@ -112,14 +135,15 @@ export function PatientCreditTab({
     trips.forEach((trip) => {
       if (trip.status === "completed") {
         const day = new Date(trip.pickup_time).getDate();
-        daily[day] = (daily[day] || 0) + ESTIMATED_COST_PER_TRIP;
-        total += ESTIMATED_COST_PER_TRIP;
+        const cost = calculateTripCost(trip, fees || null);
+        daily[day] = (daily[day] || 0) + cost;
+        total += cost;
         completed++;
       }
     });
 
     return { dailySpend: daily, totalSpend: total, completedTrips: completed };
-  }, [trips]);
+  }, [trips, fees]);
 
   const creditStatus = calculateCreditStatus(monthlyCredit, totalSpend);
   const remainingBalance = (monthlyCredit || 0) - totalSpend;
@@ -130,13 +154,13 @@ export function PatientCreditTab({
   // Month navigation
   const goToPrevMonth = () => {
     setSelectedMonth(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
     );
   };
 
   const goToNextMonth = () => {
     setSelectedMonth(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
     );
   };
 
@@ -184,7 +208,7 @@ export function PatientCreditTab({
             <span
               className={cn(
                 "px-3 py-1.5 rounded-full text-xs font-semibold",
-                getStatusColor()
+                getStatusColor(),
               )}
             >
               {getStatusText()}
@@ -228,7 +252,7 @@ export function PatientCreditTab({
             <p
               className={cn(
                 "text-xl font-bold",
-                remainingBalance >= 0 ? "text-emerald-600" : "text-red-600"
+                remainingBalance >= 0 ? "text-emerald-600" : "text-red-600",
               )}
             >
               {formatCurrency(remainingBalance)}
@@ -259,8 +283,8 @@ export function PatientCreditTab({
                   creditStatus.status === "low"
                     ? "bg-red-500"
                     : creditStatus.status === "mid"
-                    ? "bg-amber-500"
-                    : "bg-emerald-500"
+                      ? "bg-amber-500"
+                      : "bg-emerald-500",
                 )}
                 style={{ width: `${Math.min(100, usagePercentage)}%` }}
               />
@@ -339,7 +363,7 @@ export function PatientCreditTab({
                     >
                       {day}
                     </div>
-                  )
+                  ),
                 )}
               </div>
               <div className="grid grid-cols-7 gap-1">
@@ -348,7 +372,7 @@ export function PatientCreditTab({
                   length: new Date(
                     selectedMonth.getFullYear(),
                     selectedMonth.getMonth(),
-                    1
+                    1,
                   ).getDay(),
                 }).map((_, i) => (
                   <div key={`empty-${i}`} className="aspect-square" />
@@ -366,7 +390,7 @@ export function PatientCreditTab({
                         "aspect-square rounded-lg border flex flex-col items-center justify-center text-xs transition-colors",
                         hasSpend
                           ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          : "bg-slate-50 border-slate-100 text-slate-400"
+                          : "bg-slate-50 border-slate-100 text-slate-400",
                       )}
                     >
                       <span className="font-medium">{day}</span>
@@ -413,7 +437,9 @@ export function PatientCreditTab({
                           </div>
                         </div>
                         <span className="font-semibold text-emerald-600">
-                          ${ESTIMATED_COST_PER_TRIP}
+                          {formatCurrency(
+                            calculateTripCost(trip, fees || null),
+                          )}
                         </span>
                       </div>
                     );

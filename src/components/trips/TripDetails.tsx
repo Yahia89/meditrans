@@ -428,6 +428,22 @@ export function TripDetails({
     enabled: !!trip?.patient_id && !!trip?.pickup_time,
   });
 
+  // Fetch organization name
+  const { data: org } = useQuery({
+    queryKey: ["organization", trip?.org_id],
+    queryFn: async () => {
+      if (!trip?.org_id) return null;
+      const { data, error } = await supabase
+        .from("organizations")
+        .select("name")
+        .eq("id", trip.org_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!trip?.org_id,
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({
       status,
@@ -994,7 +1010,12 @@ export function TripDetails({
                       <Button
                         variant="outline"
                         onClick={() =>
-                          generateTripSummaryPDF(trip, journeyTrips || [])
+                          generateTripSummaryPDF(
+                            trip,
+                            journeyTrips || [],
+                            history || [],
+                            org?.name,
+                          )
                         }
                         className="h-11 border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 font-bold px-4 rounded-xl gap-2 transition-all shadow-sm bg-white"
                       >

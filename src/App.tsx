@@ -28,6 +28,7 @@ import logo from "./assets/logo.png";
 import { usePermissions } from "@/hooks/usePermissions";
 import { usePresence } from "@/hooks/usePresence";
 import { Loader2 } from "lucide-react";
+import { Toaster } from "sonner";
 
 // Define valid page values for type safety
 export const pages = [
@@ -546,6 +547,7 @@ function AppContent() {
             setShowBulkImport(false);
           }}
         />
+        <Toaster position="top-right" richColors />
       </SidebarProvider>
     </OnboardingProvider>
   );
