@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { interpolateLatLng, calculateBearing } from "@/lib/geo";
+import { calculateBearing, interpolateLatLng } from "@/lib/geo";
+import { supabase } from "@/lib/supabase";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LiveDriver, LiveTrip } from "./types";
 
 // Configuration constants
@@ -211,46 +211,75 @@ export function useLiveTracking() {
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*", // Listen for ALL events (INSERT, UPDATE, DELETE)
           schema: "public",
           table: "drivers",
           filter: `org_id=eq.${currentOrganization.id}`,
         },
         (payload) => {
-          const driverId = payload.new.id;
-          const newLat = payload.new.current_lat;
-          const newLng = payload.new.current_lng;
-
-          // Update the animation target immediately in our local ref
-          const existingPos = positionsRef.current.get(driverId);
-          if (existingPos && newLat != null && newLng != null) {
-            const delta = approxSqDist(existingPos.target, {
-              lat: newLat,
-              lng: newLng,
-            });
-
-            // Update target if movement is significant
-            if (delta > DELTA_THRESH_SQ) {
-              positionsRef.current.set(driverId, {
-                ...existingPos,
-                target: { lat: newLat, lng: newLng },
-              });
-            }
-          }
-
-          // Update React state for metadata (active status, timestamps)
-          setDrivers((prev) =>
-            prev.map((d) =>
-              d.id === driverId
-                ? {
-                    ...d,
-                    target: { lat: newLat, lng: newLng },
-                    last_location_update: payload.new.last_location_update,
-                    active: payload.new.active,
-                  }
-                : d,
-            ),
+          console.log(
+            "[LiveTracking] Realtime update:",
+            payload.eventType,
+            (payload.new as any)?.id,
           );
+
+          if (payload.eventType === "UPDATE") {
+            const driverId = payload.new.id;
+            const newLat = payload.new.current_lat;
+            const newLng = payload.new.current_lng;
+
+            // Update the animation target immediately in our local ref
+            const existingPos = positionsRef.current.get(driverId);
+            if (newLat != null && newLng != null) {
+              if (existingPos) {
+                const delta = approxSqDist(existingPos.target, {
+                  lat: newLat,
+                  lng: newLng,
+                });
+
+                // Update target if movement is significant
+                if (delta > DELTA_THRESH_SQ) {
+                  positionsRef.current.set(driverId, {
+                    ...existingPos,
+                    target: { lat: newLat, lng: newLng },
+                  });
+                }
+              } else {
+                // Buffer new driver position
+                positionsRef.current.set(driverId, {
+                  lat: newLat,
+                  lng: newLng,
+                  target: { lat: newLat, lng: newLng },
+                  bearing: 0,
+                });
+              }
+            }
+
+            // Update React state for metadata (active status, timestamps)
+            setDrivers((prev) => {
+              const driverIdx = prev.findIndex((d) => d.id === driverId);
+              if (driverIdx === -1) return prev; // Wait for next query to fetch new driver
+
+              const updated = [...prev];
+              updated[driverIdx] = {
+                ...updated[driverIdx],
+                target: { lat: newLat, lng: newLng },
+                last_location_update: payload.new.last_location_update,
+                active: payload.new.active,
+                current_lat: newLat,
+                current_lng: newLng,
+              };
+              return updated;
+            });
+          } else if (
+            payload.eventType === "INSERT" ||
+            payload.eventType === "DELETE"
+          ) {
+            // Invalidate query to fetch the updated list of drivers
+            queryClient.invalidateQueries({
+              queryKey: ["live-drivers", currentOrganization.id],
+            });
+          }
         },
       )
       .on(
