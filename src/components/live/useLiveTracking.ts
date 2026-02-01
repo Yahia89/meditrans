@@ -6,11 +6,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { LiveDriver, LiveTrip } from "./types";
 
 // Configuration constants
-const ANIMATION_FPS = 4; // 4 updates per second instead of 60
-const ANIMATION_INTERVAL = 1000 / ANIMATION_FPS;
-const INTERPOLATION_FACTOR = 0.25; // Slightly higher since we update less frequently
-const STOP_THRESHOLD_SQ = 0.000000001; // Stop animating when squared distance is below this
-const DELTA_THRESH_SQ = 0.0000001; // Ignore Supabase updates smaller than this (~10m)
+// 60 FPS animation for smooth "Uber-like" movement
+const LERP_FACTOR = 0.08; // Adjust for smoothness (0.05 = slow glide, 0.2 = snappy)
+const STOP_THRESHOLD_SQ = 0.000000001; // Stop interpolating when very close
+const BEARING_UPDATE_THRESHOLD_SQ = 0.0000005; // Only update bearing if moved ~2-3 meters
+const BROADCAST_CHANNEL = "drivers-live";
 
 // Approximate squared distance (faster than calculating actual distance)
 function approxSqDist(
@@ -28,6 +28,7 @@ interface PositionState {
   lng: number;
   target: { lat: number; lng: number };
   bearing: number;
+  lastUpdated: number;
 }
 
 export function useLiveTracking() {
@@ -37,7 +38,7 @@ export function useLiveTracking() {
 
   // Mutable position state - avoids React re-renders on every interpolation step
   const positionsRef = useRef<Map<string, PositionState>>(new Map());
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   // 1. Fetch Drivers using TanStack Query
   const { data: driversData, isLoading: driversLoading } = useQuery({
@@ -100,7 +101,7 @@ export function useLiveTracking() {
   useEffect(() => {
     if (!driversData) return;
 
-    setDrivers((prev) => {
+    setDrivers((_) => {
       return driversData.map((d) => {
         const activeTrip = tripsData?.find((t) => t.driver_id === d.id);
         let status: LiveDriver["status"] = "idle";
@@ -110,25 +111,25 @@ export function useLiveTracking() {
         const lat = d.current_lat || 0;
         const lng = d.current_lng || 0;
 
-        // Initialize or update mutable position ref
+        // Initialize mutable position ref if missing
         if (!positionsRef.current.has(d.id)) {
           positionsRef.current.set(d.id, {
             lat,
             lng,
             target: { lat, lng },
             bearing: 0,
+            lastUpdated: Date.now(),
           });
         }
 
-        // Try to keep the current animated position if it exists
-        const existing = prev.find((p) => p.id === d.id);
+        const existingRef = positionsRef.current.get(d.id);
 
         return {
           ...d,
-          lat: existing?.lat ?? lat,
-          lng: existing?.lng ?? lng,
-          target: { lat, lng },
-          bearing: existing?.bearing ?? 0,
+          lat: existingRef?.lat ?? lat,
+          lng: existingRef?.lng ?? lng,
+          target: existingRef?.target ?? { lat, lng },
+          bearing: existingRef?.bearing ?? 0,
           status,
           active_trip_id: activeTrip?.id,
         };
@@ -147,127 +148,162 @@ export function useLiveTracking() {
         const pos = positions.get(d.id);
         if (!pos) return d;
 
-        // Check if position actually changed
+        // Don't result in new object reference if values are identical (React optimization)
         if (
-          d.lat !== pos.lat ||
-          d.lng !== pos.lng ||
-          d.bearing !== pos.bearing
+          Math.abs(d.lat - pos.lat) < Number.EPSILON &&
+          Math.abs(d.lng - pos.lng) < Number.EPSILON &&
+          Math.abs((d.bearing || 0) - pos.bearing) < Number.EPSILON
         ) {
-          hasChanges = true;
-          return {
-            ...d,
-            lat: pos.lat,
-            lng: pos.lng,
-            target: pos.target,
-            bearing: pos.bearing,
-          };
+          return d;
         }
-        return d;
+
+        hasChanges = true;
+        return {
+          ...d,
+          lat: pos.lat,
+          lng: pos.lng,
+          target: pos.target,
+          bearing: pos.bearing,
+        };
       });
 
       return hasChanges ? updated : prev;
     });
   }, []);
 
-  // Animation loop using setInterval (throttled to ANIMATION_FPS)
+  // Animation Loop (60 FPS)
   useEffect(() => {
-    function tick() {
+    const tick = () => {
       const positions = positionsRef.current;
+      let needsFlush = false;
 
       positions.forEach((pos, id) => {
-        // Skip if no target or already at target
         const distSq = approxSqDist(pos, pos.target);
-        if (distSq < STOP_THRESHOLD_SQ) return;
 
-        // Interpolate towards target
-        const next = interpolateLatLng(pos, pos.target, INTERPOLATION_FACTOR);
-        const newBearing = calculateBearing(pos, pos.target);
+        // If very close to target, snap to it to stop micro-calculations
+        if (distSq < STOP_THRESHOLD_SQ) {
+          if (pos.lat !== pos.target.lat || pos.lng !== pos.target.lng) {
+            pos.lat = pos.target.lat;
+            pos.lng = pos.target.lng;
+            needsFlush = true;
+          }
+          return;
+        }
 
-        // Update mutable ref (no React re-render)
+        // Interpolate (Lerp)
+        const next = interpolateLatLng(pos, pos.target, LERP_FACTOR);
+
+        // Calculate Bearing only if we moved enough
+        // This prevents the "spin to 0" issue when stopped
+        let newBearing = pos.bearing;
+        if (distSq > BEARING_UPDATE_THRESHOLD_SQ) {
+          newBearing = calculateBearing(pos, pos.target);
+        }
+
+        // Update mutable ref
         positions.set(id, {
           ...pos,
           lat: next.lat,
           lng: next.lng,
           bearing: newBearing,
         });
+
+        needsFlush = true;
       });
 
-      // Batch flush to React state
-      flushPositions();
-    }
+      if (needsFlush) {
+        flushPositions();
+      }
 
-    intervalRef.current = setInterval(tick, ANIMATION_INTERVAL);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [flushPositions]);
 
-  // Realtime Subscriptions
+  // Handle Incoming Position Updates (Common logic for DB and Broadcast)
+  const handlePositionUpdate = useCallback(
+    (driverId: string, newLat: number, newLng: number, newHeading?: number) => {
+      const positions = positionsRef.current;
+      const existing = positions.get(driverId);
+
+      if (existing) {
+        // Only update target if it's different/new
+        const dist = approxSqDist(existing.target, {
+          lat: newLat,
+          lng: newLng,
+        });
+        if (dist > STOP_THRESHOLD_SQ) {
+          positions.set(driverId, {
+            ...existing,
+            target: { lat: newLat, lng: newLng },
+            lastUpdated: Date.now(),
+          });
+        }
+      } else {
+        // New Driver found via Stream
+        positions.set(driverId, {
+          lat: newLat,
+          lng: newLng,
+          target: { lat: newLat, lng: newLng },
+          bearing: newHeading || 0,
+          lastUpdated: Date.now(),
+        });
+      }
+    },
+    [],
+  ); // dependencies empty as refs are stable
+
+  // Realtime Subscriptions (Broadcast + DB Backup)
   useEffect(() => {
     if (!currentOrganization?.id) return;
 
-    const channel = supabase
-      .channel("drivers-live")
+    // 1. Broadcast Channel (Low Latency)
+    const broadcastChannel = supabase
+      .channel(BROADCAST_CHANNEL)
+      .on("broadcast", { event: "location-update" }, (payload) => {
+        // Expecting payload: { id, lat, lng, heading?, timestamp? }
+        // Payload shape depends on how it's sent. Usually payload.payload or directly payload if destructured.
+        // Supabase 'broadcast' event handler receives object { payload: ..., event: ..., type: ... }
+        const p = payload.payload;
+        if (p && p.id && p.lat && p.lng) {
+          handlePositionUpdate(p.id, p.lat, p.lng, p.heading);
+        }
+      })
+      .subscribe();
+
+    // 2. Database Changes (Backup / Reliability)
+    const dbChannel = supabase
+      .channel("drivers-db-changes")
       .on(
         "postgres_changes",
         {
-          event: "*", // Listen for ALL events (INSERT, UPDATE, DELETE)
+          event: "*",
           schema: "public",
           table: "drivers",
           filter: `org_id=eq.${currentOrganization.id}`,
         },
         (payload) => {
-          console.log(
-            "[LiveTracking] Realtime update:",
-            payload.eventType,
-            (payload.new as any)?.id,
-          );
-
           if (payload.eventType === "UPDATE") {
-            const driverId = payload.new.id;
             const newLat = payload.new.current_lat;
             const newLng = payload.new.current_lng;
-
-            // Update the animation target immediately in our local ref
-            const existingPos = positionsRef.current.get(driverId);
             if (newLat != null && newLng != null) {
-              if (existingPos) {
-                const delta = approxSqDist(existingPos.target, {
-                  lat: newLat,
-                  lng: newLng,
-                });
-
-                // Update target if movement is significant
-                if (delta > DELTA_THRESH_SQ) {
-                  positionsRef.current.set(driverId, {
-                    ...existingPos,
-                    target: { lat: newLat, lng: newLng },
-                  });
-                }
-              } else {
-                // Buffer new driver position
-                positionsRef.current.set(driverId, {
-                  lat: newLat,
-                  lng: newLng,
-                  target: { lat: newLat, lng: newLng },
-                  bearing: 0,
-                });
-              }
+              handlePositionUpdate(payload.new.id, newLat, newLng);
             }
 
-            // Update React state for metadata (active status, timestamps)
+            // Also update active metadata
             setDrivers((prev) => {
-              const driverIdx = prev.findIndex((d) => d.id === driverId);
-              if (driverIdx === -1) return prev; // Wait for next query to fetch new driver
-
+              const idx = prev.findIndex((d) => d.id === payload.new.id);
+              if (idx === -1) return prev;
               const updated = [...prev];
-              updated[driverIdx] = {
-                ...updated[driverIdx],
-                target: { lat: newLat, lng: newLng },
-                last_location_update: payload.new.last_location_update,
+              updated[idx] = {
+                ...updated[idx],
                 active: payload.new.active,
-                current_lat: newLat,
-                current_lng: newLng,
+                last_location_update: payload.new.last_location_update,
               };
               return updated;
             });
@@ -275,13 +311,17 @@ export function useLiveTracking() {
             payload.eventType === "INSERT" ||
             payload.eventType === "DELETE"
           ) {
-            // Invalidate query to fetch the updated list of drivers
             queryClient.invalidateQueries({
               queryKey: ["live-drivers", currentOrganization.id],
             });
           }
         },
       )
+      .subscribe();
+
+    // 3. Trip Changes
+    const tripsChannel = supabase
+      .channel("trips-changes")
       .on(
         "postgres_changes",
         {
@@ -291,7 +331,6 @@ export function useLiveTracking() {
           filter: `org_id=eq.${currentOrganization.id}`,
         },
         () => {
-          // Keep it simple: invalidate trips to trigger a refetch
           queryClient.invalidateQueries({
             queryKey: ["live-trips", currentOrganization.id],
           });
@@ -300,9 +339,11 @@ export function useLiveTracking() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(broadcastChannel);
+      supabase.removeChannel(dbChannel);
+      supabase.removeChannel(tripsChannel);
     };
-  }, [currentOrganization?.id, queryClient]);
+  }, [currentOrganization?.id, queryClient, handlePositionUpdate]);
 
   return {
     drivers,
