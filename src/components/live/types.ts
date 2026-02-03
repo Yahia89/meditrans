@@ -30,3 +30,20 @@ export interface LiveTrip {
     full_name: string;
   };
 }
+
+/**
+ * State for route-aware animation and deviation detection
+ * Used internally by useLiveTracking
+ */
+export interface DriverRouteFollowingState {
+  /** Current distance along route (meters from start) */
+  distanceAlongRoute: number;
+  /** Segment index on the polyline */
+  segmentIndex: number;
+  /** Is driver off the designated route? */
+  isOffRoute: boolean;
+  /** When driver first went off-route (ms timestamp) */
+  offRouteStartTime: number | null;
+  /** Has a reroute been requested/flagged? */
+  rerouteRequested: boolean;
+}

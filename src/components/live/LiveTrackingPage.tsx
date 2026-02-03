@@ -12,7 +12,15 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
 export function LiveTrackingPage() {
-  const { drivers, trips, loading } = useLiveTracking();
+  const {
+    drivers,
+    trips,
+    loading,
+    // Route management APIs for Uber-tier animation
+    setRouteForTrip,
+    getDriverRouteState,
+    clearRerouteFlag,
+  } = useLiveTracking();
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"drivers" | "trips">("drivers");
@@ -34,6 +42,19 @@ export function LiveTrackingPage() {
 
   const handleDriverSelect = (id: string) => {
     setSelectedDriverId(id);
+  };
+
+  /**
+   * Callback when LiveMap fetches directions
+   * We cache the polyline for route-aware animation
+   */
+  const handleRouteLoad = (
+    tripId: string,
+    directions: google.maps.DirectionsResult,
+    origin: string,
+    destination: string,
+  ) => {
+    setRouteForTrip(tripId, directions, origin, destination);
   };
 
   if (loading && drivers.length === 0) {
@@ -58,6 +79,9 @@ export function LiveTrackingPage() {
           trips={trips}
           selectedDriverId={selectedDriverId}
           onDriverSelect={handleDriverSelect}
+          onRouteLoad={handleRouteLoad}
+          getDriverRouteState={getDriverRouteState}
+          clearRerouteFlag={clearRerouteFlag}
         />
 
         {/* Floating Stats Overlay */}
@@ -230,7 +254,7 @@ function DriverCard({
   onClick: () => void;
 }) {
   const isEnRoute = driver.status === "en_route";
-  const isOffline = driver.status === "offline";
+  // isOffline is implicitly handled in the ternary fallback for statusColor
   const isIdle = driver.status === "idle";
 
   // Status Colors Mapping

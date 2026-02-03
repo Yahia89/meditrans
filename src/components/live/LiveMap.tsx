@@ -7,7 +7,12 @@ import {
 } from "@react-google-maps/api";
 import useSupercluster from "use-supercluster";
 import type { LiveDriver, LiveTrip } from "./types";
-import { NavigationArrow, CarProfile, CornersOut } from "@phosphor-icons/react";
+import {
+  NavigationArrow,
+  CarProfile,
+  CornersOut,
+  Warning,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -18,7 +23,7 @@ const mapContainerStyle = {
 };
 
 const defaultCenter = {
-  lat: 40.7128, // Default to NY or user's preference if available?
+  lat: 40.7128, // Default to NY
   lng: -74.006,
 };
 
@@ -100,11 +105,35 @@ const mapOptions: google.maps.MapOptions = {
 // Libraries must be constant
 const libraries: ("places" | "geometry")[] = ["places", "geometry"];
 
+// Direction renderer options - cached polyline style
+const directionsRendererOptions: google.maps.DirectionsRendererOptions = {
+  suppressMarkers: false,
+  polylineOptions: {
+    strokeColor: "#3b82f6",
+    strokeWeight: 5,
+    strokeOpacity: 0.7,
+  },
+  preserveViewport: false,
+};
+
 interface LiveMapProps {
   drivers: LiveDriver[];
   trips: LiveTrip[];
   selectedDriverId?: string | null;
   onDriverSelect: (id: string, tripId?: string) => void;
+  /** Callback when route is fetched - used to cache polyline for animation */
+  onRouteLoad?: (
+    tripId: string,
+    directions: google.maps.DirectionsResult,
+    origin: string,
+    destination: string,
+  ) => void;
+  /** Get driver's route state (for deviation display) */
+  getDriverRouteState?: (
+    driverId: string,
+  ) => { isOffRoute: boolean; rerouteRequested: boolean } | null;
+  /** Clear reroute flag after handling */
+  clearRerouteFlag?: (driverId: string) => void;
 }
 
 export function LiveMap({
@@ -112,6 +141,9 @@ export function LiveMap({
   trips,
   selectedDriverId,
   onDriverSelect,
+  onRouteLoad,
+  getDriverRouteState,
+  clearRerouteFlag,
 }: LiveMapProps) {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
@@ -122,12 +154,16 @@ export function LiveMap({
   const [activeDriverId, setActiveDriverId] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] =
     useState<google.maps.DirectionsResult | null>(null);
+  const [isRerouting, setIsRerouting] = useState(false);
 
   // Directions cache to prevent redundant API requests
   // Key format: "tripId|origin|destination"
   const directionsCacheRef = useRef<Map<string, google.maps.DirectionsResult>>(
     new Map(),
   );
+
+  // Track last reroute time to prevent spam
+  const lastRerouteTimeRef = useRef<Map<string, number>>(new Map());
 
   // Use a ref for drivers to keep callbacks stable
   const driversRef = useRef(drivers);
@@ -246,43 +282,123 @@ export function LiveMap({
     };
   }, [selectedDriverId, trips]);
 
-  // 4. Fetch route only when trip context changes (Origin/Destination/TripID)
-  // Uses cache to prevent redundant API requests
-  useEffect(() => {
-    if (routeParams) {
-      // Create cache key from trip context
-      const cacheKey = `${routeParams.tripId}|${routeParams.origin}|${routeParams.destination}`;
+  /**
+   * Fetch directions and cache the result
+   * Also notifies parent to cache polyline for animation
+   */
+  const fetchDirections = useCallback(
+    async (
+      origin: string,
+      destination: string,
+      tripId: string,
+      forceRefresh = false,
+    ) => {
+      // Create cache key
+      const cacheKey = `${tripId}|${origin}|${destination}`;
 
-      // Check cache first
-      const cached = directionsCacheRef.current.get(cacheKey);
-      if (cached) {
-        setDirectionsResponse(cached);
-        return;
+      // Check cache first (unless forcing refresh)
+      if (!forceRefresh) {
+        const cached = directionsCacheRef.current.get(cacheKey);
+        if (cached) {
+          setDirectionsResponse(cached);
+          // Notify parent about cached route
+          if (onRouteLoad) {
+            onRouteLoad(tripId, cached, origin, destination);
+          }
+          return cached;
+        }
       }
 
-      // Not in cache - fetch from API
-      const directionsService = new google.maps.DirectionsService();
-      directionsService.route(
-        {
-          origin: routeParams.origin,
-          destination: routeParams.destination,
+      try {
+        const directionsService = new google.maps.DirectionsService();
+        const result = await directionsService.route({
+          origin,
+          destination,
           travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === google.maps.DirectionsStatus.OK && result) {
-            // Store in cache for future requests
-            directionsCacheRef.current.set(cacheKey, result);
-            setDirectionsResponse(result);
-          } else {
-            console.error("Directions request failed:", status);
-            setDirectionsResponse(null);
+        });
+
+        if (result) {
+          // Update cache (with new key if this is a reroute)
+          directionsCacheRef.current.set(cacheKey, result);
+          setDirectionsResponse(result);
+
+          // Notify parent to cache polyline for animation
+          if (onRouteLoad) {
+            onRouteLoad(tripId, result, origin, destination);
           }
-        },
+
+          return result;
+        }
+      } catch (error) {
+        console.error("[LiveMap] Directions request failed:", error);
+      }
+
+      return null;
+    },
+    [onRouteLoad],
+  );
+
+  // 4. Fetch route when trip context changes
+  useEffect(() => {
+    if (routeParams) {
+      fetchDirections(
+        routeParams.origin,
+        routeParams.destination,
+        routeParams.tripId,
       );
     } else {
       setDirectionsResponse(null);
     }
-  }, [routeParams]);
+  }, [routeParams, fetchDirections]);
+
+  // 5. Handle rerouting when driver deviates
+  useEffect(() => {
+    if (!selectedDriverId || !getDriverRouteState || !routeParams) return;
+
+    const routeState = getDriverRouteState(selectedDriverId);
+    if (!routeState?.rerouteRequested) return;
+
+    // Prevent reroute spam (min 30 seconds between reroutes)
+    const lastReroute = lastRerouteTimeRef.current.get(selectedDriverId) || 0;
+    const now = Date.now();
+    if (now - lastReroute < 30000) {
+      return;
+    }
+
+    // Get driver's current position for reroute origin
+    const driver = drivers.find((d) => d.id === selectedDriverId);
+    if (!driver) return;
+
+    setIsRerouting(true);
+    lastRerouteTimeRef.current.set(selectedDriverId, now);
+
+    // Reroute from driver's current position
+    const newOrigin = `${driver.lat},${driver.lng}`;
+
+    console.log(
+      `[LiveMap] Rerouting driver ${selectedDriverId} from ${newOrigin} to ${routeParams.destination}`,
+    );
+
+    fetchDirections(
+      newOrigin,
+      routeParams.destination,
+      routeParams.tripId,
+      true, // Force refresh, don't use cache
+    ).finally(() => {
+      setIsRerouting(false);
+      // Clear the reroute flag
+      if (clearRerouteFlag) {
+        clearRerouteFlag(selectedDriverId);
+      }
+    });
+  }, [
+    selectedDriverId,
+    getDriverRouteState,
+    routeParams,
+    drivers,
+    fetchDirections,
+    clearRerouteFlag,
+  ]);
 
   // Trigger initial fit bounds
   useEffect(() => {
@@ -310,15 +426,7 @@ export function LiveMap({
         {directionsResponse && (
           <DirectionsRenderer
             directions={directionsResponse}
-            options={{
-              suppressMarkers: false,
-              polylineOptions: {
-                strokeColor: "#3b82f6",
-                strokeWeight: 5,
-                strokeOpacity: 0.7,
-              },
-              preserveViewport: false,
-            }}
+            options={directionsRendererOptions}
           />
         )}
 
@@ -362,6 +470,10 @@ export function LiveMap({
           const isBusy = driver.status === "en_route";
           const isSelected = activeDriverId === driver.id;
 
+          // Check if driver is off-route
+          const routeState = getDriverRouteState?.(driver.id);
+          const isOffRoute = routeState?.isOffRoute ?? false;
+
           const lastUpdate = driver.last_location_update
             ? new Date(driver.last_location_update).getTime()
             : 0;
@@ -380,7 +492,12 @@ export function LiveMap({
               >
                 {/* Visual Pulse for Busy Driver */}
                 {isBusy && !isStale && (
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+                  <span
+                    className={cn(
+                      "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
+                      isOffRoute ? "bg-amber-400" : "bg-blue-400",
+                    )}
+                  />
                 )}
 
                 <div
@@ -390,9 +507,11 @@ export function LiveMap({
                     isSelected ? "z-50 scale-125" : "z-10",
                     isOffline || isStale
                       ? "bg-slate-200 border-slate-300 text-slate-400"
-                      : isBusy
-                        ? "bg-blue-600 border-white text-white"
-                        : "bg-emerald-500 border-white text-white",
+                      : isOffRoute
+                        ? "bg-amber-500 border-white text-white"
+                        : isBusy
+                          ? "bg-blue-600 border-white text-white"
+                          : "bg-emerald-500 border-white text-white",
                   )}
                 >
                   <div
@@ -404,7 +523,11 @@ export function LiveMap({
                     }}
                   >
                     {isBusy ? (
-                      <NavigationArrow weight="fill" className="w-5 h-5" />
+                      isOffRoute ? (
+                        <Warning weight="fill" className="w-5 h-5" />
+                      ) : (
+                        <NavigationArrow weight="fill" className="w-5 h-5" />
+                      )
                     ) : (
                       <CarProfile weight="fill" className="w-5 h-5" />
                     )}
@@ -419,6 +542,11 @@ export function LiveMap({
                   )}
                 >
                   {driver.full_name}
+                  {isOffRoute && (
+                    <span className="ml-1 text-amber-300 font-normal">
+                      (Off Route)
+                    </span>
+                  )}
                   {isStale && (
                     <span className="ml-1 text-slate-400 font-normal">
                       (Stale)
@@ -430,6 +558,16 @@ export function LiveMap({
           );
         })}
       </GoogleMap>
+
+      {/* Rerouting Indicator */}
+      {isRerouting && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm font-medium">Recalculating route...</span>
+          </div>
+        </div>
+      )}
 
       {/* Fit All Button */}
       <div className="absolute top-4 right-14 z-10">

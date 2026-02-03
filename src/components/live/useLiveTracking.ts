@@ -1,28 +1,43 @@
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { calculateBearing, interpolateLatLng } from "@/lib/geo";
+import {
+  calculateBearing,
+  interpolateLatLng,
+  approxSqDist,
+  findNearestPointOnPolyline,
+  getPositionAtDistance,
+  getDistanceAtSegment,
+  decodePolyline,
+  calculateCumulativeDistances,
+  isOnRoute,
+  lerpBearing,
+  type PolylinePoint,
+} from "@/lib/geo";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LiveDriver, LiveTrip } from "./types";
+import type { LiveDriver, LiveTrip, DriverRouteFollowingState } from "./types";
 
-// Configuration constants
-// 60 FPS animation for smooth "Uber-like" movement
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+// Animation settings (60 FPS, Uber-tier smoothness)
 const LERP_FACTOR = 0.08; // Adjust for smoothness (0.05 = slow glide, 0.2 = snappy)
 const STOP_THRESHOLD_SQ = 0.000000001; // Stop interpolating when very close
 const BEARING_UPDATE_THRESHOLD_SQ = 0.0000005; // Only update bearing if moved ~2-3 meters
+
+// Route deviation detection
+const ROUTE_TOLERANCE_METERS = 50; // How far off-route before we care
+const DEVIATION_THRESHOLD_MS = 20000; // 20 seconds off-route = needs reroute
+
+// Broadcast channel
 const BROADCAST_CHANNEL = "drivers-live";
 
-// Approximate squared distance (faster than calculating actual distance)
-function approxSqDist(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-): number {
-  const dLat = a.lat - b.lat;
-  const dLng = a.lng - b.lng;
-  return dLat * dLat + dLng * dLng;
-}
+// ============================================================================
+// TYPES
+// ============================================================================
 
-// Interface for mutable position tracking
+/** Mutable position tracking (avoids React re-renders on every frame) */
 interface PositionState {
   lat: number;
   lng: number;
@@ -30,6 +45,22 @@ interface PositionState {
   bearing: number;
   lastUpdated: number;
 }
+
+/** Cached route data for a trip */
+interface CachedRoute {
+  polyline: PolylinePoint[];
+  cumulativeDistances: number[];
+  totalDistance: number;
+  tripId: string;
+  origin: string;
+  destination: string;
+  /** Encoded polyline string for cache comparison */
+  encodedPolyline: string;
+}
+
+// ============================================================================
+// HOOK
+// ============================================================================
 
 export function useLiveTracking() {
   const { currentOrganization } = useOrganization();
@@ -39,6 +70,18 @@ export function useLiveTracking() {
   // Mutable position state - avoids React re-renders on every interpolation step
   const positionsRef = useRef<Map<string, PositionState>>(new Map());
   const rafRef = useRef<number | null>(null);
+
+  // Route cache: tripId -> CachedRoute
+  const routeCacheRef = useRef<Map<string, CachedRoute>>(new Map());
+
+  // Route-following states: driverId -> state
+  const routeFollowingRef = useRef<Map<string, DriverRouteFollowingState>>(
+    new Map(),
+  );
+
+  // ============================================================================
+  // DATA FETCHING
+  // ============================================================================
 
   // 1. Fetch Drivers using TanStack Query
   const { data: driversData, isLoading: driversLoading } = useQuery({
@@ -97,6 +140,86 @@ export function useLiveTracking() {
     enabled: !!currentOrganization?.id,
   });
 
+  // ============================================================================
+  // ROUTE MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Set route for a trip from DirectionsResult
+   * Call this when directions are fetched (from LiveMap)
+   */
+  const setRouteForTrip = useCallback(
+    (
+      tripId: string,
+      directionsResult: google.maps.DirectionsResult,
+      origin: string,
+      destination: string,
+    ) => {
+      try {
+        const route = directionsResult.routes[0];
+        if (!route?.overview_polyline) {
+          console.warn("[LiveTracking] No polyline in directions");
+          return;
+        }
+
+        const encodedPolyline = route.overview_polyline;
+
+        // Check if already cached with same polyline
+        const existing = routeCacheRef.current.get(tripId);
+        if (existing?.encodedPolyline === encodedPolyline) {
+          return; // Same route, no need to re-decode
+        }
+
+        // Decode polyline (pure JS, no API cost)
+        const polyline = decodePolyline(encodedPolyline);
+        if (polyline.length < 2) {
+          console.warn("[LiveTracking] Polyline too short");
+          return;
+        }
+
+        // Calculate cumulative distances
+        const cumulativeDistances = calculateCumulativeDistances(polyline);
+        const totalDistance =
+          cumulativeDistances[cumulativeDistances.length - 1];
+
+        routeCacheRef.current.set(tripId, {
+          polyline,
+          cumulativeDistances,
+          totalDistance,
+          tripId,
+          origin,
+          destination,
+          encodedPolyline,
+        });
+
+        console.log(
+          `[LiveTracking] Route cached: ${tripId} (${polyline.length} pts, ${Math.round(totalDistance)}m)`,
+        );
+      } catch (err) {
+        console.error("[LiveTracking] Error setting route:", err);
+      }
+    },
+    [],
+  );
+
+  /**
+   * Clear route cache for a trip
+   */
+  const clearRouteForTrip = useCallback((tripId: string) => {
+    routeCacheRef.current.delete(tripId);
+  }, []);
+
+  /**
+   * Get cached route for a trip
+   */
+  const getRouteForTrip = useCallback((tripId: string): CachedRoute | null => {
+    return routeCacheRef.current.get(tripId) ?? null;
+  }, []);
+
+  // ============================================================================
+  // STATE SYNC
+  // ============================================================================
+
   // Sync React state and Animation Ref when Query data changes
   useEffect(() => {
     if (!driversData) return;
@@ -137,6 +260,10 @@ export function useLiveTracking() {
     });
   }, [driversData, tripsData]);
 
+  // ============================================================================
+  // POSITION UPDATES
+  // ============================================================================
+
   // Flush positions from ref to React state (batched update)
   const flushPositions = useCallback(() => {
     const positions = positionsRef.current;
@@ -171,7 +298,129 @@ export function useLiveTracking() {
     });
   }, []);
 
-  // Animation Loop (60 FPS)
+  // Handle Incoming Position Updates with Route-Aware Projection
+  const handlePositionUpdate = useCallback(
+    (driverId: string, newLat: number, newLng: number, newHeading?: number) => {
+      const positions = positionsRef.current;
+      const existing = positions.get(driverId);
+      const now = Date.now();
+
+      // Find active trip for this driver
+      const activeTrip = tripsData?.find((t) => t.driver_id === driverId);
+      const route = activeTrip
+        ? routeCacheRef.current.get(activeTrip.id)
+        : null;
+
+      // Raw GPS point
+      const rawPosition: PolylinePoint = { lat: newLat, lng: newLng };
+
+      // Calculate projected position if we have a route
+      let targetPosition = rawPosition;
+      let projectedBearing = newHeading ?? existing?.bearing ?? 0;
+
+      if (route && route.polyline.length >= 2) {
+        // Project GPS onto polyline (road-accurate position)
+        const projection = findNearestPointOnPolyline(
+          rawPosition,
+          route.polyline,
+        );
+
+        // Calculate distance along route
+        const distanceAlongRoute = getDistanceAtSegment(
+          route.cumulativeDistances,
+          route.polyline,
+          projection.segmentIndex,
+          projection.t,
+        );
+
+        // Get position and bearing from route
+        const routePosition = getPositionAtDistance(
+          route.polyline,
+          route.cumulativeDistances,
+          distanceAlongRoute,
+        );
+
+        // Use projected position if driver is on route
+        const onRoute = isOnRoute(
+          rawPosition,
+          route.polyline,
+          ROUTE_TOLERANCE_METERS,
+        );
+
+        if (onRoute) {
+          // Snap to route
+          targetPosition = routePosition.position;
+          projectedBearing = routePosition.bearing;
+        } else {
+          // Off-route: use raw GPS but with route bearing hint
+          targetPosition = rawPosition;
+          // Keep last bearing to prevent jitter
+        }
+
+        // Update route-following state
+        const followingState = routeFollowingRef.current.get(driverId) || {
+          distanceAlongRoute: 0,
+          segmentIndex: 0,
+          isOffRoute: false,
+          offRouteStartTime: null,
+          rerouteRequested: false,
+        };
+
+        if (!onRoute) {
+          if (!followingState.offRouteStartTime) {
+            followingState.offRouteStartTime = now;
+          } else if (
+            now - followingState.offRouteStartTime > DEVIATION_THRESHOLD_MS &&
+            !followingState.rerouteRequested
+          ) {
+            // Been off-route long enough - flag for reroute
+            followingState.rerouteRequested = true;
+            console.log(
+              `[LiveTracking] Driver ${driverId} needs reroute (off-route ${Math.round((now - followingState.offRouteStartTime) / 1000)}s)`,
+            );
+            // The actual reroute is triggered by LiveMap when it sees needsReroute
+          }
+        } else {
+          // Back on route
+          followingState.offRouteStartTime = null;
+          followingState.rerouteRequested = false;
+        }
+
+        followingState.distanceAlongRoute = distanceAlongRoute;
+        followingState.segmentIndex = projection.segmentIndex;
+        followingState.isOffRoute = !onRoute;
+
+        routeFollowingRef.current.set(driverId, followingState);
+      }
+
+      // Update position target
+      if (existing) {
+        const dist = approxSqDist(existing.target, targetPosition);
+        if (dist > STOP_THRESHOLD_SQ) {
+          positions.set(driverId, {
+            ...existing,
+            target: targetPosition,
+            lastUpdated: now,
+          });
+        }
+      } else {
+        // New Driver
+        positions.set(driverId, {
+          lat: targetPosition.lat,
+          lng: targetPosition.lng,
+          target: targetPosition,
+          bearing: projectedBearing,
+          lastUpdated: now,
+        });
+      }
+    },
+    [tripsData],
+  );
+
+  // ============================================================================
+  // ANIMATION LOOP
+  // ============================================================================
+
   useEffect(() => {
     const tick = () => {
       const positions = positionsRef.current;
@@ -180,7 +429,7 @@ export function useLiveTracking() {
       positions.forEach((pos, id) => {
         const distSq = approxSqDist(pos, pos.target);
 
-        // If very close to target, snap to it to stop micro-calculations
+        // If very close to target, snap to it
         if (distSq < STOP_THRESHOLD_SQ) {
           if (pos.lat !== pos.target.lat || pos.lng !== pos.target.lng) {
             pos.lat = pos.target.lat;
@@ -190,13 +439,35 @@ export function useLiveTracking() {
           return;
         }
 
-        // Interpolate (Lerp)
+        // Interpolate position (Lerp)
         const next = interpolateLatLng(pos, pos.target, LERP_FACTOR);
 
-        // Calculate Bearing only if we moved enough
-        // This prevents the "spin to 0" issue when stopped
+        // Try to get route for bearing
+        const driver = drivers.find((d) => d.id === id);
+        const activeTrip = driver?.active_trip_id
+          ? tripsData?.find((t) => t.id === driver.active_trip_id)
+          : null;
+        const route = activeTrip
+          ? routeCacheRef.current.get(activeTrip.id)
+          : null;
+
+        // Calculate bearing
         let newBearing = pos.bearing;
-        if (distSq > BEARING_UPDATE_THRESHOLD_SQ) {
+        if (route && route.polyline.length >= 2) {
+          // Get bearing from route direction
+          const projection = findNearestPointOnPolyline(
+            pos.target,
+            route.polyline,
+          );
+          if (projection.segmentIndex < route.polyline.length - 1) {
+            const segStart = route.polyline[projection.segmentIndex];
+            const segEnd = route.polyline[projection.segmentIndex + 1];
+            const routeBearing = calculateBearing(segStart, segEnd);
+            // Smooth bearing transition
+            newBearing = lerpBearing(pos.bearing, routeBearing, LERP_FACTOR);
+          }
+        } else if (distSq > BEARING_UPDATE_THRESHOLD_SQ) {
+          // Fall back to GPS-based bearing if no route
           newBearing = calculateBearing(pos, pos.target);
         }
 
@@ -223,42 +494,12 @@ export function useLiveTracking() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [flushPositions]);
+  }, [flushPositions, drivers, tripsData]);
 
-  // Handle Incoming Position Updates (Common logic for DB and Broadcast)
-  const handlePositionUpdate = useCallback(
-    (driverId: string, newLat: number, newLng: number, newHeading?: number) => {
-      const positions = positionsRef.current;
-      const existing = positions.get(driverId);
+  // ============================================================================
+  // REALTIME SUBSCRIPTIONS
+  // ============================================================================
 
-      if (existing) {
-        // Only update target if it's different/new
-        const dist = approxSqDist(existing.target, {
-          lat: newLat,
-          lng: newLng,
-        });
-        if (dist > STOP_THRESHOLD_SQ) {
-          positions.set(driverId, {
-            ...existing,
-            target: { lat: newLat, lng: newLng },
-            lastUpdated: Date.now(),
-          });
-        }
-      } else {
-        // New Driver found via Stream
-        positions.set(driverId, {
-          lat: newLat,
-          lng: newLng,
-          target: { lat: newLat, lng: newLng },
-          bearing: newHeading || 0,
-          lastUpdated: Date.now(),
-        });
-      }
-    },
-    [],
-  ); // dependencies empty as refs are stable
-
-  // Realtime Subscriptions (Broadcast + DB Backup)
   useEffect(() => {
     if (!currentOrganization?.id) return;
 
@@ -266,9 +507,6 @@ export function useLiveTracking() {
     const broadcastChannel = supabase
       .channel(BROADCAST_CHANNEL)
       .on("broadcast", { event: "location-update" }, (payload) => {
-        // Expecting payload: { id, lat, lng, heading?, timestamp? }
-        // Payload shape depends on how it's sent. Usually payload.payload or directly payload if destructured.
-        // Supabase 'broadcast' event handler receives object { payload: ..., event: ..., type: ... }
         const p = payload.payload;
         if (p && p.id && p.lat && p.lng) {
           handlePositionUpdate(p.id, p.lat, p.lng, p.heading);
@@ -345,9 +583,40 @@ export function useLiveTracking() {
     };
   }, [currentOrganization?.id, queryClient, handlePositionUpdate]);
 
+  // ============================================================================
+  // PUBLIC API
+  // ============================================================================
+
+  /**
+   * Check if a driver needs a reroute
+   */
+  const getDriverRouteState = useCallback(
+    (driverId: string): DriverRouteFollowingState | null => {
+      return routeFollowingRef.current.get(driverId) ?? null;
+    },
+    [],
+  );
+
+  /**
+   * Clear reroute flag after handling
+   */
+  const clearRerouteFlag = useCallback((driverId: string) => {
+    const state = routeFollowingRef.current.get(driverId);
+    if (state) {
+      state.rerouteRequested = false;
+      state.offRouteStartTime = null;
+    }
+  }, []);
+
   return {
     drivers,
     trips: tripsData || [],
     loading: driversLoading || (tripsLoading && drivers.length === 0),
+    // Route management
+    setRouteForTrip,
+    clearRouteForTrip,
+    getRouteForTrip,
+    getDriverRouteState,
+    clearRerouteFlag,
   };
 }
