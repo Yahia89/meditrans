@@ -360,30 +360,47 @@ export function useLiveTracking() {
         // Update route-following state
         const followingState = routeFollowingRef.current.get(driverId) || {
           distanceAlongRoute: 0,
+          totalDistance: route.totalDistance,
           segmentIndex: 0,
           isOffRoute: false,
           offRouteStartTime: null,
           rerouteRequested: false,
+          deviationTrail: [],
         };
+
+        // Always update total distance from cached route
+        followingState.totalDistance = route.totalDistance;
 
         if (!onRoute) {
           if (!followingState.offRouteStartTime) {
             followingState.offRouteStartTime = now;
-          } else if (
-            now - followingState.offRouteStartTime > DEVIATION_THRESHOLD_MS &&
-            !followingState.rerouteRequested
-          ) {
-            // Been off-route long enough - flag for reroute
-            followingState.rerouteRequested = true;
-            console.log(
-              `[LiveTracking] Driver ${driverId} needs reroute (off-route ${Math.round((now - followingState.offRouteStartTime) / 1000)}s)`,
-            );
-            // The actual reroute is triggered by LiveMap when it sees needsReroute
+            // Start new deviation trail
+            followingState.deviationTrail = [rawPosition];
+          } else {
+            // Add to deviation trail (limit to 500 points to prevent memory issues)
+            const trail = followingState.deviationTrail || [];
+            if (trail.length < 500) {
+              trail.push(rawPosition);
+              followingState.deviationTrail = trail;
+            }
+
+            if (
+              now - followingState.offRouteStartTime > DEVIATION_THRESHOLD_MS &&
+              !followingState.rerouteRequested
+            ) {
+              // Been off-route long enough - flag for reroute
+              followingState.rerouteRequested = true;
+              console.log(
+                `[LiveTracking] Driver ${driverId} needs reroute (off-route ${Math.round((now - followingState.offRouteStartTime) / 1000)}s)`,
+              );
+              // The actual reroute is triggered by LiveMap when it sees needsReroute
+            }
           }
         } else {
-          // Back on route
+          // Back on route - clear deviation state
           followingState.offRouteStartTime = null;
           followingState.rerouteRequested = false;
+          followingState.deviationTrail = []; // Clear trail when back on route
         }
 
         followingState.distanceAlongRoute = distanceAlongRoute;
@@ -605,6 +622,7 @@ export function useLiveTracking() {
     if (state) {
       state.rerouteRequested = false;
       state.offRouteStartTime = null;
+      state.deviationTrail = [];
     }
   }, []);
 

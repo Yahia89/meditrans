@@ -3,18 +3,26 @@ import {
   GoogleMap,
   useLoadScript,
   OverlayView,
-  DirectionsRenderer,
+  Polyline,
+  MarkerF,
+  InfoWindowF,
 } from "@react-google-maps/api";
 import useSupercluster from "use-supercluster";
-import type { LiveDriver, LiveTrip } from "./types";
+import type { LiveDriver, LiveTrip, DriverRouteFollowingState } from "./types";
+import type { PolylinePoint } from "@/lib/geo";
 import {
-  NavigationArrow,
-  CarProfile,
-  CornersOut,
   Warning,
+  CornersOut,
+  CarProfile,
+  NavigationArrow,
+  Info,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
 
 const mapContainerStyle = {
   width: "100%",
@@ -105,16 +113,31 @@ const mapOptions: google.maps.MapOptions = {
 // Libraries must be constant
 const libraries: ("places" | "geometry")[] = ["places", "geometry"];
 
-// Direction renderer options - cached polyline style
-const directionsRendererOptions: google.maps.DirectionsRendererOptions = {
-  suppressMarkers: false,
-  polylineOptions: {
-    strokeColor: "#3b82f6",
+// Polyline styles
+const POLYLINE_STYLES = {
+  /** Already driven portion (gray/faded) */
+  driven: {
+    strokeColor: "#9ca3af", // slate-400
     strokeWeight: 5,
-    strokeOpacity: 0.7,
+    strokeOpacity: 0.6,
   },
-  preserveViewport: false,
+  /** Remaining route (blue) */
+  remaining: {
+    strokeColor: "#3b82f6", // blue-500
+    strokeWeight: 5,
+    strokeOpacity: 0.8,
+  },
+  /** Deviation trail (orange) - actual path when off-route */
+  deviation: {
+    strokeColor: "#f97316", // orange-500
+    strokeWeight: 4,
+    strokeOpacity: 0.9,
+  },
 };
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface LiveMapProps {
   drivers: LiveDriver[];
@@ -129,12 +152,130 @@ interface LiveMapProps {
     destination: string,
   ) => void;
   /** Get driver's route state (for deviation display) */
-  getDriverRouteState?: (
-    driverId: string,
-  ) => { isOffRoute: boolean; rerouteRequested: boolean } | null;
+  getDriverRouteState?: (driverId: string) => DriverRouteFollowingState | null;
   /** Clear reroute flag after handling */
   clearRerouteFlag?: (driverId: string) => void;
+  /** Get cached route polyline for visualization */
+  getRoutePolyline?: (tripId: string) => PolylinePoint[] | null;
 }
+
+// ============================================================================
+// HELPER COMPONENTS
+// ============================================================================
+
+/**
+ * Map Legend Component
+ */
+function MapLegend() {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="absolute bottom-4 left-4 z-10">
+      <div
+        className={cn(
+          "bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-200",
+          isExpanded ? "w-56" : "w-auto",
+        )}
+      >
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 px-3 py-2 w-full text-left hover:bg-slate-50 transition-colors"
+        >
+          <Info weight="duotone" className="w-4 h-4 text-slate-500" />
+          <span className="text-xs font-semibold text-slate-600">
+            {isExpanded ? "Map Legend" : "Legend"}
+          </span>
+        </button>
+
+        {isExpanded && (
+          <div className="px-3 pb-3 space-y-2.5 border-t border-slate-100 pt-2.5">
+            {/* Route Colors */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Route
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-1 rounded-full bg-slate-400" />
+                <span className="text-xs text-slate-600">Already driven</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-1 rounded-full bg-blue-500" />
+                <span className="text-xs text-slate-600">Remaining route</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-1 rounded-full bg-orange-500" />
+                <span className="text-xs text-slate-600">Off-route path</span>
+              </div>
+            </div>
+
+            {/* Driver Status */}
+            <div className="space-y-1.5 pt-1">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Driver Status
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
+                  <NavigationArrow
+                    weight="fill"
+                    className="w-2.5 h-2.5 text-white"
+                  />
+                </div>
+                <span className="text-xs text-slate-600">En Route</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center">
+                  <Warning weight="fill" className="w-2.5 h-2.5 text-white" />
+                </div>
+                <span className="text-xs text-slate-600">Off Route</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                  <CarProfile
+                    weight="fill"
+                    className="w-2.5 h-2.5 text-white"
+                  />
+                </div>
+                <span className="text-xs text-slate-600">Available</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-slate-300 flex items-center justify-center">
+                  <CarProfile
+                    weight="fill"
+                    className="w-2.5 h-2.5 text-slate-500"
+                  />
+                </div>
+                <span className="text-xs text-slate-600">Offline</span>
+              </div>
+            </div>
+
+            {/* Markers */}
+            <div className="space-y-1.5 pt-1">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Locations
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-[#EA4335] text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
+                  A
+                </div>
+                <span className="text-xs text-slate-600">Pickup</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-[#EA4335] text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
+                  B
+                </div>
+                <span className="text-xs text-slate-600">Dropoff</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 export function LiveMap({
   drivers,
@@ -144,6 +285,7 @@ export function LiveMap({
   onRouteLoad,
   getDriverRouteState,
   clearRerouteFlag,
+  getRoutePolyline,
 }: LiveMapProps) {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
@@ -155,6 +297,14 @@ export function LiveMap({
   const [directionsResponse, setDirectionsResponse] =
     useState<google.maps.DirectionsResult | null>(null);
   const [isRerouting, setIsRerouting] = useState(false);
+  const [activeMarker, setActiveMarker] = useState<"pickup" | "dropoff" | null>(
+    null,
+  );
+
+  // Route polyline segments for visualization
+  const [drivenPath, setDrivenPath] = useState<PolylinePoint[]>([]);
+  const [remainingPath, setRemainingPath] = useState<PolylinePoint[]>([]);
+  const [deviationPath, setDeviationPath] = useState<PolylinePoint[]>([]);
 
   // Directions cache to prevent redundant API requests
   // Key format: "tripId|origin|destination"
@@ -348,10 +498,62 @@ export function LiveMap({
       );
     } else {
       setDirectionsResponse(null);
+      setDrivenPath([]);
+      setRemainingPath([]);
+      setDeviationPath([]);
     }
   }, [routeParams, fetchDirections]);
 
-  // 5. Handle rerouting when driver deviates
+  // 5. Update polyline segments based on driver position
+  useEffect(() => {
+    if (!selectedDriverId || !routeParams) {
+      setDrivenPath([]);
+      setRemainingPath([]);
+      setDeviationPath([]);
+      return;
+    }
+
+    const routeState = getDriverRouteState?.(selectedDriverId);
+    const polyline = getRoutePolyline?.(routeParams.tripId);
+
+    if (polyline && polyline.length > 0 && routeState) {
+      const segmentIndex = routeState.segmentIndex;
+
+      // Split polyline into driven and remaining
+      const driven = polyline.slice(0, segmentIndex + 1);
+      const remaining = polyline.slice(segmentIndex);
+
+      // Add current driver position to end of driven path
+      const driver = drivers.find((d) => d.id === selectedDriverId);
+      if (driver) {
+        driven.push({ lat: driver.lat, lng: driver.lng });
+      }
+
+      setDrivenPath(driven);
+      setRemainingPath(remaining);
+
+      // Set deviation trail if off-route
+      if (routeState.isOffRoute && routeState.deviationTrail) {
+        setDeviationPath(routeState.deviationTrail);
+      } else {
+        setDeviationPath([]);
+      }
+    } else if (directionsResponse) {
+      // Fallback: just show the full route as remaining
+      setDrivenPath([]);
+      setRemainingPath([]);
+      setDeviationPath([]);
+    }
+  }, [
+    selectedDriverId,
+    routeParams,
+    getDriverRouteState,
+    getRoutePolyline,
+    drivers,
+    directionsResponse,
+  ]);
+
+  // 6. Handle rerouting when driver deviates
   useEffect(() => {
     if (!selectedDriverId || !getDriverRouteState || !routeParams) return;
 
@@ -407,6 +609,16 @@ export function LiveMap({
     }
   }, [map, drivers.length, selectedDriverId, bounds, fitAllDrivers]);
 
+  // Get active trip and stats for panel
+  const activeTrip = useMemo(() => {
+    if (!selectedDriverId) return null;
+    return trips.find(
+      (t) =>
+        t.driver_id === selectedDriverId &&
+        (t.status === "en_route" || t.status === "in_progress"),
+    );
+  }, [selectedDriverId, trips]);
+
   if (loadError) return <div className="p-4 text-red-500">Map Error</div>;
   if (!isLoaded)
     return <div className="w-full h-full bg-slate-100 rounded-xl" />;
@@ -422,12 +634,94 @@ export function LiveMap({
         onIdle={onMapIdle}
         options={mapOptions}
       >
-        {/* Route Line */}
-        {directionsResponse && (
-          <DirectionsRenderer
-            directions={directionsResponse}
-            options={directionsRendererOptions}
-          />
+        {/* Custom Route Polylines - driven portion (gray) */}
+        {drivenPath.length > 1 && (
+          <Polyline path={drivenPath} options={POLYLINE_STYLES.driven} />
+        )}
+
+        {/* Custom Route Polylines - remaining portion (blue) */}
+        {remainingPath.length > 1 && (
+          <Polyline path={remainingPath} options={POLYLINE_STYLES.remaining} />
+        )}
+
+        {/* Deviation Trail - actual GPS path when off-route (orange) */}
+        {deviationPath.length > 1 && (
+          <Polyline path={deviationPath} options={POLYLINE_STYLES.deviation} />
+        )}
+
+        {/* Fallback: Show directions if no custom polylines */}
+        {drivenPath.length <= 1 &&
+          remainingPath.length <= 1 &&
+          directionsResponse && (
+            <Polyline
+              path={
+                directionsResponse.routes[0]?.overview_path?.map((p) => ({
+                  lat: p.lat(),
+                  lng: p.lng(),
+                })) || []
+              }
+              options={POLYLINE_STYLES.remaining}
+            />
+          )}
+
+        {/* Pickup and Dropoff Markers (A/B) */}
+        {directionsResponse && directionsResponse.routes[0]?.legs[0] && (
+          <>
+            <MarkerF
+              position={directionsResponse.routes[0].legs[0].start_location}
+              label={{
+                text: "A",
+                color: "white",
+                fontWeight: "bold",
+              }}
+              onClick={() => setActiveMarker("pickup")}
+            />
+            {activeMarker === "pickup" && (
+              <InfoWindowF
+                position={directionsResponse.routes[0].legs[0].start_location}
+                onCloseClick={() => setActiveMarker(null)}
+              >
+                <div className="p-2 min-w-[150px] bg-white rounded-lg">
+                  <p className="text-sm font-bold text-slate-900">
+                    Pickup Location
+                  </p>
+                  <p className="text-xs text-slate-600 mt-1 line-clamp-2">
+                    {activeTrip?.pickup_location}
+                  </p>
+                  {activeTrip?.patient?.full_name && (
+                    <p className="text-xs font-semibold text-blue-600 mt-1">
+                      Patient: {activeTrip.patient.full_name}
+                    </p>
+                  )}
+                </div>
+              </InfoWindowF>
+            )}
+
+            <MarkerF
+              position={directionsResponse.routes[0].legs[0].end_location}
+              label={{
+                text: "B",
+                color: "white",
+                fontWeight: "bold",
+              }}
+              onClick={() => setActiveMarker("dropoff")}
+            />
+            {activeMarker === "dropoff" && (
+              <InfoWindowF
+                position={directionsResponse.routes[0].legs[0].end_location}
+                onCloseClick={() => setActiveMarker(null)}
+              >
+                <div className="p-2 min-w-[150px] bg-white rounded-lg">
+                  <p className="text-sm font-bold text-slate-900">
+                    Dropoff Location
+                  </p>
+                  <p className="text-xs text-slate-600 mt-1 line-clamp-2">
+                    {activeTrip?.dropoff_location}
+                  </p>
+                </div>
+              </InfoWindowF>
+            )}
+          </>
         )}
 
         {/* Clusters & Markers */}
@@ -559,9 +853,12 @@ export function LiveMap({
         })}
       </GoogleMap>
 
+      {/* Map Legend */}
+      <MapLegend />
+
       {/* Rerouting Indicator */}
       {isRerouting && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20">
           <div className="bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             <span className="text-sm font-medium">Recalculating route...</span>

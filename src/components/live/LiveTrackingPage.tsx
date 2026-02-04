@@ -18,6 +18,7 @@ export function LiveTrackingPage() {
     loading,
     // Route management APIs for Uber-tier animation
     setRouteForTrip,
+    getRouteForTrip,
     getDriverRouteState,
     clearRerouteFlag,
   } = useLiveTracking();
@@ -82,6 +83,9 @@ export function LiveTrackingPage() {
           onRouteLoad={handleRouteLoad}
           getDriverRouteState={getDriverRouteState}
           clearRerouteFlag={clearRerouteFlag}
+          getRoutePolyline={(tripId) =>
+            getRouteForTrip(tripId)?.polyline ?? null
+          }
         />
 
         {/* Floating Stats Overlay */}

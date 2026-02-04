@@ -22,6 +22,10 @@ export interface LiveTrip {
   pickup_location?: string;
   dropoff_location?: string;
   pickup_time?: string;
+  /** Actual time the trip started (for elapsed time calculation) */
+  actual_start_time?: string;
+  /** Estimated arrival time */
+  eta?: string;
   // Use "patients" object if joined, or define separate types
   patient?: {
     full_name: string;
@@ -38,6 +42,8 @@ export interface LiveTrip {
 export interface DriverRouteFollowingState {
   /** Current distance along route (meters from start) */
   distanceAlongRoute: number;
+  /** Total distance of the route (meters) */
+  totalDistance?: number;
   /** Segment index on the polyline */
   segmentIndex: number;
   /** Is driver off the designated route? */
@@ -46,4 +52,6 @@ export interface DriverRouteFollowingState {
   offRouteStartTime: number | null;
   /** Has a reroute been requested/flagged? */
   rerouteRequested: boolean;
+  /** GPS trail when off-route (for visualization) */
+  deviationTrail?: { lat: number; lng: number }[];
 }
