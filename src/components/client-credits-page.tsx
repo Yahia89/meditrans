@@ -27,6 +27,8 @@ import { Loader2 } from "lucide-react";
 import { CreditEntryDialog } from "@/components/credits/CreditEntryDialog";
 import { AddPatientToCreditDialog } from "@/components/credits/AddPatientToCreditDialog";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useTimezone } from "@/hooks/useTimezone";
+import { formatInUserTimezone } from "@/lib/timezone";
 
 import {
   calculateCreditStatus,
@@ -69,6 +71,7 @@ export function ClientCreditsPage() {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const { isOwner, isAdmin } = usePermissions();
+  const activeTimezone = useTimezone();
   const canManageCredits = isOwner || isAdmin;
 
   // Month navigation
@@ -108,7 +111,7 @@ export function ClientCreditsPage() {
       const { data, error } = await supabase
         .from("patients")
         .select(
-          "id, full_name, monthly_credit, credit_used_for, referral_date, notes, phone, email, status"
+          "id, full_name, monthly_credit, credit_used_for, referral_date, notes, phone, email, status",
         )
         .eq("org_id", currentOrganization.id)
         .not("monthly_credit", "is", null);
@@ -123,7 +126,7 @@ export function ClientCreditsPage() {
   const startOfMonth = new Date(
     selectedMonth.getFullYear(),
     selectedMonth.getMonth(),
-    1
+    1,
   );
   const endOfMonth = new Date(
     selectedMonth.getFullYear(),
@@ -131,7 +134,7 @@ export function ClientCreditsPage() {
     0,
     23,
     59,
-    59
+    59,
   );
 
   const { data: trips = [], isLoading: isLoadingTrips } = useQuery({
@@ -175,7 +178,7 @@ export function ClientCreditsPage() {
           queryClient.invalidateQueries({
             queryKey: ["patients-credits", currentOrganization.id],
           });
-        }
+        },
       )
       .subscribe();
 
@@ -195,7 +198,7 @@ export function ClientCreditsPage() {
           queryClient.invalidateQueries({
             queryKey: ["trips-credits", currentOrganization.id],
           });
-        }
+        },
       )
       .subscribe();
 
@@ -209,7 +212,7 @@ export function ClientCreditsPage() {
   const creditData = useMemo((): PatientCreditData[] => {
     return patients.map((patient) => {
       const patientTrips = trips.filter(
-        (t) => t.patient_id === patient.id && t.status === "completed"
+        (t) => t.patient_id === patient.id && t.status === "completed",
       );
 
       // For now, estimate cost per trip since trip_cost is not in the database yet
@@ -247,7 +250,7 @@ export function ClientCreditsPage() {
         (d) =>
           d.patient.full_name.toLowerCase().includes(query) ||
           d.patient.email?.toLowerCase().includes(query) ||
-          d.patient.phone?.includes(query)
+          d.patient.phone?.includes(query),
       );
     }
 
@@ -258,7 +261,7 @@ export function ClientCreditsPage() {
       result = result.filter((d) => d.creditInfo.status === "mid");
     } else if (filterStatus === "good") {
       result = result.filter(
-        (d) => d.creditInfo.status === "good" && !d.isPending
+        (d) => d.creditInfo.status === "good" && !d.isPending,
       );
     } else if (filterStatus === "pending") {
       result = result.filter((d) => d.isPending);
@@ -283,19 +286,19 @@ export function ClientCreditsPage() {
   // Low balance alerts
   const lowBalancePatients = useMemo(
     () => creditData.filter((d) => d.creditInfo.status === "low"),
-    [creditData]
+    [creditData],
   );
 
   // Month navigation
   const goToPrevMonth = () => {
     setSelectedMonth(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
     );
   };
 
   const goToNextMonth = () => {
     setSelectedMonth(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
     );
   };
 
@@ -343,7 +346,7 @@ export function ClientCreditsPage() {
     const totalSpend = creditData.reduce((sum, d) => sum + d.totalSpend, 0);
     const totalRemaining = creditData.reduce(
       (sum, d) => sum + d.remainingBalance,
-      0
+      0,
     );
 
     return {
@@ -368,11 +371,7 @@ export function ClientCreditsPage() {
   // Format date
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "N/A";
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    return formatInUserTimezone(dateStr, activeTimezone, "MMM d, yyyy");
   };
 
   // Get balance status color
@@ -383,7 +382,7 @@ export function ClientCreditsPage() {
       data.creditInfo.bgClass,
       data.creditInfo.colorClass
         .replace("text-", "border-")
-        .replace("700", "200")
+        .replace("700", "200"),
     );
   };
 
@@ -434,7 +433,7 @@ export function ClientCreditsPage() {
               className={cn(
                 "relative rounded-xl gap-2",
                 showAlerts &&
-                  "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                  "bg-red-500 hover:bg-red-600 text-white border-red-500",
               )}
             >
               <Bell weight="duotone" className="w-4 h-4" />
@@ -504,7 +503,7 @@ export function ClientCreditsPage() {
               "text-2xl font-bold",
               summaryStats.totalRemaining >= 0
                 ? "text-emerald-600"
-                : "text-red-600"
+                : "text-red-600",
             )}
           >
             {formatCurrency(summaryStats.totalRemaining)}
@@ -532,10 +531,7 @@ export function ClientCreditsPage() {
               className="h-9 px-4 text-sm font-medium min-w-[160px]"
             >
               <CalendarBlank size={16} weight="duotone" className="mr-2" />
-              {selectedMonth.toLocaleDateString("en-US", {
-                month: "long",
-                year: "numeric",
-              })}
+              {formatInUserTimezone(selectedMonth, activeTimezone, "MMMM yyyy")}
             </Button>
             <Button
               variant="ghost"
@@ -606,7 +602,7 @@ export function ClientCreditsPage() {
                   size={16}
                   className={cn(
                     "transition-transform",
-                    sortOrder === "desc" && "rotate-180"
+                    sortOrder === "desc" && "rotate-180",
                   )}
                 />
               </Button>
@@ -734,7 +730,7 @@ export function ClientCreditsPage() {
                             "font-bold",
                             data.remainingBalance >= 0
                               ? "text-emerald-600"
-                              : "text-red-600"
+                              : "text-red-600",
                           )}
                         >
                           {formatCurrency(data.remainingBalance)}
@@ -747,7 +743,7 @@ export function ClientCreditsPage() {
                           <span
                             className={cn(
                               "px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border whitespace-nowrap",
-                              getBalanceColor(data)
+                              getBalanceColor(data),
                             )}
                           >
                             {data.isPending
@@ -759,7 +755,7 @@ export function ClientCreditsPage() {
                             <div
                               className={cn(
                                 "h-full transition-all rounded-full",
-                                getProgressColor(data)
+                                getProgressColor(data),
                               )}
                               style={{
                                 width: `${Math.max(
@@ -768,8 +764,8 @@ export function ClientCreditsPage() {
                                     100,
                                     (data.remainingBalance /
                                       data.monthlyCredit) *
-                                      100
-                                  )
+                                      100,
+                                  ),
                                 )}%`,
                               }}
                             />
@@ -818,7 +814,7 @@ export function ClientCreditsPage() {
                                 "text-sm truncate max-w-[200px]",
                                 data.patient.notes
                                   ? "text-slate-700"
-                                  : "text-slate-400 italic"
+                                  : "text-slate-400 italic",
                               )}
                             >
                               {data.patient.notes || "Click to add notes..."}
@@ -884,7 +880,7 @@ export function ClientCreditsPage() {
                   <span
                     className={cn(
                       "px-2.5 py-1 rounded-full text-xs font-semibold border",
-                      getBalanceColor(data)
+                      getBalanceColor(data),
                     )}
                   >
                     {data.isPending
@@ -916,7 +912,7 @@ export function ClientCreditsPage() {
                         "font-bold",
                         data.remainingBalance >= 0
                           ? "text-emerald-600"
-                          : "text-red-600"
+                          : "text-red-600",
                       )}
                     >
                       {formatCurrency(data.remainingBalance)}
@@ -928,15 +924,15 @@ export function ClientCreditsPage() {
                     <div
                       className={cn(
                         "h-full transition-all rounded-full",
-                        getProgressColor(data)
+                        getProgressColor(data),
                       )}
                       style={{
                         width: `${Math.max(
                           0,
                           Math.min(
                             100,
-                            (data.remainingBalance / data.monthlyCredit) * 100
-                          )
+                            (data.remainingBalance / data.monthlyCredit) * 100,
+                          ),
                         )}%`,
                       }}
                     />
@@ -985,7 +981,7 @@ export function ClientCreditsPage() {
                             "text-sm truncate",
                             data.patient.notes
                               ? "text-slate-700"
-                              : "text-slate-400 italic"
+                              : "text-slate-400 italic",
                           )}
                         >
                           {data.patient.notes || "Tap to add notes..."}

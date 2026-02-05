@@ -20,6 +20,11 @@ import { TimePicker, TRIP_TYPES, canDriverServePatient } from "./trip-utils";
 import type { Trip } from "./types";
 import { useLoadScript } from "@react-google-maps/api";
 import { AddressAutocomplete } from "./AddressAutocomplete";
+import {
+  getActiveTimezone,
+  parseZonedTime,
+  formatInUserTimezone,
+} from "@/lib/timezone";
 
 // Libraries must be defined outside component to avoid re-loading
 const GOOGLE_MAPS_LIBRARIES: (
@@ -50,6 +55,11 @@ export function QuickAddLegDialog({
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+
+  const activeTimezone = useMemo(
+    () => getActiveTimezone(profile, currentOrganization),
+    [profile, currentOrganization],
+  );
   const [error, setError] = useState<string | null>(null);
 
   // Load Google Maps Script
@@ -69,19 +79,30 @@ export function QuickAddLegDialog({
 
   // Fetch existing trips for this patient on this day to pre-fill pickup
   const { data: existingTrips } = useQuery({
-    queryKey: ["trips-for-patient-day", patientId, date.toDateString()],
+    queryKey: [
+      "trips-for-patient-day",
+      patientId,
+      formatInUserTimezone(date, activeTimezone, "yyyy-MM-dd"),
+    ],
     queryFn: async () => {
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+      const dateStr = formatInUserTimezone(date, activeTimezone, "yyyy-MM-dd");
+      const startOfDay = parseZonedTime(
+        dateStr,
+        "00:00",
+        activeTimezone,
+      ).toISOString();
+      const endOfDay = parseZonedTime(
+        dateStr,
+        "23:59",
+        activeTimezone,
+      ).toISOString();
 
       const { data, error } = await supabase
         .from("trips")
         .select("*")
         .eq("patient_id", patientId)
-        .gte("pickup_time", startOfDay.toISOString())
-        .lte("pickup_time", endOfDay.toISOString())
+        .gte("pickup_time", startOfDay)
+        .lte("pickup_time", endOfDay)
         .order("pickup_time", { ascending: true });
 
       if (error) throw error;
@@ -157,9 +178,12 @@ export function QuickAddLegDialog({
     setError(null);
 
     try {
-      const pickupDateTime = new Date(date);
-      const [hours, minutes] = pickupTime.split(":").map(Number);
-      pickupDateTime.setHours(hours, minutes, 0, 0);
+      const dateStr = formatInUserTimezone(date, activeTimezone, "yyyy-MM-dd");
+      const pickupDateTime = parseZonedTime(
+        dateStr,
+        pickupTime,
+        activeTimezone,
+      );
 
       const payload = {
         org_id: currentOrganization.id,
@@ -221,7 +245,7 @@ export function QuickAddLegDialog({
           </DialogTitle>
           <p className="text-sm text-slate-500 mt-1">
             Adding a new transport leg for <strong>{patientName}</strong> on{" "}
-            {date.toLocaleDateString()}
+            {formatInUserTimezone(date, activeTimezone, "MMMM d, yyyy")}
           </p>
         </DialogHeader>
 

@@ -12,7 +12,6 @@ import {
   format,
   startOfWeek,
   addDays,
-  isSameDay,
   isSameMonth,
   startOfMonth,
   eachDayOfInterval,
@@ -24,6 +23,12 @@ import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { useQueryState } from "nuqs";
+import { useAuth } from "@/contexts/auth-context";
+import {
+  getActiveTimezone,
+  formatInUserTimezone,
+  parseZonedTime,
+} from "@/lib/timezone";
 
 export function UpcomingSchedule() {
   const { currentOrganization } = useOrganization();
@@ -33,6 +38,12 @@ export function UpcomingSchedule() {
   const [__, setTripId] = useQueryState("tripId");
   const [___, setFromPage] = useQueryState("from");
   const [____, setSection] = useQueryState("section");
+  const { profile } = useAuth();
+
+  const activeTimezone = useMemo(
+    () => getActiveTimezone(profile, currentOrganization),
+    [profile, currentOrganization],
+  );
 
   // Calendar logic
   const calendarDates = useMemo(() => {
@@ -54,23 +65,47 @@ export function UpcomingSchedule() {
       currentOrganization?.id,
       calendarDates[0].toISOString(),
       calendarDates[calendarDates.length - 1].toISOString(),
+      activeTimezone,
     ],
     queryFn: async () => {
+      const startDayStr = formatInUserTimezone(
+        calendarDates[0],
+        activeTimezone,
+        "yyyy-MM-dd",
+      );
+      const endDayStr = formatInUserTimezone(
+        calendarDates[calendarDates.length - 1],
+        activeTimezone,
+        "yyyy-MM-dd",
+      );
+
+      const startRange = parseZonedTime(
+        startDayStr,
+        "00:00",
+        activeTimezone,
+      ).toISOString();
+      const endRange = parseZonedTime(
+        endDayStr,
+        "23:59:59",
+        activeTimezone,
+      ).toISOString();
+
       const { data, error } = await supabase
         .from("trips")
         .select("pickup_time")
         .eq("org_id", currentOrganization?.id)
-        .gte("pickup_time", calendarDates[0].toISOString())
-        .lte(
-          "pickup_time",
-          calendarDates[calendarDates.length - 1].toISOString()
-        );
+        .gte("pickup_time", startRange)
+        .lte("pickup_time", endRange);
 
       if (error) throw error;
 
       const counts: Record<string, number> = {};
       data.forEach((trip) => {
-        const dateStr = format(new Date(trip.pickup_time), "yyyy-MM-dd");
+        const dateStr = formatInUserTimezone(
+          trip.pickup_time,
+          activeTimezone,
+          "yyyy-MM-dd",
+        );
         counts[dateStr] = (counts[dateStr] || 0) + 1;
       });
       return counts;
@@ -83,13 +118,24 @@ export function UpcomingSchedule() {
     queryKey: [
       "upcoming-trips",
       currentOrganization?.id,
-      selectedDate.toLocaleDateString(),
+      formatInUserTimezone(selectedDate, activeTimezone, "yyyy-MM-dd"),
     ],
     queryFn: async () => {
-      const start = new Date(selectedDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(selectedDate);
-      end.setHours(23, 59, 59, 999);
+      const dateStr = formatInUserTimezone(
+        selectedDate,
+        activeTimezone,
+        "yyyy-MM-dd",
+      );
+      const startStr = parseZonedTime(
+        dateStr,
+        "00:00",
+        activeTimezone,
+      ).toISOString();
+      const endStr = parseZonedTime(
+        dateStr,
+        "23:59:59",
+        activeTimezone,
+      ).toISOString();
 
       const { data, error } = await supabase
         .from("trips")
@@ -101,11 +147,11 @@ export function UpcomingSchedule() {
           pickup_location,
           patient:patients(full_name),
           driver:drivers(full_name)
-        `
+        `,
         )
         .eq("org_id", currentOrganization?.id)
-        .gte("pickup_time", start.toISOString())
-        .lte("pickup_time", end.toISOString())
+        .gte("pickup_time", startStr)
+        .lte("pickup_time", endStr)
         .order("pickup_time", { ascending: true });
 
       if (error) throw error;
@@ -136,7 +182,7 @@ export function UpcomingSchedule() {
             Operational Schedule
           </h2>
           <p className="text-sm font-medium text-slate-500 mt-0.5">
-            {format(selectedDate, "MMMM yyyy")}
+            {formatInUserTimezone(selectedDate, activeTimezone, "MMMM yyyy")}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -158,13 +204,19 @@ export function UpcomingSchedule() {
       <div
         className={cn(
           "grid grid-cols-7 gap-2 transition-all duration-300",
-          isMonthExpanded ? "mb-10" : "mb-8"
+          isMonthExpanded ? "mb-10" : "mb-8",
         )}
       >
         {calendarDates.map((day) => {
-          const isSelected = isSameDay(day, selectedDate);
+          const isSelected =
+            formatInUserTimezone(day, activeTimezone, "yyyy-MM-dd") ===
+            formatInUserTimezone(selectedDate, activeTimezone, "yyyy-MM-dd");
           const isCurrentMonth = isSameMonth(day, selectedDate);
-          const dateStr = format(day, "yyyy-MM-dd");
+          const dateStr = formatInUserTimezone(
+            day,
+            activeTimezone,
+            "yyyy-MM-dd",
+          );
           const count = tripCounts[dateStr] || 0;
 
           return (
@@ -176,7 +228,7 @@ export function UpcomingSchedule() {
                 isSelected
                   ? "bg-lime-200 border-lime-300 text-slate-900 shadow-sm shadow-lime-100"
                   : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-100",
-                !isCurrentMonth && !isSelected && "opacity-30 grayscale"
+                !isCurrentMonth && !isSelected && "opacity-30 grayscale",
               )}
             >
               <span
@@ -184,7 +236,7 @@ export function UpcomingSchedule() {
                   "text-[10px] font-black uppercase tracking-widest mb-1.5 transition-colors",
                   isSelected
                     ? "text-slate-900"
-                    : "text-slate-400 group-hover:text-slate-600"
+                    : "text-slate-400 group-hover:text-slate-600",
                 )}
               >
                 {format(day, "EEE")}
@@ -198,7 +250,7 @@ export function UpcomingSchedule() {
                     "mt-2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black",
                     isSelected
                       ? "bg-white/40 text-slate-900"
-                      : "bg-lime-100 text-lime-700"
+                      : "bg-lime-100 text-lime-700",
                   )}
                 >
                   {count}
@@ -256,7 +308,11 @@ export function UpcomingSchedule() {
               >
                 <div className="bg-lime-50 text-lime-700 w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 border border-lime-100">
                   <span className="text-xs font-black leading-none uppercase">
-                    {format(new Date(trip.pickup_time), "HH:mm")}
+                    {formatInUserTimezone(
+                      trip.pickup_time,
+                      activeTimezone,
+                      "HH:mm",
+                    )}
                   </span>
                   <Clock size={16} weight="bold" className="mt-0.5" />
                 </div>

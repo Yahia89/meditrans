@@ -304,7 +304,10 @@ export function LiveMap({
   // Route polyline segments for visualization
   const [drivenPath, setDrivenPath] = useState<PolylinePoint[]>([]);
   const [remainingPath, setRemainingPath] = useState<PolylinePoint[]>([]);
-  const [deviationPath, setDeviationPath] = useState<PolylinePoint[]>([]);
+  /** Historical + active deviation segments for orange polylines */
+  const [allDeviationPaths, setAllDeviationPaths] = useState<PolylinePoint[][]>(
+    [],
+  );
 
   // Directions cache to prevent redundant API requests
   // Key format: "tripId|origin|destination"
@@ -500,7 +503,7 @@ export function LiveMap({
       setDirectionsResponse(null);
       setDrivenPath([]);
       setRemainingPath([]);
-      setDeviationPath([]);
+      setAllDeviationPaths([]);
     }
   }, [routeParams, fetchDirections]);
 
@@ -509,7 +512,7 @@ export function LiveMap({
     if (!selectedDriverId || !routeParams) {
       setDrivenPath([]);
       setRemainingPath([]);
-      setDeviationPath([]);
+      setAllDeviationPaths([]);
       return;
     }
 
@@ -519,30 +522,58 @@ export function LiveMap({
     if (polyline && polyline.length > 0 && routeState) {
       const segmentIndex = routeState.segmentIndex;
 
-      // Split polyline into driven and remaining
-      const driven = polyline.slice(0, segmentIndex + 1);
-      const remaining = polyline.slice(segmentIndex);
-
-      // Add current driver position to end of driven path
-      const driver = drivers.find((d) => d.id === selectedDriverId);
-      if (driver) {
-        driven.push({ lat: driver.lat, lng: driver.lng });
+      // Use actual GPS path history for the driven portion (gray) if available
+      // This shows the ACTUAL path taken, not just the planned route segment
+      if (
+        routeState.actualPathHistory &&
+        routeState.actualPathHistory.length > 1
+      ) {
+        setDrivenPath(routeState.actualPathHistory);
+      } else {
+        // Fallback: use planned route up to current segment
+        const driven = polyline.slice(0, segmentIndex + 1);
+        const driver = drivers.find((d) => d.id === selectedDriverId);
+        if (driver) {
+          driven.push({ lat: driver.lat, lng: driver.lng });
+        }
+        setDrivenPath(driven);
       }
 
-      setDrivenPath(driven);
+      // Remaining route is always from current segment to end (blue)
+      const remaining = polyline.slice(segmentIndex);
       setRemainingPath(remaining);
 
-      // Set deviation trail if off-route
-      if (routeState.isOffRoute && routeState.deviationTrail) {
-        setDeviationPath(routeState.deviationTrail);
-      } else {
-        setDeviationPath([]);
+      // Collect all deviation paths for orange visualization
+      const allDeviations: PolylinePoint[][] = [];
+
+      // Add historical (completed) deviation segments
+      if (
+        routeState.completedDeviations &&
+        routeState.completedDeviations.length > 0
+      ) {
+        allDeviations.push(...routeState.completedDeviations);
       }
+
+      // Add current active deviation trail if off-route
+      if (
+        routeState.isOffRoute &&
+        routeState.deviationTrail &&
+        routeState.deviationTrail.length > 1
+      ) {
+        allDeviations.push(routeState.deviationTrail);
+      }
+
+      setAllDeviationPaths(allDeviations);
     } else if (directionsResponse) {
-      // Fallback: just show the full route as remaining
+      // Fallback: just show the full route as remaining (blue)
       setDrivenPath([]);
-      setRemainingPath([]);
-      setDeviationPath([]);
+      const fullPath =
+        directionsResponse.routes[0]?.overview_path?.map((p) => ({
+          lat: p.lat(),
+          lng: p.lng(),
+        })) || [];
+      setRemainingPath(fullPath);
+      setAllDeviationPaths([]);
     }
   }, [
     selectedDriverId,
@@ -644,9 +675,16 @@ export function LiveMap({
           <Polyline path={remainingPath} options={POLYLINE_STYLES.remaining} />
         )}
 
-        {/* Deviation Trail - actual GPS path when off-route (orange) */}
-        {deviationPath.length > 1 && (
-          <Polyline path={deviationPath} options={POLYLINE_STYLES.deviation} />
+        {/* All Deviation Trails - historical + active off-route paths (orange) */}
+        {allDeviationPaths.map(
+          (path, index) =>
+            path.length > 1 && (
+              <Polyline
+                key={`deviation-${index}`}
+                path={path}
+                options={POLYLINE_STYLES.deviation}
+              />
+            ),
         )}
 
         {/* Fallback: Show directions if no custom polylines */}

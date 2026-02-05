@@ -28,6 +28,8 @@ import { DocumentManager } from "@/components/document-manager";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useTimezone } from "@/hooks/useTimezone";
+import { formatInUserTimezone } from "@/lib/timezone";
 
 interface EmployeeDetailsPageProps {
   id: string;
@@ -51,13 +53,9 @@ interface Employee {
   user_id: string | null;
 }
 
-function formatDate(dateStr: string | null) {
+function formatDate(dateStr: string | null, timezone: string) {
   if (!dateStr) return "Not specified";
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  return formatInUserTimezone(dateStr, timezone, "MMMM d, yyyy");
 }
 
 // Helper to format role names
@@ -117,6 +115,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
   const { isAdmin, isOwner } = usePermissions();
   const { isDemoMode } = useOnboarding();
   const { currentOrganization } = useOrganization();
+  const activeTimezone = useTimezone();
   const queryClient = useQueryClient();
 
   const canManageEmployees = isAdmin || isOwner;
@@ -548,7 +547,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                         Hire Date
                       </p>
                       <p className="text-slate-900 mt-0.5">
-                        {formatDate(employee.hire_date)}
+                        {formatDate(employee.hire_date, activeTimezone)}
                       </p>
                     </div>
                   </div>
@@ -619,7 +618,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                             {event.title}
                           </h4>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
-                            {formatDate(event.date)}
+                            {formatDate(event.date, activeTimezone)}
                           </span>
                         </div>
                         <p className="text-sm text-slate-500 leading-relaxed">
@@ -692,7 +691,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
               <div className="flex items-center justify-between py-2 border-b border-slate-50">
                 <span className="text-sm text-slate-500">Added On</span>
                 <span className="text-sm text-slate-900">
-                  {formatDate(employee.created_at)}
+                  {formatDate(employee.created_at, activeTimezone)}
                 </span>
               </div>
               {inviteStatus && !inviteStatus.accepted_at && (
@@ -706,7 +705,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
                         : "text-slate-900",
                     )}
                   >
-                    {formatDate(inviteStatus.expires_at)}
+                    {formatDate(inviteStatus.expires_at, activeTimezone)}
                   </span>
                 </div>
               )}

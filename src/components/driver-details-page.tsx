@@ -28,6 +28,8 @@ import { TripList } from "@/components/trips/TripList";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useTimezone } from "@/hooks/useTimezone";
+import { formatInUserTimezone } from "@/lib/timezone";
 
 interface DriverDetailsPageProps {
   id: string;
@@ -67,15 +69,9 @@ interface Driver {
   user_id: string | null;
 }
 
-function formatDate(dateStr: string | null) {
+function formatDate(dateStr: string | null, timezone: string) {
   if (!dateStr) return "Not specified";
-  // Use UTC to prevent timezone shifts (e.g., showing previous day)
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  });
+  return formatInUserTimezone(dateStr, timezone, "MMMM d, yyyy");
 }
 
 function formatVehicleType(type: string | null) {
@@ -106,12 +102,13 @@ export function DriverDetailsPage({
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { isAdmin, isOwner } = usePermissions();
+  const { canEditDrivers } = usePermissions();
   const { isDemoMode } = useOnboarding();
   const { currentOrganization } = useOrganization();
+  const activeTimezone = useTimezone();
   const queryClient = useQueryClient();
 
-  const canManageDrivers = isAdmin || isOwner;
+  const canManageDrivers = canEditDrivers;
 
   // Fetch driver data
   const { data: driver, isLoading: isLoadingDriver } = useQuery({
@@ -583,7 +580,11 @@ export function DriverDetailsPage({
                         </span>
                         {driver.dot_medical_expiration && (
                           <span className="block text-xs text-slate-500 mt-0.5">
-                            Expires: {formatDate(driver.dot_medical_expiration)}
+                            Expires:{" "}
+                            {formatDate(
+                              driver.dot_medical_expiration,
+                              activeTimezone,
+                            )}
                           </span>
                         )}
                       </p>
@@ -608,7 +609,10 @@ export function DriverDetailsPage({
                       <div className="flex items-center gap-2 mt-1 text-sm text-slate-900">
                         <span>
                           {driver.insurance_start_date
-                            ? formatDate(driver.insurance_start_date)
+                            ? formatDate(
+                                driver.insurance_start_date,
+                                activeTimezone,
+                              )
                             : "Start"}
                         </span>
                         <span className="text-slate-400">→</span>
@@ -622,7 +626,10 @@ export function DriverDetailsPage({
                           )}
                         >
                           {driver.insurance_expiration_date
-                            ? formatDate(driver.insurance_expiration_date)
+                            ? formatDate(
+                                driver.insurance_expiration_date,
+                                activeTimezone,
+                              )
                             : "End"}
                         </span>
                       </div>
@@ -632,7 +639,7 @@ export function DriverDetailsPage({
                         Last Inspection
                       </p>
                       <p className="text-slate-900 mt-1">
-                        {formatDate(driver.inspection_date)}
+                        {formatDate(driver.inspection_date, activeTimezone)}
                       </p>
                     </div>
                   </div>
@@ -760,7 +767,7 @@ export function DriverDetailsPage({
               <div className="flex items-center justify-between py-2 border-b border-slate-50">
                 <span className="text-sm text-slate-500">Member Since</span>
                 <span className="text-sm text-slate-900">
-                  {formatDate(driver.created_at)}
+                  {formatDate(driver.created_at, activeTimezone)}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2">

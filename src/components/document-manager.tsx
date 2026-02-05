@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { useTimezone } from "@/hooks/useTimezone";
+import { formatInUserTimezone } from "@/lib/timezone";
 import {
   Dialog,
   DialogContent,
@@ -106,22 +108,24 @@ function DocumentIcon({ kind }: { kind: string }) {
   }
 }
 
-function formatDate(dateStr: string | null) {
+function formatDate(dateStr: string | null, timezone: string) {
   if (!dateStr) return "Not specified";
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  return formatInUserTimezone(dateStr, timezone, "MMMM d, yyyy");
 }
 
 interface DocumentPreviewProps {
   doc: OrgDocument | null;
   onClose: () => void;
   onDownload: (doc: OrgDocument) => void;
+  activeTimezone: string;
 }
 
-function DocumentPreview({ doc, onClose, onDownload }: DocumentPreviewProps) {
+function DocumentPreview({
+  doc,
+  onClose,
+  onDownload,
+  activeTimezone,
+}: DocumentPreviewProps) {
   const [zoom, setZoom] = useState(100);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -161,12 +165,12 @@ function DocumentPreview({ doc, onClose, onDownload }: DocumentPreviewProps) {
                   kind === "image"
                     ? "bg-indigo-50 text-indigo-600"
                     : kind === "pdf"
-                    ? "bg-rose-50 text-rose-600"
-                    : kind === "xls"
-                    ? "bg-emerald-50 text-emerald-600"
-                    : kind === "word"
-                    ? "bg-blue-50 text-blue-600"
-                    : "bg-slate-50 text-slate-600"
+                      ? "bg-rose-50 text-rose-600"
+                      : kind === "xls"
+                        ? "bg-emerald-50 text-emerald-600"
+                        : kind === "word"
+                          ? "bg-blue-50 text-blue-600"
+                          : "bg-slate-50 text-slate-600",
                 )}
               >
                 <DocumentIcon kind={kind} />
@@ -177,7 +181,7 @@ function DocumentPreview({ doc, onClose, onDownload }: DocumentPreviewProps) {
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-500">
                   {formatBytes(doc.file_size)} • Uploaded{" "}
-                  {formatDate(doc.created_at)}
+                  {formatDate(doc.created_at, activeTimezone)}
                 </DialogDescription>
               </div>
             </div>
@@ -293,6 +297,7 @@ export function DocumentManager({
   const [docPreview, setDocPreview] = useState<OrgDocument | null>(null);
   const { currentOrganization } = useOrganization();
   const { isAdmin, isOwner } = usePermissions();
+  const activeTimezone = useTimezone();
   const queryClient = useQueryClient();
 
   const canManage = isAdmin || isOwner;
@@ -310,7 +315,7 @@ export function DocumentManager({
                     uploader_profile:uploaded_by (
                         full_name
                     )
-                `
+                `,
         )
         .eq("org_id", currentOrganization.id)
         .eq("purpose", purpose)
@@ -475,12 +480,12 @@ export function DocumentManager({
                           kind === "image"
                             ? "text-indigo-600"
                             : kind === "pdf"
-                            ? "text-rose-600"
-                            : kind === "xls"
-                            ? "text-emerald-600"
-                            : kind === "word"
-                            ? "text-blue-600"
-                            : "text-slate-600"
+                              ? "text-rose-600"
+                              : kind === "xls"
+                                ? "text-emerald-600"
+                                : kind === "word"
+                                  ? "text-blue-600"
+                                  : "text-slate-600",
                         )}
                       >
                         <DocumentIcon kind={kind} />
@@ -494,7 +499,7 @@ export function DocumentManager({
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          {formatDate(doc.created_at)}
+                          {formatDate(doc.created_at, activeTimezone)}
                           <span className="normal-case">
                             {" "}
                             — {formatBytes(doc.file_size)} •{" "}
@@ -565,6 +570,7 @@ export function DocumentManager({
           doc={docPreview}
           onClose={() => setDocPreview(null)}
           onDownload={handleDownload}
+          activeTimezone={activeTimezone}
         />
 
         <DeleteConfirmationDialog

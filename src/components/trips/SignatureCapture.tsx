@@ -24,6 +24,7 @@ import {
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import type { Trip } from "./types";
+import { formatInUserTimezone } from "@/lib/timezone";
 
 interface SignatureCaptureDialogProps {
   open: boolean;
@@ -35,8 +36,8 @@ interface SignatureCaptureDialogProps {
   }) => void;
   onSignatureDecline: (reason: string) => void;
   isLoading?: boolean;
+  timezone?: string;
 }
-
 export function SignatureCaptureDialog({
   open,
   onOpenChange,
@@ -44,6 +45,7 @@ export function SignatureCaptureDialog({
   onSignatureCapture,
   onSignatureDecline,
   isLoading = false,
+  timezone = "UTC",
 }: SignatureCaptureDialogProps) {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const [signerName, setSignerName] = useState("");
@@ -159,14 +161,11 @@ export function SignatureCaptureDialog({
             <div className="flex items-center gap-4 text-xs text-slate-400 pt-2 border-t border-white/10">
               <div className="flex items-center gap-1.5">
                 <Calendar weight="duotone" className="w-3.5 h-3.5" />
-                {new Date(trip.pickup_time).toLocaleDateString()}
+                {formatInUserTimezone(trip.pickup_time, timezone, "MM/dd/yyyy")}
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock weight="duotone" className="w-3.5 h-3.5" />
-                {new Date(trip.pickup_time).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatInUserTimezone(trip.pickup_time, timezone, "h:mm a")}
               </div>
               {trip.distance_miles && (
                 <div className="flex items-center gap-1.5">
@@ -221,7 +220,7 @@ export function SignatureCaptureDialog({
                     "border-2 border-dashed rounded-xl overflow-hidden bg-slate-50/50 transition-all",
                     hasDrawn
                       ? "border-emerald-300 bg-emerald-50/30"
-                      : "border-slate-200"
+                      : "border-slate-200",
                   )}
                 >
                   <SignatureCanvas
@@ -263,7 +262,7 @@ export function SignatureCaptureDialog({
                     "h-12 rounded-xl font-bold transition-all duration-300 w-full sm:flex-1",
                     hasDrawn && signerName.trim()
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50"
-                      : "bg-slate-200 text-slate-400"
+                      : "bg-slate-200 text-slate-400",
                   )}
                 >
                   <CheckCircle weight="bold" className="w-5 h-5 mr-2" />
@@ -318,6 +317,7 @@ interface SignatureDisplayProps {
   capturedAt?: string | null;
   declined?: boolean;
   declinedReason?: string | null;
+  timezone?: string;
 }
 
 export function SignatureDisplay({
@@ -326,6 +326,7 @@ export function SignatureDisplay({
   capturedAt,
   declined,
   declinedReason,
+  timezone = "UTC",
 }: SignatureDisplayProps) {
   if (!signatureData && !declined) return null;
 
@@ -347,7 +348,8 @@ export function SignatureDisplay({
           )}
           {capturedAt && (
             <p className="text-xs text-amber-500 mt-2">
-              Recorded on {new Date(capturedAt).toLocaleString()}
+              Recorded on{" "}
+              {formatInUserTimezone(capturedAt, timezone, "MMM d, yyyy h:mm a")}
             </p>
           )}
         </div>
@@ -370,7 +372,11 @@ export function SignatureDisplay({
             </div>
             {capturedAt && (
               <span className="text-xs text-slate-400">
-                {new Date(capturedAt).toLocaleString()}
+                {formatInUserTimezone(
+                  capturedAt,
+                  timezone,
+                  "MMM d, yyyy h:mm a",
+                )}
               </span>
             )}
           </div>

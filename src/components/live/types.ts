@@ -52,6 +52,10 @@ export interface DriverRouteFollowingState {
   offRouteStartTime: number | null;
   /** Has a reroute been requested/flagged? */
   rerouteRequested: boolean;
-  /** GPS trail when off-route (for visualization) */
+  /** Current GPS trail when actively off-route (orange live) */
   deviationTrail?: { lat: number; lng: number }[];
+  /** Completed deviation segments from past off-route periods (orange history) */
+  completedDeviations?: { lat: number; lng: number }[][];
+  /** Full actual GPS path history for the trip (for gray driven path) */
+  actualPathHistory?: { lat: number; lng: number }[];
 }

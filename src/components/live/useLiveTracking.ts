@@ -366,10 +366,28 @@ export function useLiveTracking() {
           offRouteStartTime: null,
           rerouteRequested: false,
           deviationTrail: [],
+          completedDeviations: [],
+          actualPathHistory: [],
         };
 
         // Always update total distance from cached route
         followingState.totalDistance = route.totalDistance;
+
+        // Track complete GPS path for the driven portion (gray line)
+        const pathHistory = followingState.actualPathHistory || [];
+        // Only add point if it's different from the last point (avoid duplicates)
+        const lastPoint = pathHistory[pathHistory.length - 1];
+        if (
+          !lastPoint ||
+          Math.abs(lastPoint.lat - rawPosition.lat) > 0.00001 ||
+          Math.abs(lastPoint.lng - rawPosition.lng) > 0.00001
+        ) {
+          // Limit to 2000 points to prevent memory issues
+          if (pathHistory.length < 2000) {
+            pathHistory.push({ ...rawPosition });
+            followingState.actualPathHistory = pathHistory;
+          }
+        }
 
         if (!onRoute) {
           if (!followingState.offRouteStartTime) {
@@ -377,7 +395,7 @@ export function useLiveTracking() {
             // Start new deviation trail
             followingState.deviationTrail = [rawPosition];
           } else {
-            // Add to deviation trail (limit to 500 points to prevent memory issues)
+            // Add to active deviation trail (limit to 500 points)
             const trail = followingState.deviationTrail || [];
             if (trail.length < 500) {
               trail.push(rawPosition);
@@ -397,10 +415,24 @@ export function useLiveTracking() {
             }
           }
         } else {
-          // Back on route - clear deviation state
+          // Back on route - archive current deviation if exists
+          if (
+            followingState.deviationTrail &&
+            followingState.deviationTrail.length > 1
+          ) {
+            // Archive this completed deviation segment
+            const completedDeviations =
+              followingState.completedDeviations || [];
+            completedDeviations.push([...followingState.deviationTrail]);
+            followingState.completedDeviations = completedDeviations;
+            console.log(
+              `[LiveTracking] Driver ${driverId} returned to route, archived deviation (${followingState.deviationTrail.length} points)`,
+            );
+          }
+          // Clear active deviation state
           followingState.offRouteStartTime = null;
           followingState.rerouteRequested = false;
-          followingState.deviationTrail = []; // Clear trail when back on route
+          followingState.deviationTrail = [];
         }
 
         followingState.distanceAlongRoute = distanceAlongRoute;

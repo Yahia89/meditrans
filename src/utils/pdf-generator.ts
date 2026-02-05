@@ -2,11 +2,26 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Trip, TripStatusHistory } from "@/components/trips/types";
 
+/**
+ * Optional map image data for trip route visualization.
+ * Should be a base64 data URL (e.g., from getStaticMapImage utility)
+ */
+export interface TripMapImage {
+  /** Base64 data URL of the map image */
+  dataUrl: string;
+  /** Width of the image */
+  width: number;
+  /** Height of the image */
+  height: number;
+}
+
 export const generateTripSummaryPDF = (
   trip: Trip,
   journeyTrips: Trip[] = [],
   history: TripStatusHistory[] = [],
   orgName?: string,
+  /** Optional map image showing the route visualization */
+  mapImage?: TripMapImage,
 ) => {
   // Initialize with compression enabled for smaller file sizes
   const doc = new jsPDF({
@@ -84,6 +99,60 @@ export const generateTripSummaryPDF = (
   );
 
   let currentY = patientBlockY + 35;
+
+  // --- Trip Route Map (if provided) ---
+  if (mapImage && mapImage.dataUrl) {
+    try {
+      // Calculate dimensions to fit within page margins while maintaining aspect ratio
+      const maxMapWidth = pageWidth - margin * 2;
+      const maxMapHeight = 60; // Keep it compact for fast PDF generation
+
+      let mapDisplayWidth = mapImage.width;
+      let mapDisplayHeight = mapImage.height;
+
+      // Scale down to fit if needed
+      if (mapDisplayWidth > maxMapWidth) {
+        const scale = maxMapWidth / mapDisplayWidth;
+        mapDisplayWidth = maxMapWidth;
+        mapDisplayHeight = mapImage.height * scale;
+      }
+      if (mapDisplayHeight > maxMapHeight) {
+        const scale = maxMapHeight / mapDisplayHeight;
+        mapDisplayHeight = maxMapHeight;
+        mapDisplayWidth = mapDisplayWidth * scale;
+      }
+
+      // Center the map horizontally
+      const mapX = margin + (maxMapWidth - mapDisplayWidth) / 2;
+
+      doc.addImage(
+        mapImage.dataUrl,
+        "PNG",
+        mapX,
+        currentY,
+        mapDisplayWidth,
+        mapDisplayHeight,
+        undefined,
+        "FAST", // Compression for smaller file size
+      );
+
+      // Add map legend below the image
+      currentY += mapDisplayHeight + 4;
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text(
+        "● Blue: Planned Route  ● Orange: Deviation  ● A: Pickup  ● B: Dropoff",
+        pageWidth / 2,
+        currentY,
+        { align: "center" },
+      );
+      currentY += 10;
+    } catch (e) {
+      console.error("[PDF] Error adding map image:", e);
+      // Continue without map if there's an error
+    }
+  }
 
   // --- Journey Timeline Section ---
   if (journeyTrips && journeyTrips.length > 0) {

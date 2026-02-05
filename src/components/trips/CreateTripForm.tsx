@@ -32,6 +32,11 @@ import { TimePicker, TRIP_TYPES } from "./trip-utils";
 
 import { useLoadScript } from "@react-google-maps/api";
 import { AddressAutocomplete } from "./AddressAutocomplete";
+import {
+  getActiveTimezone,
+  parseZonedTime,
+  formatInUserTimezone,
+} from "@/lib/timezone";
 
 // Libraries must be defined outside component to avoid re-loading
 const GOOGLE_MAPS_LIBRARIES: (
@@ -97,6 +102,12 @@ export function CreateTripForm({
   const { currentOrganization } = useOrganization();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
+
+  const activeTimezone = useMemo(
+    () => getActiveTimezone(profile, currentOrganization),
+    [profile, currentOrganization],
+  );
+
   const [activeLegId, setActiveLegId] = useState<string>("leg-1");
   const [conflictError, setConflictError] = useState<string | null>(null);
 
@@ -107,7 +118,7 @@ export function CreateTripForm({
     driver_id: "",
     pickup_location: "",
     dropoff_location: "",
-    pickup_date: new Date().toISOString().split("T")[0],
+    pickup_date: formatInUserTimezone(new Date(), activeTimezone, "yyyy-MM-dd"),
     pickup_time: "",
     trip_type: "MEDICAL APPOINTMENT",
     other_trip_type: "",
@@ -225,35 +236,40 @@ export function CreateTripForm({
 
   useEffect(() => {
     if (existingTrip && existingTrip.pickup_time) {
-      const date = new Date(existingTrip.pickup_time);
-      if (!isNaN(date.getTime())) {
-        const initialLeg: TripDraft = {
-          id: "leg-1",
-          db_id: existingTrip.id, // Track that this leg corresponds to an existing DB record
-          patient_id: existingTrip.patient_id,
-          driver_id: existingTrip.driver_id || "",
-          pickup_location: existingTrip.pickup_location || "",
-          dropoff_location: existingTrip.dropoff_location || "",
-          pickup_date: date.toISOString().split("T")[0],
-          pickup_time: date.toTimeString().split(" ")[0].substring(0, 5),
-          trip_type: TRIP_TYPES.some((t) => t.value === existingTrip.trip_type)
-            ? existingTrip.trip_type
-            : "OTHER",
-          other_trip_type: TRIP_TYPES.some(
-            (t) => t.value === existingTrip.trip_type,
-          )
-            ? ""
-            : existingTrip.trip_type || "",
-          notes: existingTrip.notes || "",
-          status: existingTrip.status || "pending",
-          distance_miles: existingTrip.distance_miles,
-          duration_minutes: existingTrip.duration_minutes,
-        };
-        setTripLegs([initialLeg]);
-        setActiveLegId("leg-1");
-      }
+      const initialLeg: TripDraft = {
+        id: "leg-1",
+        db_id: existingTrip.id,
+        patient_id: existingTrip.patient_id,
+        driver_id: existingTrip.driver_id || "",
+        pickup_location: existingTrip.pickup_location || "",
+        dropoff_location: existingTrip.dropoff_location || "",
+        pickup_date: formatInUserTimezone(
+          existingTrip.pickup_time,
+          activeTimezone,
+          "yyyy-MM-dd",
+        ),
+        pickup_time: formatInUserTimezone(
+          existingTrip.pickup_time,
+          activeTimezone,
+          "HH:mm",
+        ),
+        trip_type: TRIP_TYPES.some((t) => t.value === existingTrip.trip_type)
+          ? existingTrip.trip_type
+          : "OTHER",
+        other_trip_type: TRIP_TYPES.some(
+          (t) => t.value === existingTrip.trip_type,
+        )
+          ? ""
+          : existingTrip.trip_type || "",
+        notes: existingTrip.notes || "",
+        status: existingTrip.status || "pending",
+        distance_miles: existingTrip.distance_miles,
+        duration_minutes: existingTrip.duration_minutes,
+      };
+      setTripLegs([initialLeg]);
+      setActiveLegId("leg-1");
     }
-  }, [existingTrip]);
+  }, [existingTrip, activeTimezone]);
 
   const { data: patientsData } = useQuery({
     queryKey: ["patients-form-with-credits", currentOrganization?.id],
@@ -422,8 +438,10 @@ export function CreateTripForm({
             ? "00:00"
             : leg.pickup_time;
 
-        const pickupDateTimeUTC = new Date(
-          `${leg.pickup_date}T${timeToUse}`,
+        const pickupDateTimeUTC = parseZonedTime(
+          leg.pickup_date,
+          timeToUse,
+          activeTimezone,
         ).toISOString();
 
         // Check Patient Conflict
@@ -498,7 +516,11 @@ export function CreateTripForm({
             ? "00:00"
             : leg.pickup_time;
 
-        const pickupDateTime = new Date(`${leg.pickup_date}T${timeToUse}`);
+        const pickupDateTime = parseZonedTime(
+          leg.pickup_date,
+          timeToUse,
+          activeTimezone,
+        );
 
         const finalDriverId = leg.driver_id;
         // Logic for employee -> driver conversion removed. Driver must be selected from drivers list.

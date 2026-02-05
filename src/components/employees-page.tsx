@@ -32,6 +32,8 @@ import {
   type OrganizationMember,
 } from "@/hooks/useOrganizationMembers";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
+import { useTimezone } from "@/hooks/useTimezone";
+import { formatInUserTimezone } from "@/lib/timezone";
 
 import { exportToExcel } from "@/lib/export";
 import {
@@ -242,6 +244,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   const { isAdmin } = usePermissions();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const activeTimezone = useTimezone();
   const queryClient = useQueryClient();
 
   // Presence status filter state
@@ -464,11 +467,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   const departments = [...new Set(employees.map((e) => e.department))].length;
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatInUserTimezone(dateString, activeTimezone, "MMM d, yyyy");
   };
 
   if (isLoading) {

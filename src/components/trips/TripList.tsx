@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import type { Trip, TripStatus } from "./types";
 import { cn } from "@/lib/utils";
+import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
+import { useAuth } from "@/contexts/auth-context";
 
 interface TripListProps {
   onCreateClick?: () => void;
@@ -26,11 +28,13 @@ const statusColors: Record<TripStatus, string> = {
   pending: "bg-slate-100 text-slate-700 border-slate-200",
   assigned: "bg-blue-50 text-blue-700 border-blue-100",
   accepted: "bg-indigo-50 text-indigo-700 border-indigo-100",
+  en_route: "bg-sky-50 text-sky-700 border-sky-100",
   arrived: "bg-amber-50 text-amber-700 border-amber-100",
   in_progress: "bg-blue-100 text-blue-800 border-blue-200",
   completed: "bg-emerald-50 text-emerald-700 border-emerald-100",
   cancelled: "bg-red-50 text-red-700 border-red-100",
   no_show: "bg-orange-50 text-orange-700 border-orange-100",
+  waiting: "bg-amber-100 text-amber-800 border-amber-200",
 };
 
 export function TripList({
@@ -41,6 +45,9 @@ export function TripList({
   hideHeader = false,
 }: TripListProps) {
   const { currentOrganization } = useOrganization();
+  const { profile } = useAuth();
+
+  const activeTimezone = getActiveTimezone(profile, currentOrganization);
 
   const { data: trips, isLoading } = useQuery({
     queryKey: ["trips", currentOrganization?.id, patientId, driverId],
@@ -52,7 +59,7 @@ export function TripList({
                     *,
                     patient:patients(id, full_name, phone, created_at),
                     driver:drivers(id, full_name, phone, user_id, vehicle_info)
-                `
+                `,
         )
         .eq("org_id", currentOrganization?.id)
         .order("pickup_time", { ascending: false });
@@ -142,7 +149,7 @@ export function TripList({
               <span
                 className={cn(
                   "px-2.5 py-0.5 rounded-full text-xs font-semibold border",
-                  statusColors[trip.status]
+                  statusColors[trip.status],
                 )}
               >
                 {trip.status.replace("_", " ").toUpperCase()}
@@ -190,11 +197,17 @@ export function TripList({
                 <div className="flex items-center gap-2 text-slate-600">
                   <Clock className="w-4 h-4" />
                   <span className="text-sm">
-                    {new Date(trip.pickup_time).toLocaleDateString()} at{" "}
-                    {new Date(trip.pickup_time).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatInUserTimezone(
+                      trip.pickup_time,
+                      activeTimezone,
+                      "MM/dd/yyyy",
+                    )}{" "}
+                    at{" "}
+                    {formatInUserTimezone(
+                      trip.pickup_time,
+                      activeTimezone,
+                      "h:mm a",
+                    )}
                   </span>
                 </div>
                 <div className="flex items-start gap-2 text-slate-600">

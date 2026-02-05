@@ -26,6 +26,8 @@ import { PatientForm } from "@/components/forms/patient-form";
 import { Loader2, Pencil, Trash, Check } from "lucide-react";
 import { exportToExcel } from "@/lib/export";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
+import { useAuth } from "@/contexts/auth-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -176,6 +178,8 @@ export function PatientsPage({
   const { isDemoMode, navigateTo } = useOnboarding();
   const { currentOrganization } = useOrganization();
   const { canEditPatients } = usePermissions();
+  const { profile } = useAuth();
+  const activeTimezone = getActiveTimezone(profile, currentOrganization);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
@@ -986,7 +990,11 @@ export function PatientsPage({
                           weight="duotone"
                           className="text-slate-400"
                         />
-                        {new Date(patient.lastVisit).toLocaleDateString()}
+                        {formatInUserTimezone(
+                          patient.lastVisit,
+                          activeTimezone,
+                          "MM/dd/yyyy",
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

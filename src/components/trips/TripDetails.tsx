@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import type { Trip, TripStatus, TripStatusHistory } from "./types";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +58,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { SignatureCaptureDialog, SignatureDisplay } from "./SignatureCapture";
 import { generateTripSummaryPDF } from "@/utils/pdf-generator";
+import {
+  getActiveTimezone,
+  formatInUserTimezone,
+  parseZonedTime,
+} from "@/lib/timezone";
 
 interface TripDetailsProps {
   tripId: string;
@@ -73,6 +79,7 @@ function RelatedTripsTimeline({
   onNavigate,
   canManage,
   onEditMileage,
+  timezone,
 }: {
   currentTripId: string;
   patientId: string;
@@ -80,28 +87,15 @@ function RelatedTripsTimeline({
   onNavigate: (id: string) => void;
   canManage?: boolean;
   onEditMileage?: (trip: Trip) => void;
+  timezone: string;
 }) {
   const { data: trips } = useQuery({
     queryKey: ["patient-daily-trips", patientId, date],
     queryFn: async () => {
       // Use start/end of day logic
-      const d = new Date(date);
-      const start = new Date(
-        d.getFullYear(),
-        d.getMonth(),
-        d.getDate(),
-        0,
-        0,
-        0,
-      ).toISOString();
-      const end = new Date(
-        d.getFullYear(),
-        d.getMonth(),
-        d.getDate(),
-        23,
-        59,
-        59,
-      ).toISOString();
+      const dateStr = formatInUserTimezone(date, timezone, "yyyy-MM-dd");
+      const start = parseZonedTime(dateStr, "00:00", timezone).toISOString();
+      const end = parseZonedTime(dateStr, "23:59:59", timezone).toISOString();
 
       const { data, error } = await supabase
         .from("trips")
@@ -169,10 +163,11 @@ function RelatedTripsTimeline({
                         isCurrent ? "text-blue-900" : "text-slate-700",
                       )}
                     >
-                      {new Date(trip.pickup_time).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatInUserTimezone(
+                        trip.pickup_time,
+                        timezone,
+                        "h:mm a",
+                      )}
                     </span>
                     <span
                       className={cn(
@@ -347,6 +342,7 @@ export function TripDetails({
 }: TripDetailsProps) {
   const { user, profile } = useAuth();
   const { canManageTrips } = usePermissions();
+  const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [statusToUpdate, setStatusToUpdate] = useState<TripStatus | null>(null);
@@ -356,6 +352,8 @@ export function TripDetails({
   const [editingMileageTrip, setEditingMileageTrip] = useState<Trip | null>(
     null,
   );
+
+  const activeTimezone = getActiveTimezone(profile, currentOrganization);
 
   const { data: trip, isLoading } = useQuery({
     queryKey: ["trip", tripId],
@@ -396,22 +394,20 @@ export function TripDetails({
     queryFn: async () => {
       if (!trip?.patient_id || !trip?.pickup_time) return [];
 
-      const d = new Date(trip.pickup_time);
-      const start = new Date(
-        d.getFullYear(),
-        d.getMonth(),
-        d.getDate(),
-        0,
-        0,
-        0,
+      const dateStr = formatInUserTimezone(
+        trip.pickup_time,
+        activeTimezone,
+        "yyyy-MM-dd",
+      );
+      const start = parseZonedTime(
+        dateStr,
+        "00:00",
+        activeTimezone,
       ).toISOString();
-      const end = new Date(
-        d.getFullYear(),
-        d.getMonth(),
-        d.getDate(),
-        23,
-        59,
-        59,
+      const end = parseZonedTime(
+        dateStr,
+        "23:59:59",
+        activeTimezone,
       ).toISOString();
 
       const { data, error } = await supabase
@@ -848,14 +844,10 @@ export function TripDetails({
                         Scheduled Date
                       </p>
                       <p className="text-sm font-medium text-slate-900">
-                        {new Date(trip.pickup_time).toLocaleDateString(
-                          undefined,
-                          {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          },
+                        {formatInUserTimezone(
+                          trip.pickup_time,
+                          activeTimezone,
+                          "EEEE, MMMM d, yyyy",
                         )}
                       </p>
                     </div>
@@ -872,10 +864,11 @@ export function TripDetails({
                         Pickup Time
                       </p>
                       <p className="text-sm font-medium text-slate-900">
-                        {new Date(trip.pickup_time).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatInUserTimezone(
+                          trip.pickup_time,
+                          activeTimezone,
+                          "hh:mm a",
+                        )}
                       </p>
                     </div>
                   </div>
@@ -1048,6 +1041,7 @@ export function TripDetails({
               onNavigate={(id) => onNavigate?.(id)}
               canManage={canManage}
               onEditMileage={(t) => setEditingMileageTrip(t)}
+              timezone={activeTimezone}
             />
           )}
 
@@ -1309,12 +1303,17 @@ export function TripDetails({
                           </p>
                         </div>
                         <time className="text-[10px] font-semibold text-slate-400 whitespace-nowrap shrink-0">
-                          {new Date(item.created_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatInUserTimezone(
+                            item.created_at,
+                            activeTimezone,
+                            "h:mm a",
+                          )}
                           <span className="block text-[9px] font-normal text-slate-300">
-                            {new Date(item.created_at).toLocaleDateString()}
+                            {formatInUserTimezone(
+                              item.created_at,
+                              activeTimezone,
+                              "MM/dd/yyyy",
+                            )}
                           </span>
                         </time>
                       </div>
@@ -1342,6 +1341,7 @@ export function TripDetails({
                 capturedAt={trip.signature_captured_at}
                 declined={trip.signature_declined}
                 declinedReason={trip.signature_declined_reason}
+                timezone={activeTimezone}
               />
             )}
         </div>
@@ -1482,6 +1482,7 @@ export function TripDetails({
               });
             }}
             isLoading={signatureCaptureMutation.isPending}
+            timezone={activeTimezone}
           />
         )}
 

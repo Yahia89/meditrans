@@ -33,6 +33,13 @@ import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-di
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { PatientCreditTab } from "@/components/credits/PatientCreditTab";
 import type { Trip, TripStatus } from "@/components/trips/types";
+import { useAuth } from "@/contexts/auth-context";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import {
+  getActiveTimezone,
+  formatInUserTimezone,
+  parseZonedTime,
+} from "@/lib/timezone";
 
 interface PatientDetailsPageProps {
   id: string;
@@ -74,28 +81,22 @@ const statusColors: Record<TripStatus, string> = {
   completed: "bg-emerald-50 text-emerald-700 border-emerald-100",
   cancelled: "bg-red-50 text-red-700 border-red-100",
   no_show: "bg-orange-50 text-orange-700 border-orange-100",
+  waiting: "bg-amber-100 text-amber-800 border-amber-200",
 };
 
-function formatDate(dateStr: string | null) {
+function formatDate(dateStr: string | null, timezone: string = "UTC") {
   if (!dateStr) return "Not specified";
 
-  // Handle YYYY-MM-DD specifically to avoid timezone off-by-one errors
-  if (dateStr.length === 10 && dateStr.includes("-")) {
-    const [year, month, day] = dateStr.split("-").map(Number);
-    // Create date using local components
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+  // Handle YYYY-MM-DD specifically (Birthdays, etc)
+  if (
+    dateStr.length === 10 &&
+    dateStr.includes("-") &&
+    !dateStr.includes("T")
+  ) {
+    return formatInUserTimezone(dateStr, "UTC", "MMMM d, yyyy");
   }
 
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  return formatInUserTimezone(dateStr, timezone, "MMMM d, yyyy");
 }
 
 const TRIPS_PER_PAGE = 6;
@@ -111,9 +112,16 @@ export function PatientDetailsPage({
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { isAdmin, isOwner } = usePermissions();
+  const { profile } = useAuth();
+  const { currentOrganization } = useOrganization();
+  const { canEditPatients } = usePermissions();
   const { isDemoMode } = useOnboarding();
   const queryClient = useQueryClient();
+
+  const activeTimezone = useMemo(
+    () => getActiveTimezone(profile, currentOrganization),
+    [profile, currentOrganization],
+  );
 
   // Trip history filtering and pagination state
   const [tripMonth, setTripMonth] = useState(() => {
@@ -125,7 +133,7 @@ export function PatientDetailsPage({
     "all",
   );
 
-  const canManagePatients = isAdmin || isOwner;
+  const canManagePatients = canEditPatients;
 
   // Fetch patient data
   const { data: patient, isLoading: isLoadingPatient } = useQuery({
@@ -180,23 +188,26 @@ export function PatientDetailsPage({
 
   // Filter trips by month and status
   const filteredTrips = useMemo(() => {
-    const startOfMonth = new Date(
-      tripMonth.getFullYear(),
-      tripMonth.getMonth(),
-      1,
+    const monthStr = formatInUserTimezone(tripMonth, activeTimezone, "yyyy-MM");
+    const startOfMonthUTC = parseZonedTime(
+      `${monthStr}-01`,
+      "00:00",
+      activeTimezone,
     );
-    const endOfMonth = new Date(
-      tripMonth.getFullYear(),
-      tripMonth.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
+
+    // Get last day of month
+    const year = parseInt(monthStr.split("-")[0]);
+    const month = parseInt(monthStr.split("-")[1]);
+    const lastDay = new Date(year, month, 0).getDate();
+    const endOfMonthUTC = parseZonedTime(
+      `${monthStr}-${lastDay}`,
+      "23:59:59",
+      activeTimezone,
     );
 
     return allTrips.filter((trip) => {
       const tripDate = new Date(trip.pickup_time);
-      const inMonth = tripDate >= startOfMonth && tripDate <= endOfMonth;
+      const inMonth = tripDate >= startOfMonthUTC && tripDate <= endOfMonthUTC;
       const matchesStatus =
         tripStatusFilter === "all" || trip.status === tripStatusFilter;
       return inMonth && matchesStatus;
@@ -423,7 +434,7 @@ export function PatientDetailsPage({
                         Date of Birth
                       </p>
                       <p className="text-slate-900 mt-0.5">
-                        {formatDate(patient.date_of_birth)}
+                        {formatDate(patient.date_of_birth, activeTimezone)}
                       </p>
                     </div>
                   </div>
@@ -534,11 +545,14 @@ export function PatientDetailsPage({
                     </p>
                     <p className="text-slate-900 mt-1">
                       {patient.referral_date
-                        ? formatDate(patient.referral_date)
+                        ? formatDate(patient.referral_date, activeTimezone)
                         : "Start"}
                       <span className="mx-2 text-slate-400">→</span>
                       {patient.referral_expiration_date
-                        ? formatDate(patient.referral_expiration_date)
+                        ? formatDate(
+                            patient.referral_expiration_date,
+                            activeTimezone,
+                          )
                         : "End"}
                     </p>
                   </div>
@@ -631,14 +645,14 @@ export function PatientDetailsPage({
                   <span className="text-sm text-slate-500">Last Transport</span>
                   <span className="text-sm text-slate-900">
                     {allTrips.length > 0
-                      ? formatDate(allTrips[0].pickup_time)
+                      ? formatDate(allTrips[0].pickup_time, activeTimezone)
                       : "Never"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <span className="text-sm text-slate-500">Added On</span>
                   <span className="text-sm text-slate-900">
-                    {formatDate(patient.created_at)}
+                    {formatDate(patient.created_at, activeTimezone)}
                   </span>
                 </div>
               </div>
@@ -691,10 +705,7 @@ export function PatientDetailsPage({
                   className="h-8 px-3 text-xs font-medium min-w-[140px]"
                 >
                   <CalendarBlank size={14} weight="duotone" className="mr-2" />
-                  {tripMonth.toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
+                  {formatInUserTimezone(tripMonth, activeTimezone, "MMMM yyyy")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -747,10 +758,7 @@ export function PatientDetailsPage({
                 </h3>
                 <p className="text-sm text-slate-500">
                   No trips scheduled for{" "}
-                  {tripMonth.toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
+                  {formatInUserTimezone(tripMonth, activeTimezone, "MMMM yyyy")}
                   {tripStatusFilter !== "all"
                     ? ` with status "${tripStatusFilter.replace("_", " ")}"`
                     : ""}
@@ -781,15 +789,20 @@ export function PatientDetailsPage({
                   </div>
 
                   <div className="p-5 space-y-4 flex-1">
-                    {/* Date & Time */}
                     <div className="flex items-center gap-2 text-slate-600">
                       <Calendar className="w-4 h-4" />
                       <span className="text-sm font-medium">
-                        {new Date(trip.pickup_time).toLocaleDateString()} at{" "}
-                        {new Date(trip.pickup_time).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatInUserTimezone(
+                          trip.pickup_time,
+                          activeTimezone,
+                          "MMM d, yyyy",
+                        )}{" "}
+                        at{" "}
+                        {formatInUserTimezone(
+                          trip.pickup_time,
+                          activeTimezone,
+                          "h:mm a",
+                        )}
                       </span>
                     </div>
 

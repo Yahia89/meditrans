@@ -11,6 +11,7 @@ interface Organization {
   tax_id?: string;
   billing_state?: string;
   billing_enabled?: boolean;
+  timezone: string;
 }
 
 interface OrganizationContextType {
@@ -23,14 +24,14 @@ interface OrganizationContextType {
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const useOrganization = () => {
   const context = useContext(OrganizationContext);
   if (context === undefined) {
     throw new Error(
-      "useOrganization must be used within an OrganizationProvider"
+      "useOrganization must be used within an OrganizationProvider",
     );
   }
   return context;
@@ -78,7 +79,7 @@ export const OrganizationProvider = ({
           // Try to use the default org from profile
           if (profile?.default_org_id) {
             const defaultOrg = data.find(
-              (org) => org.id === profile.default_org_id
+              (org) => org.id === profile.default_org_id,
             );
             if (defaultOrg) {
               setCurrentOrganization(defaultOrg);
@@ -91,7 +92,7 @@ export const OrganizationProvider = ({
           const primaryMembership = memberships.find((m) => m.is_primary);
           if (primaryMembership) {
             const primaryOrg = data.find(
-              (org) => org.id === primaryMembership.org_id
+              (org) => org.id === primaryMembership.org_id,
             );
             if (primaryOrg) {
               setCurrentOrganization(primaryOrg);
@@ -129,7 +130,7 @@ export const OrganizationProvider = ({
       if (data) {
         setCurrentOrganization(data);
         setOrganizations((prev) =>
-          prev.map((org) => (org.id === data.id ? data : org))
+          prev.map((org) => (org.id === data.id ? data : org)),
         );
       }
     } catch (error) {
@@ -140,7 +141,7 @@ export const OrganizationProvider = ({
   const userRole = useMemo(() => {
     if (!currentOrganization || memberships.length === 0) return null;
     const membership = memberships.find(
-      (m) => m.org_id === currentOrganization.id
+      (m) => m.org_id === currentOrganization.id,
     );
     return membership?.role || null;
   }, [currentOrganization, memberships]);

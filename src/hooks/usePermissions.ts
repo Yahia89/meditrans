@@ -33,6 +33,9 @@ export function usePermissions() {
         "edit_trips",
         "delete_trips",
         "complete_trips",
+        "manage_patients",
+        "manage_drivers",
+        "edit_profile",
       ];
       return allowedActions.includes(action);
     }
@@ -77,9 +80,9 @@ export function usePermissions() {
   const canViewBilling = isAdmin; // Only admin+ can see billing
   const canViewMedicaid = isAdmin; // Only admin+ can see medicaid
   const canViewNotifications = isAdmin; // Only admin+ can see notifications
-  const canEditPatients = isAdmin; // Dispatch can only view patients
-  const canEditDrivers = isAdmin; // Dispatch can only view drivers
-  const canEditOwnName = isAdmin; // Dispatch cannot change their own name
+  const canEditPatients = isDispatch; // Dispatch can now edit patients
+  const canEditDrivers = isDispatch; // Dispatch can now edit drivers
+  const canEditOwnName = isOwner; // Only owners can change their own name
 
   return {
     can,

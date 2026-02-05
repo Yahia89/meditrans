@@ -16,6 +16,8 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Trip, TripStatus } from "./trips/types";
 import { Separator } from "@/components/ui/separator";
+import { useTimezone } from "@/hooks/useTimezone";
+import { formatInUserTimezone, getZonedTime } from "@/lib/timezone";
 
 const timeRanges = [
   { label: "Last 24 Hours", value: "24h", hours: 24 },
@@ -34,6 +36,7 @@ const statusColors: Record<TripStatus, string> = {
   completed: "bg-emerald-50 text-emerald-700 border-emerald-100",
   cancelled: "bg-red-50 text-red-700 border-red-100",
   no_show: "bg-orange-50 text-orange-700 border-orange-100",
+  waiting: "bg-amber-100 text-amber-800 border-amber-200",
 };
 
 export function DriverHistoryPage({ driverId }: { driverId: string }) {
@@ -41,6 +44,7 @@ export function DriverHistoryPage({ driverId }: { driverId: string }) {
   const [selectedRange, setSelectedRange] = useState<string>("24h");
   const [, setTripId] = useQueryState("tripId");
   const [, setPage] = useQueryState("page");
+  const activeTimezone = useTimezone();
 
   const { data: trips, isLoading } = useQuery({
     queryKey: [
@@ -63,7 +67,7 @@ export function DriverHistoryPage({ driverId }: { driverId: string }) {
           *,
           patient:patients(id, full_name, phone),
           driver:drivers(id, full_name, phone)
-        `
+        `,
         )
         .eq("org_id", currentOrganization?.id)
         .eq("driver_id", driverId)
@@ -92,20 +96,20 @@ export function DriverHistoryPage({ driverId }: { driverId: string }) {
       (sum, t) =>
         sum +
         (Number(t.actual_distance_miles) || Number(t.distance_miles) || 0),
-      0
+      0,
     );
     const totalDuration = completed.reduce(
       (sum, t) =>
         sum +
         (Number(t.actual_duration_minutes) || Number(t.duration_minutes) || 0),
-      0
+      0,
     );
 
     return {
       total: trips.length,
       completed: completed.length,
       inProgress: trips.filter(
-        (t) => t.status === "in_progress" || t.status === "en_route"
+        (t) => t.status === "in_progress" || t.status === "en_route",
       ).length,
       totalDistance: Math.ceil(totalDistance),
       totalDuration: Math.ceil(totalDuration), // minutes
@@ -118,8 +122,8 @@ export function DriverHistoryPage({ driverId }: { driverId: string }) {
     const groups: Map<string, Trip[]> = new Map();
 
     trips.forEach((trip) => {
-      const date = new Date(trip.pickup_time);
-      const dateKey = date.toDateString();
+      const zonedDate = getZonedTime(trip.pickup_time, activeTimezone);
+      const dateKey = zonedDate.toDateString();
 
       if (!groups.has(dateKey)) {
         groups.set(dateKey, []);
@@ -131,10 +135,10 @@ export function DriverHistoryPage({ driverId }: { driverId: string }) {
       date: new Date(dateKey),
       trips: trips.sort(
         (a, b) =>
-          new Date(b.pickup_time).getTime() - new Date(a.pickup_time).getTime()
+          new Date(b.pickup_time).getTime() - new Date(a.pickup_time).getTime(),
       ),
     }));
-  }, [trips]);
+  }, [trips, activeTimezone]);
 
   if (isLoading) {
     return (
@@ -166,7 +170,7 @@ export function DriverHistoryPage({ driverId }: { driverId: string }) {
               "px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap border",
               selectedRange === range.value
                 ? "bg-[#3D5A3D] text-white border-[#3D5A3D] shadow-md"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
             )}
           >
             {range.label}
@@ -273,12 +277,11 @@ export function DriverHistoryPage({ driverId }: { driverId: string }) {
                     className="w-5 h-5 text-slate-400"
                   />
                   <h3 className="text-lg font-bold text-slate-900">
-                    {group.date.toLocaleDateString("en-US", {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+                    {formatInUserTimezone(
+                      group.date,
+                      activeTimezone,
+                      "EEEE, MMMM d, yyyy",
+                    )}
                   </h3>
                 </div>
                 <Separator className="flex-1" />
@@ -308,19 +311,17 @@ export function DriverHistoryPage({ driverId }: { driverId: string }) {
                               className="w-4 h-4 text-slate-400"
                             />
                             <span className="text-sm font-bold font-mono text-slate-900">
-                              {new Date(trip.pickup_time).toLocaleTimeString(
-                                [],
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
+                              {formatInUserTimezone(
+                                trip.pickup_time,
+                                activeTimezone,
+                                "hh:mm a",
                               )}
                             </span>
                           </div>
                           <span
                             className={cn(
                               "px-3 py-1 rounded-full text-xs uppercase font-bold tracking-wide border",
-                              statusColors[trip.status]
+                              statusColors[trip.status],
                             )}
                           >
                             {trip.status.replace("_", " ")}
@@ -378,7 +379,7 @@ export function DriverHistoryPage({ driverId }: { driverId: string }) {
                               {Math.ceil(
                                 Number(trip.actual_distance_miles) ||
                                   Number(trip.distance_miles) ||
-                                  0
+                                  0,
                               )}
                             </p>
                             <p className="text-xs text-slate-500 uppercase tracking-wider">
@@ -392,7 +393,7 @@ export function DriverHistoryPage({ driverId }: { driverId: string }) {
                                 {Math.ceil(
                                   Number(trip.actual_duration_minutes) ||
                                     Number(trip.duration_minutes) ||
-                                    0
+                                    0,
                                 )}
                               </p>
                               <p className="text-xs text-slate-500 uppercase tracking-wider">

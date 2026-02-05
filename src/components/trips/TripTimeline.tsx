@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import type { Trip, TripStatus } from "./types";
 import { MapPin, Clock, User, Car, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatInUserTimezone, getZonedTime } from "@/lib/timezone";
 
 interface TripTimelineProps {
   trips: Trip[];
@@ -11,6 +12,7 @@ interface TripTimelineProps {
   viewMode?: "day" | "week";
   compact?: boolean;
   onQuickAdd?: (patientId: string, patientName: string, date: Date) => void;
+  timezone?: string;
 }
 
 // Status colors matching the system
@@ -72,6 +74,12 @@ const statusConfig: Record<
     text: "text-orange-600",
     dot: "bg-orange-500",
   },
+  waiting: {
+    bg: "bg-amber-100",
+    border: "border-amber-300",
+    text: "text-amber-800",
+    dot: "bg-amber-600",
+  },
 };
 
 // Time hour markers
@@ -84,9 +92,10 @@ function formatHour(hour: number): string {
   return `${hour - 12} PM`;
 }
 
-function getTimePosition(date: Date): number {
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
+function getTimePosition(date: Date, timezone: string): number {
+  const zonedDate = getZonedTime(date, timezone);
+  const hours = zonedDate.getHours();
+  const minutes = zonedDate.getMinutes();
   return (hours * 60 + minutes) / (24 * 60);
 }
 
@@ -97,7 +106,7 @@ function getEstimatedDuration(): number {
 
 // Group trips by patient for lane visualization
 function groupTripsByPatient(
-  trips: Trip[]
+  trips: Trip[],
 ): Map<string, { patient: Trip["patient"]; trips: Trip[] }> {
   const groups = new Map<string, { patient: Trip["patient"]; trips: Trip[] }>();
 
@@ -113,7 +122,7 @@ function groupTripsByPatient(
   groups.forEach((group) => {
     group.trips.sort(
       (a, b) =>
-        new Date(a.pickup_time).getTime() - new Date(b.pickup_time).getTime()
+        new Date(a.pickup_time).getTime() - new Date(b.pickup_time).getTime(),
     );
   });
 
@@ -125,30 +134,38 @@ export function TripTimeline({
   onTripClick,
   selectedDate = new Date(),
   compact = false,
+  timezone = "America/Chicago",
 }: TripTimelineProps) {
   // Filter trips for selected date
   const filteredTrips = useMemo(() => {
-    const startOfDay = new Date(selectedDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(selectedDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    const selectedDateStr = formatInUserTimezone(
+      selectedDate,
+      timezone,
+      "yyyy-MM-dd",
+    );
 
     return trips.filter((trip) => {
-      const tripDate = new Date(trip.pickup_time);
-      return tripDate >= startOfDay && tripDate <= endOfDay;
+      const tripDateStr = formatInUserTimezone(
+        trip.pickup_time,
+        timezone,
+        "yyyy-MM-dd",
+      );
+      return tripDateStr === selectedDateStr;
     });
-  }, [trips, selectedDate]);
+  }, [trips, selectedDate, timezone]);
 
   // Group by patient
   const patientGroups = useMemo(
     () => groupTripsByPatient(filteredTrips),
-    [filteredTrips]
+    [filteredTrips],
   );
 
   // Current time position
   const now = new Date();
-  const isToday = now.toDateString() === selectedDate.toDateString();
-  const currentTimePosition = isToday ? getTimePosition(now) : -1;
+  const isToday =
+    formatInUserTimezone(now, timezone, "yyyy-MM-dd") ===
+    formatInUserTimezone(selectedDate, timezone, "yyyy-MM-dd");
+  const currentTimePosition = isToday ? getTimePosition(now, timezone) : -1;
 
   if (filteredTrips.length === 0) {
     return (
@@ -161,11 +178,7 @@ export function TripTimeline({
         </h3>
         <p className="text-sm text-slate-500 max-w-xs">
           There are no trips scheduled for{" "}
-          {selectedDate.toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
+          {formatInUserTimezone(selectedDate, timezone, "EEEE, MMMM do")}
         </p>
       </div>
     );
@@ -177,11 +190,7 @@ export function TripTimeline({
       <div className="sticky top-0 z-20 bg-white border-b border-slate-200 pb-2">
         <div className="flex items-center gap-4 mb-4">
           <h3 className="text-lg font-bold text-slate-900">
-            {selectedDate.toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "short",
-              day: "numeric",
-            })}
+            {formatInUserTimezone(selectedDate, timezone, "EEEE, MMM d")}
           </h3>
           <span className="text-sm text-slate-500">
             {filteredTrips.length} trip{filteredTrips.length !== 1 ? "s" : ""}
@@ -203,7 +212,7 @@ export function TripTimeline({
                 <span
                   className={cn(
                     "text-[10px] font-medium",
-                    hour % 3 === 0 ? "text-slate-600" : "text-slate-300"
+                    hour % 3 === 0 ? "text-slate-600" : "text-slate-300",
                   )}
                 >
                   {hour % 3 === 0 ? formatHour(hour) : "·"}
@@ -227,7 +236,7 @@ export function TripTimeline({
                 key={hour}
                 className={cn(
                   "flex-1 border-l",
-                  hour % 3 === 0 ? "border-slate-200" : "border-slate-100"
+                  hour % 3 === 0 ? "border-slate-200" : "border-slate-100",
                 )}
                 style={{ minWidth: compact ? "25px" : "33px" }}
               />
@@ -266,7 +275,7 @@ export function TripTimeline({
                   <div className="relative h-14 bg-slate-50/50 rounded-lg border border-slate-100">
                     {patientTrips.map((trip) => {
                       const tripDate = new Date(trip.pickup_time);
-                      const position = getTimePosition(tripDate);
+                      const position = getTimePosition(tripDate, timezone);
                       const duration = getEstimatedDuration();
                       const config = statusConfig[trip.status];
 
@@ -278,7 +287,7 @@ export function TripTimeline({
                             "absolute top-1 bottom-1 rounded-md border-2 cursor-pointer hover:shadow-lg transition-all duration-200 group overflow-hidden",
                             config.bg,
                             config.border,
-                            "hover:scale-[1.02] hover:z-20"
+                            "hover:scale-[1.02] hover:z-20",
                           )}
                           style={{
                             left: `${position * 100}%`,
@@ -290,7 +299,7 @@ export function TripTimeline({
                           <div
                             className={cn(
                               "absolute top-1.5 left-1.5 w-2 h-2 rounded-full",
-                              config.dot
+                              config.dot,
                             )}
                           />
 
@@ -298,15 +307,16 @@ export function TripTimeline({
                           <div className="px-2 pt-4 pb-1 h-full flex flex-col justify-between">
                             <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">
                               <Clock className="w-2.5 h-2.5" />
-                              {tripDate.toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {formatInUserTimezone(
+                                trip.pickup_time,
+                                timezone,
+                                "h:mm a",
+                              )}
                             </div>
                             <div
                               className={cn(
                                 "text-[9px] font-medium truncate",
-                                config.text
+                                config.text,
                               )}
                             >
                               {trip.trip_type}
@@ -336,7 +346,7 @@ export function TripTimeline({
                     })}
                   </div>
                 </div>
-              )
+              ),
             )}
           </div>
         </div>
@@ -367,24 +377,30 @@ export function TripTimelineVertical({
   onTripClick,
   selectedDate = new Date(),
   onQuickAdd,
+  timezone = "America/Chicago",
 }: TripTimelineProps) {
   // Filter trips for selected date
   const filteredTrips = useMemo(() => {
-    const startOfDay = new Date(selectedDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(selectedDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    const selectedDateStr = formatInUserTimezone(
+      selectedDate,
+      timezone,
+      "yyyy-MM-dd",
+    );
 
     return trips
       .filter((trip) => {
-        const tripDate = new Date(trip.pickup_time);
-        return tripDate >= startOfDay && tripDate <= endOfDay;
+        const tripDateStr = formatInUserTimezone(
+          trip.pickup_time,
+          timezone,
+          "yyyy-MM-dd",
+        );
+        return tripDateStr === selectedDateStr;
       })
       .sort(
         (a, b) =>
-          new Date(a.pickup_time).getTime() - new Date(b.pickup_time).getTime()
+          new Date(a.pickup_time).getTime() - new Date(b.pickup_time).getTime(),
       );
-  }, [trips, selectedDate]);
+  }, [trips, selectedDate, timezone]);
 
   // Group by patient for clear mobile organization
   const patientGroups = useMemo(() => {
@@ -427,11 +443,7 @@ export function TripTimelineVertical({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-slate-900">
-          {selectedDate.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          })}
+          {formatInUserTimezone(selectedDate, timezone, "EEE, MMM d")}
         </h3>
         <span className="text-sm font-medium text-slate-500">
           {filteredTrips.length} trip{filteredTrips.length !== 1 ? "s" : ""}
@@ -477,7 +489,6 @@ export function TripTimelineVertical({
 
               {patientTrips.map((trip, index) => {
                 const config = statusConfig[trip.status];
-                const tripTime = new Date(trip.pickup_time);
 
                 return (
                   <div key={trip.id} className="relative pl-10 pb-5 last:pb-0">
@@ -488,10 +499,10 @@ export function TripTimelineVertical({
                         trip.status === "completed"
                           ? "border-emerald-500 text-emerald-600"
                           : trip.status === "in_progress"
-                          ? "border-blue-500 text-blue-600 ring-4 ring-blue-100"
-                          : trip.status === "cancelled"
-                          ? "border-red-300 text-red-400"
-                          : "border-slate-300 text-slate-500"
+                            ? "border-blue-500 text-blue-600 ring-4 ring-blue-100"
+                            : trip.status === "cancelled"
+                              ? "border-red-300 text-red-400"
+                              : "border-slate-300 text-slate-500",
                       )}
                     >
                       {index + 1}
@@ -504,7 +515,7 @@ export function TripTimelineVertical({
                         "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group",
                         config.bg,
                         config.border,
-                        "hover:shadow-md active:scale-[0.99]"
+                        "hover:shadow-md active:scale-[0.99]",
                       )}
                     >
                       {/* Header row with status and time */}
@@ -515,16 +526,17 @@ export function TripTimelineVertical({
                             config.bg,
                             config.text,
                             "border",
-                            config.border
+                            config.border,
                           )}
                         >
                           {trip.status.replace("_", " ")}
                         </span>
                         <span className="text-sm font-bold text-slate-700 font-mono">
-                          {tripTime.toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatInUserTimezone(
+                            trip.pickup_time,
+                            timezone,
+                            "h:mm a",
+                          )}
                         </span>
                       </div>
 
@@ -583,7 +595,7 @@ export function TripTimelineVertical({
                       onQuickAdd(
                         patientId,
                         patient?.full_name || "Patient",
-                        date
+                        date,
                       );
                     }}
                     variant="ghost"

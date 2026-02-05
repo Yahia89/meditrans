@@ -25,6 +25,8 @@ import {
   calculateTripCost,
   type OrganizationFees,
 } from "@/lib/credit-utils";
+import { useTimezone } from "@/hooks/useTimezone";
+import { formatInUserTimezone, getZonedTime } from "@/lib/timezone";
 
 interface PatientCreditTabProps {
   patientId: string;
@@ -63,6 +65,7 @@ export function PatientCreditTab({
 }: PatientCreditTabProps) {
   const { isOwner, isAdmin } = usePermissions();
   const { currentOrganization } = useOrganization();
+  const activeTimezone = useTimezone();
   const canManageCredits = isOwner || isAdmin;
 
   // Month navigation
@@ -134,7 +137,7 @@ export function PatientCreditTab({
 
     trips.forEach((trip) => {
       if (trip.status === "completed") {
-        const day = new Date(trip.pickup_time).getDate();
+        const day = getZonedTime(trip.pickup_time, activeTimezone).getDate();
         const cost = calculateTripCost(trip, fees || null);
         daily[day] = (daily[day] || 0) + cost;
         total += cost;
@@ -143,7 +146,7 @@ export function PatientCreditTab({
     });
 
     return { dailySpend: daily, totalSpend: total, completedTrips: completed };
-  }, [trips, fees]);
+  }, [trips, fees, activeTimezone]);
 
   const creditStatus = calculateCreditStatus(monthlyCredit, totalSpend);
   const remainingBalance = (monthlyCredit || 0) - totalSpend;
@@ -330,10 +333,7 @@ export function PatientCreditTab({
               className="h-8 px-3 text-xs font-medium min-w-[140px]"
             >
               <CalendarBlank size={14} weight="duotone" className="mr-2" />
-              {selectedMonth.toLocaleDateString("en-US", {
-                month: "long",
-                year: "numeric",
-              })}
+              {formatInUserTimezone(selectedMonth, activeTimezone, "MMMM yyyy")}
             </Button>
             <Button
               variant="ghost"
@@ -428,11 +428,11 @@ export function PatientCreditTab({
                               {trip.trip_type}
                             </p>
                             <p className="text-xs text-slate-500 truncate">
-                              {tripDate.toLocaleDateString("en-US", {
-                                weekday: "short",
-                                month: "short",
-                                day: "numeric",
-                              })}
+                              {formatInUserTimezone(
+                                trip.pickup_time,
+                                activeTimezone,
+                                "EEE, MMM d",
+                              )}
                             </p>
                           </div>
                         </div>

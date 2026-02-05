@@ -24,6 +24,7 @@ import {
 import { Plus, CloudArrowUp, ArrowClockwise } from "@phosphor-icons/react";
 import type { Trip, TripStatus } from "./types";
 import { cn } from "@/lib/utils";
+import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
 import { TripTimeline, TripTimelineVertical } from "./TripTimeline";
 import { Input } from "@/components/ui/input";
 import { QuickAddLegDialog } from "./QuickAddLegDialog";
@@ -151,6 +152,12 @@ export function TripsScheduler({
     refetchInterval: 30000, // Auto refresh every 30 seconds
   });
 
+  // Get active timezone
+  const activeTimezone = useMemo(
+    () => getActiveTimezone(profile, currentOrganization),
+    [profile, currentOrganization],
+  );
+
   // Dates for navigation (Week or Month)
   const calendarDates = useMemo(() => {
     return isMonthExpanded
@@ -198,26 +205,34 @@ export function TripsScheduler({
 
   // Trips for selected date
   const tripsForDate = useMemo(() => {
-    const startOfDay = new Date(selectedDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(selectedDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
     return filteredTrips.filter((trip) => {
-      const tripDate = new Date(trip.pickup_time);
-      return tripDate >= startOfDay && tripDate <= endOfDay;
+      const selectedDateStr = formatInUserTimezone(
+        selectedDate,
+        activeTimezone,
+        "yyyy-MM-dd",
+      );
+      const tripDateStr = formatInUserTimezone(
+        trip.pickup_time,
+        activeTimezone,
+        "yyyy-MM-dd",
+      );
+      return tripDateStr === selectedDateStr;
     });
-  }, [filteredTrips, selectedDate]);
+  }, [filteredTrips, selectedDate, activeTimezone]);
 
   // Count trips per day in week/month
   const tripCountByDay = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredTrips.forEach((trip) => {
-      const dateKey = new Date(trip.pickup_time).toDateString();
+      const dateKey = formatInUserTimezone(
+        trip.pickup_time,
+        activeTimezone,
+        "yyyy-MM-dd",
+      );
       counts[dateKey] = (counts[dateKey] || 0) + 1;
     });
     return counts;
-  }, [filteredTrips]);
+  }, [filteredTrips, activeTimezone]);
 
   // Active trips (in progress)
   const activeTrips = useMemo(
@@ -393,10 +408,11 @@ export function TripsScheduler({
               className="h-8 px-3 text-xs font-medium"
             >
               {isMonthExpanded
-                ? selectedDate.toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })
+                ? formatInUserTimezone(
+                    selectedDate,
+                    activeTimezone,
+                    "MMMM yyyy",
+                  )
                 : "Today"}
             </Button>
             <Button
@@ -480,11 +496,26 @@ export function TripsScheduler({
           )}
         >
           {calendarDates.map((date) => {
-            const isSelected =
-              date.toDateString() === selectedDate.toDateString();
-            const isToday = date.toDateString() === new Date().toDateString();
+            const dateStr = formatInUserTimezone(
+              date,
+              activeTimezone,
+              "yyyy-MM-dd",
+            );
+            const selectedDateStr = formatInUserTimezone(
+              selectedDate,
+              activeTimezone,
+              "yyyy-MM-dd",
+            );
+            const todayStr = formatInUserTimezone(
+              new Date(),
+              activeTimezone,
+              "yyyy-MM-dd",
+            );
+
+            const isSelected = dateStr === selectedDateStr;
+            const isToday = dateStr === todayStr;
             const isCurrentMonth = date.getMonth() === selectedDate.getMonth();
-            const tripCount = tripCountByDay[date.toDateString()] || 0;
+            const tripCount = tripCountByDay[dateStr] || 0;
 
             return (
               <button
@@ -501,7 +532,7 @@ export function TripsScheduler({
                 )}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
-                  {date.toLocaleDateString("en-US", { weekday: "short" })}
+                  {formatInUserTimezone(date, activeTimezone, "EEE")}
                 </span>
                 <span className="text-lg font-bold mt-0.5">
                   {date.getDate()}
@@ -549,6 +580,7 @@ export function TripsScheduler({
             trips={filteredTrips}
             onTripClick={onTripClick}
             selectedDate={selectedDate}
+            timezone={activeTimezone}
             onQuickAdd={(patientId, patientName, date) =>
               setQuickAddData({ patientId, patientName, date })
             }
@@ -558,12 +590,14 @@ export function TripsScheduler({
             trips={filteredTrips}
             onTripClick={onTripClick}
             selectedDate={selectedDate}
+            timezone={activeTimezone}
           />
         ) : viewMode === "cards" ? (
           <TripCardsView
             trips={tripsForDate}
             onTripClick={onTripClick}
             statusColors={statusColors}
+            timezone={activeTimezone}
             onQuickAdd={(patientId, patientName, date) =>
               setQuickAddData({ patientId, patientName, date })
             }
@@ -573,6 +607,7 @@ export function TripsScheduler({
             trips={tripsForDate}
             onTripClick={onTripClick}
             statusColors={statusColors}
+            timezone={activeTimezone}
           />
         )}
       </div>
@@ -596,11 +631,13 @@ function TripCardsView({
   trips,
   onTripClick,
   statusColors,
+  timezone,
   onQuickAdd,
 }: {
   trips: Trip[];
   onTripClick: (id: string) => void;
   statusColors: Record<TripStatus, string>;
+  timezone: string;
   onQuickAdd: (patientId: string, patientName: string, date: Date) => void;
 }) {
   const groupedTrips = useMemo(() => {
@@ -696,10 +733,11 @@ function TripCardsView({
                   <div className="bg-slate-50/50 rounded-lg border border-slate-100 p-3 hover:bg-white hover:shadow-md hover:border-blue-200 transition-all">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-bold text-slate-700 font-mono">
-                        {new Date(trip.pickup_time).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatInUserTimezone(
+                          trip.pickup_time,
+                          timezone,
+                          "h:mm a",
+                        )}
                       </span>
                       <span
                         className={cn(
@@ -776,10 +814,12 @@ function TripListView({
   trips,
   onTripClick,
   statusColors,
+  timezone,
 }: {
   trips: Trip[];
   onTripClick: (id: string) => void;
   statusColors: Record<TripStatus, string>;
+  timezone: string;
 }) {
   if (trips.length === 0) {
     return (
@@ -826,10 +866,7 @@ function TripListView({
             >
               <td className="py-3 px-4">
                 <span className="text-sm font-medium text-slate-900">
-                  {new Date(trip.pickup_time).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {formatInUserTimezone(trip.pickup_time, timezone, "h:mm a")}
                 </span>
               </td>
               <td className="py-3 px-4">

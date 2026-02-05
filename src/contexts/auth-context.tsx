@@ -16,6 +16,7 @@ interface UserProfile {
   phone: string | null;
   default_org_id: string | null;
   is_super_admin: boolean;
+  timezone: string | null;
   created_at: string;
 }
 

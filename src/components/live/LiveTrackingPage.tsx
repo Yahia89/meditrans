@@ -10,18 +10,37 @@ import { useLiveTracking } from "./useLiveTracking";
 import { LiveMap } from "./LiveMap";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/auth-context";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
+import { useMemo } from "react";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useQueryState } from "nuqs";
+import { Pencil } from "@phosphor-icons/react";
 
 export function LiveTrackingPage() {
+  const { profile } = useAuth();
+  const { currentOrganization } = useOrganization();
+
+  const activeTimezone = useMemo(
+    () => getActiveTimezone(profile, currentOrganization),
+    [profile, currentOrganization],
+  );
+
   const {
     drivers,
     trips,
     loading,
-    // Route management APIs for Uber-tier animation
     setRouteForTrip,
     getRouteForTrip,
     getDriverRouteState,
     clearRerouteFlag,
   } = useLiveTracking();
+  const { canManageTrips } = usePermissions();
+  const [_, setPage] = useQueryState("page");
+  const [__, setTripId] = useQueryState("tripId");
+  const [___, setFromPage] = useQueryState("from");
+  const [____, setSection] = useQueryState("section");
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"drivers" | "trips">("drivers");
@@ -176,6 +195,7 @@ export function LiveTrackingPage() {
                         driver={driver}
                         isSelected={selectedDriverId === driver.id}
                         onClick={() => handleDriverSelect(driver.id)}
+                        timezone={activeTimezone}
                       />
                     ))}
                   </div>
@@ -194,6 +214,7 @@ export function LiveTrackingPage() {
                         driver={driver}
                         isSelected={selectedDriverId === driver.id}
                         onClick={() => handleDriverSelect(driver.id)}
+                        timezone={activeTimezone}
                       />
                     ))}
                   </div>
@@ -212,6 +233,7 @@ export function LiveTrackingPage() {
                         driver={driver}
                         isSelected={selectedDriverId === driver.id}
                         onClick={() => handleDriverSelect(driver.id)}
+                        timezone={activeTimezone}
                       />
                     ))}
                   </div>
@@ -233,6 +255,14 @@ export function LiveTrackingPage() {
                   onClick={() =>
                     trip.driver_id && handleDriverSelect(trip.driver_id)
                   }
+                  onEdit={() => {
+                    setTripId(trip.id);
+                    setFromPage("live");
+                    setSection("tracking");
+                    setPage("trip-details");
+                  }}
+                  canEdit={canManageTrips}
+                  timezone={activeTimezone}
                 />
               ))}
               {filteredTrips.length === 0 && (
@@ -252,10 +282,12 @@ function DriverCard({
   driver,
   isSelected,
   onClick,
+  timezone,
 }: {
   driver: any;
   isSelected: boolean;
   onClick: () => void;
+  timezone: string;
 }) {
   const isEnRoute = driver.status === "en_route";
   // isOffline is implicitly handled in the ternary fallback for statusColor
@@ -315,10 +347,11 @@ function DriverCard({
           </span>
           {driver.last_location_update && (
             <span className="text-slate-400 text-[10px] truncate">
-              {new Date(driver.last_location_update).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatInUserTimezone(
+                driver.last_location_update,
+                timezone,
+                "h:mm a",
+              )}
             </span>
           )}
         </div>
@@ -328,7 +361,19 @@ function DriverCard({
   );
 }
 
-function TripCard({ trip, onClick }: { trip: any; onClick: () => void }) {
+function TripCard({
+  trip,
+  onClick,
+  onEdit,
+  canEdit,
+  timezone,
+}: {
+  trip: any;
+  onClick: () => void;
+  onEdit: () => void;
+  canEdit: boolean;
+  timezone: string;
+}) {
   return (
     <div
       onClick={onClick}
@@ -339,11 +384,19 @@ function TripCard({ trip, onClick }: { trip: any; onClick: () => void }) {
           {trip.status === "en_route" ? "EN ROUTE" : "IN PROGRESS"}
         </span>
         <span className="text-[10px] text-slate-400">
-          {new Date(trip.pickup_time).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {formatInUserTimezone(trip.pickup_time, timezone, "h:mm a")}
         </span>
+        {canEdit && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors"
+          >
+            <Pencil size={14} weight="bold" />
+          </button>
+        )}
       </div>
 
       <div className="space-y-2 text-sm">

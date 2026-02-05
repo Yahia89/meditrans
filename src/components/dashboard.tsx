@@ -107,7 +107,7 @@ export function Dashboard({ onNavigateToCredits }: DashboardProps) {
 
                 <div className="space-y-4">
                   {/* Low Balance Alerts - Dynamic - Only for Owners/Admins */}
-                  {isAdmin && (
+                  {isDispatch && (
                     <LowBalanceAlerts onNavigate={onNavigateToCredits} />
                   )}
                 </div>

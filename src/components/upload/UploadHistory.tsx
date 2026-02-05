@@ -12,6 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { useUploadHistory } from "@/hooks/use-upload-history";
 import type { UploadRecord } from "./types";
+import { useAuth } from "@/contexts/auth-context";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,15 +28,8 @@ import {
 
 const ITEMS_PER_PAGE = 4;
 
-function formatDateTime(value: string) {
-  const d = new Date(value);
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function formatDateTime(value: string, timezone: string) {
+  return formatInUserTimezone(value, timezone, "MMM dd, yyyy h:mm a");
 }
 
 function formatBytes(bytes?: number | null) {
@@ -92,6 +88,10 @@ function sourceLabel(source?: string | null) {
 export function UploadHistory() {
   const { recentUploads, isLoading, deleteUpload, isDeleting } =
     useUploadHistory();
+  const { profile } = useAuth();
+  const { currentOrganization } = useOrganization();
+
+  const activeTimezone = getActiveTimezone(profile, currentOrganization);
 
   // Local state
   const [currentPage, setCurrentPage] = React.useState(0);
@@ -108,7 +108,7 @@ export function UploadHistory() {
 
   const totalPages = React.useMemo(
     () => Math.max(1, Math.ceil(uploads.length / ITEMS_PER_PAGE)),
-    [uploads.length]
+    [uploads.length],
   );
 
   const currentData = React.useMemo(() => {
@@ -171,10 +171,10 @@ export function UploadHistory() {
             const name = upload.original_filename ?? "Untitled file";
             const kind = getFileKind(
               upload.mime_type,
-              upload.original_filename
+              upload.original_filename,
             );
             const bytes = formatBytes(upload.file_size);
-            const metaLeft = formatDateTime(upload.created_at);
+            const metaLeft = formatDateTime(upload.created_at, activeTimezone);
             const uploaderName =
               upload.committed_by_profile?.full_name ||
               upload.uploaded_by_profile?.full_name;
@@ -200,10 +200,10 @@ export function UploadHistory() {
                         kind === "pdf"
                           ? "text-rose-600"
                           : kind === "xls"
-                          ? "text-emerald-600"
-                          : kind === "csv"
-                          ? "text-sky-600"
-                          : "text-slate-700"
+                            ? "text-emerald-600"
+                            : kind === "csv"
+                              ? "text-sky-600"
+                              : "text-slate-700"
                       }
                     >
                       <FileIcon kind={kind as any} />
