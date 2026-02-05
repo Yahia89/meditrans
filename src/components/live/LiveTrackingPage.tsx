@@ -35,6 +35,7 @@ export function LiveTrackingPage() {
     getRouteForTrip,
     getDriverRouteState,
     clearRerouteFlag,
+    routeFollowingStates,
   } = useLiveTracking();
   const { canManageTrips } = usePermissions();
   const [_, setPage] = useQueryState("page");
@@ -105,6 +106,7 @@ export function LiveTrackingPage() {
           getRoutePolyline={(tripId) =>
             getRouteForTrip(tripId)?.polyline ?? null
           }
+          routeFollowingStates={routeFollowingStates}
         />
 
         {/* Floating Stats Overlay */}

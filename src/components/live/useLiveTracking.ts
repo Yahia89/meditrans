@@ -74,10 +74,16 @@ export function useLiveTracking() {
   // Route cache: tripId -> CachedRoute
   const routeCacheRef = useRef<Map<string, CachedRoute>>(new Map());
 
-  // Route-following states: driverId -> state
+  // Route-following states: driverId -> state (mutable ref for performance)
   const routeFollowingRef = useRef<Map<string, DriverRouteFollowingState>>(
     new Map(),
   );
+
+  // Reactive copy of route following states - triggers re-renders in consumers
+  // We sync this with the ref when meaningful changes occur (segment, offRoute, path updates)
+  const [routeFollowingStates, setRouteFollowingStates] = useState<
+    Map<string, DriverRouteFollowingState>
+  >(new Map());
 
   // ============================================================================
   // DATA FETCHING
@@ -358,7 +364,8 @@ export function useLiveTracking() {
         }
 
         // Update route-following state
-        const followingState = routeFollowingRef.current.get(driverId) || {
+        const prevFollowingState = routeFollowingRef.current.get(driverId);
+        const followingState = prevFollowingState || {
           distanceAlongRoute: 0,
           totalDistance: route.totalDistance,
           segmentIndex: 0,
@@ -369,6 +376,12 @@ export function useLiveTracking() {
           completedDeviations: [],
           actualPathHistory: [],
         };
+
+        // Track if meaningful changes occurred that require UI update
+        const prevSegmentIndex = prevFollowingState?.segmentIndex ?? -1;
+        const prevIsOffRoute = prevFollowingState?.isOffRoute ?? false;
+        const prevPathLength =
+          prevFollowingState?.actualPathHistory?.length ?? 0;
 
         // Always update total distance from cached route
         followingState.totalDistance = route.totalDistance;
@@ -440,6 +453,22 @@ export function useLiveTracking() {
         followingState.isOffRoute = !onRoute;
 
         routeFollowingRef.current.set(driverId, followingState);
+
+        // Sync to reactive state if there are meaningful changes
+        // This triggers re-renders in LiveMap for polyline updates
+        const hasSegmentChange = projection.segmentIndex !== prevSegmentIndex;
+        const hasOffRouteChange = !onRoute !== prevIsOffRoute;
+        const hasPathGrowth =
+          (followingState.actualPathHistory?.length ?? 0) > prevPathLength + 5;
+
+        if (hasSegmentChange || hasOffRouteChange || hasPathGrowth) {
+          setRouteFollowingStates((prev) => {
+            const newMap = new Map(prev);
+            // Deep copy to ensure React detects the change
+            newMap.set(driverId, { ...followingState });
+            return newMap;
+          });
+        }
       }
 
       // Update position target
@@ -668,5 +697,7 @@ export function useLiveTracking() {
     getRouteForTrip,
     getDriverRouteState,
     clearRerouteFlag,
+    // Reactive route following states (for triggering UI updates)
+    routeFollowingStates,
   };
 }

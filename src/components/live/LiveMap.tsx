@@ -157,6 +157,8 @@ interface LiveMapProps {
   clearRerouteFlag?: (driverId: string) => void;
   /** Get cached route polyline for visualization */
   getRoutePolyline?: (tripId: string) => PolylinePoint[] | null;
+  /** Reactive route following states - triggers re-renders when updated */
+  routeFollowingStates?: Map<string, DriverRouteFollowingState>;
 }
 
 // ============================================================================
@@ -286,6 +288,7 @@ export function LiveMap({
   getDriverRouteState,
   clearRerouteFlag,
   getRoutePolyline,
+  routeFollowingStates,
 }: LiveMapProps) {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
@@ -582,6 +585,7 @@ export function LiveMap({
     getRoutePolyline,
     drivers,
     directionsResponse,
+    routeFollowingStates, // This triggers re-renders when route state updates
   ]);
 
   // 6. Handle rerouting when driver deviates
