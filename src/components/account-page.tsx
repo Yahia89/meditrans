@@ -106,7 +106,7 @@ export function AccountPage() {
 
       if (error) throw error;
       await refresh();
-      toast.success("Default timezone updated");
+      toast.success("Your timezone preference updated");
     } catch (error: any) {
       console.error("Error updating timezone:", error);
       toast.error(error.message || "Failed to update timezone");
@@ -314,11 +314,15 @@ export function AccountPage() {
                 <div className="space-y-4">
                   <div>
                     <Label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                      Personal Viewing Timezone
+                      Your Personal Timezone
                     </Label>
                     <p className="text-xs text-slate-500 mb-5 ml-1 leading-relaxed">
-                      Display all times and schedules in your local timezone.
-                      This overrides the organization default.
+                      This setting only affects{" "}
+                      <span className="font-semibold text-slate-700">
+                        your view
+                      </span>
+                      . Other team members will not be affected by this
+                      preference.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4">
                       <TimezoneSelector

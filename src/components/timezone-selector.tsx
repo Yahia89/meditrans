@@ -1,15 +1,22 @@
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Globe, Desktop } from "@phosphor-icons/react";
-import { useMemo } from "react";
+"use client";
+
+import { useState, useMemo } from "react";
+import { Check, ChevronsUpDown, Globe, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const US_TIMEZONES = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -26,7 +33,6 @@ interface TimezoneSelectorProps {
   onValueChange: (value: string) => void;
   className?: string;
   placeholder?: string;
-  side?: "top" | "bottom" | "left" | "right";
 }
 
 export function TimezoneSelector({
@@ -34,72 +40,113 @@ export function TimezoneSelector({
   onValueChange,
   className,
   placeholder = "Select Timezone",
-  side = "bottom",
 }: TimezoneSelectorProps) {
+  const [open, setOpen] = useState(false);
+
   const browserTimezone = useMemo(() => {
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone;
-    } catch (e) {
+    } catch {
       return null;
     }
   }, []);
 
-  const browserTimezoneLabel = useMemo(() => {
-    if (!browserTimezone) return null;
-    return `My Computer (${browserTimezone})`;
-  }, [browserTimezone]);
+  const selectedLabel = useMemo(() => {
+    if (!value) return null;
+
+    // Check browser timezone first
+    if (browserTimezone && value === browserTimezone) {
+      return `My Device (${browserTimezone})`;
+    }
+
+    // Check US timezones
+    const found = US_TIMEZONES.find((tz) => tz.value === value);
+    return found?.label || value;
+  }, [value, browserTimezone]);
 
   return (
-    <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger
-        className={cn(
-          "h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all",
-          className,
-        )}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            "h-11 justify-between rounded-xl bg-slate-50/50 border-slate-200 hover:bg-white transition-all font-normal",
+            className,
+          )}
+        >
+          <div className="flex items-center gap-2 text-left">
+            <Globe className="w-4 h-4 text-[#3D5A3D] shrink-0" />
+            <span className={cn(!value && "text-slate-500")}>
+              {selectedLabel || placeholder}
+            </span>
+          </div>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[280px] p-0 rounded-2xl border-slate-200 shadow-lg"
+        align="start"
       >
-        <div className="flex items-center gap-2">
-          <Globe weight="duotone" className="w-4 h-4 text-[#3D5A3D]" />
-          <SelectValue placeholder={placeholder} />
-        </div>
-      </SelectTrigger>
-      <SelectContent
-        side={side}
-        sideOffset={8}
-        className="rounded-2xl border-slate-200 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-1 min-w-[280px] max-h-[400px]"
-      >
-        {browserTimezone && (
-          <SelectGroup>
-            <SelectLabel className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50/30 rounded-lg mb-1">
-              Local Timezone
-            </SelectLabel>
-            <SelectItem
-              value={browserTimezone}
-              className="rounded-xl focus:bg-slate-50 focus:text-slate-900 cursor-pointer py-2.5"
-            >
-              <div className="flex items-center gap-2">
-                <Desktop
-                  weight="duotone"
-                  className="w-4 h-4 text-emerald-500"
-                />
-                <span className="font-medium text-slate-700">
-                  {browserTimezoneLabel}
-                </span>
-              </div>
-            </SelectItem>
-            <div className="h-px bg-slate-100 my-1 mx-1" />
-          </SelectGroup>
-        )}
+        <Command>
+          <CommandInput
+            placeholder="Search timezones..."
+            className="h-10 border-none focus:ring-0"
+          />
+          <CommandList className="max-h-[280px]">
+            <CommandEmpty>No timezone found.</CommandEmpty>
 
-        {US_TIMEZONES.map((tz) => (
-          <SelectItem
-            key={tz.value}
-            value={tz.value}
-            className="rounded-xl focus:bg-slate-50 focus:text-slate-900 cursor-pointer py-2.5"
-          >
-            <span className="font-medium text-slate-600">{tz.label}</span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+            {/* Local Timezone Group */}
+            {browserTimezone && (
+              <CommandGroup heading="Local Timezone">
+                <CommandItem
+                  value={browserTimezone}
+                  onSelect={() => {
+                    onValueChange(browserTimezone);
+                    setOpen(false);
+                  }}
+                  className="cursor-pointer rounded-lg py-2.5"
+                >
+                  <Monitor className="mr-2 h-4 w-4 text-[#65a30d]" />
+                  <span className="font-medium text-slate-700">
+                    My Device ({browserTimezone})
+                  </span>
+                  <Check
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      value === browserTimezone ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                </CommandItem>
+              </CommandGroup>
+            )}
+
+            {/* US Timezones Group */}
+            <CommandGroup heading="US Timezones">
+              {US_TIMEZONES.map((tz) => (
+                <CommandItem
+                  key={tz.value}
+                  value={tz.value}
+                  onSelect={() => {
+                    onValueChange(tz.value);
+                    setOpen(false);
+                  }}
+                  className="cursor-pointer rounded-lg py-2.5"
+                >
+                  <span className="font-medium text-slate-600">{tz.label}</span>
+                  <Check
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      value === tz.value ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
