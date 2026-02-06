@@ -31,6 +31,7 @@ import { QuickAddLegDialog } from "./QuickAddLegDialog";
 
 interface TripsSchedulerProps {
   onCreateClick?: () => void;
+  onDischargeClick?: () => void;
   onBulkImportClick?: () => void;
   onTripClick: (id: string) => void;
   patientId?: string;
@@ -85,6 +86,7 @@ function getMonthDates(date: Date): Date[] {
 
 export function TripsScheduler({
   onCreateClick,
+  onDischargeClick,
   onBulkImportClick,
   onTripClick,
   patientId,
@@ -317,6 +319,16 @@ export function TripsScheduler({
             >
               <CloudArrowUp className="w-4 h-4" weight="bold" />
               <span className="hidden sm:inline">Bulk Import</span>
+            </Button>
+          )}
+
+          {onDischargeClick && (
+            <Button
+              onClick={onDischargeClick}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm rounded-xl h-10 px-5 gap-2 font-semibold"
+            >
+              <Plus className="w-4 h-4" weight="bold" />
+              Discharge Trip
             </Button>
           )}
 

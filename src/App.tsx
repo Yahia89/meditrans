@@ -66,6 +66,7 @@ import { TripDetails } from "./components/trips/TripDetails";
 import { TripDialog } from "./components/trips/TripDialog";
 import { TripsScheduler } from "./components/trips/TripsScheduler";
 import { BulkImportDialog } from "./components/trips/BulkImportDialog";
+import { CreateDischargeDialog } from "./components/trips/CreateDischargeDialog";
 import { ClientCreditsPage } from "./components/client-credits-page";
 import { DriverHistoryPage } from "./components/driver-history-page";
 import { ErrorBoundary } from "./components/error-boundary";
@@ -412,6 +413,9 @@ function AppContent() {
               onCreateClick={
                 !isDriver ? () => setModalType("create") : undefined
               }
+              onDischargeClick={
+                !isDriver ? () => setModalType("discharge") : undefined
+              }
               onBulkImportClick={
                 !isDriver ? () => setShowBulkImport(true) : undefined
               }
@@ -543,6 +547,12 @@ function AppContent() {
               open={modalType === "edit"}
               tripId={tripId || undefined}
               onOpenChange={(open) => setModalType(open ? "edit" : null)}
+              onSuccess={() => setModalType(null)}
+            />
+            <CreateDischargeDialog
+              key="discharge-dialog"
+              open={modalType === "discharge"}
+              onOpenChange={(open) => setModalType(open ? "discharge" : null)}
               onSuccess={() => setModalType(null)}
             />
           </>

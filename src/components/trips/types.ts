@@ -41,6 +41,20 @@ export interface Trip {
   total_waiting_minutes?: number | null;
   waiting_start_time?: string | null;
   eta_sms_sent_at?: string | null;
+  requester_first_name?: string | null;
+  requester_last_name?: string | null;
+  requester_title?: string | null;
+  entry_date?: string | null;
+  billing_details?: {
+    base_fee: number;
+    mileage_rate: number;
+    mileage_cost: number;
+    deadhead_rate: number;
+    deadhead_cost: number;
+    wait_time_cost: number;
+    total_cost: number;
+    service_type: string;
+  } | null;
   patient?: {
     id: string;
     full_name: string;

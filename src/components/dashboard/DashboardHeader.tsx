@@ -36,13 +36,22 @@ export function DashboardHeader() {
       </div>
 
       {canCreateTrip && (
-        <button
-          className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#2E4A2E]"
-          onClick={() => setModalType("create")}
-        >
-          <Plus size={18} weight="bold" />
-          Create New Trip
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700"
+            onClick={() => setModalType("discharge")}
+          >
+            <Plus size={18} weight="bold" />
+            Create Discharge Trip
+          </button>
+          <button
+            className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#2E4A2E]"
+            onClick={() => setModalType("create")}
+          >
+            <Plus size={18} weight="bold" />
+            Create New Trip
+          </button>
+        </div>
       )}
     </div>
   );

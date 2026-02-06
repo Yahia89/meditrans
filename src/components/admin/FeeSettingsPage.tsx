@@ -21,9 +21,9 @@ import {
   Loader2,
   Settings,
   ShieldCheck,
-  ChevronRight,
   User,
   Clock,
+  Zap,
 } from "lucide-react";
 import {
   Card,
@@ -46,8 +46,12 @@ import {
 const feeSchema = z.object({
   base_fee: z.number().min(0, "Must be at least 0"),
   per_mile_fee: z.number().min(0, "Must be at least 0"),
-  per_minute_wait_fee: z.number().min(0, "Must be at least 0"),
-  discharge_fee: z.number().min(0, "Must be at least 0"),
+  deadhead_per_mile_ambulatory: z.number().min(0, "Must be at least 0"),
+  wheelchair_base_fee: z.number().min(0, "Must be at least 0"),
+  wheelchair_per_mile_fee: z.number().min(0, "Must be at least 0"),
+  deadhead_per_mile_wheelchair: z.number().min(0, "Must be at least 0"),
+  wait_time_free_minutes: z.number().min(0, "Must be at least 0"),
+  wait_time_hourly_rate: z.number().min(0, "Must be at least 0"),
 });
 
 type FeeFormData = z.infer<typeof feeSchema>;
@@ -67,7 +71,6 @@ export function FeeSettingsPage() {
     queryKey: ["organization_fees", currentOrganization?.id],
     queryFn: async () => {
       if (!currentOrganization?.id) return null;
-      // Joining with user_profiles to get the name of the person who last updated
       const { data, error } = await supabase
         .from("organization_fees")
         .select(
@@ -95,20 +98,30 @@ export function FeeSettingsPage() {
   } = useForm<FeeFormData>({
     resolver: zodResolver(feeSchema),
     defaultValues: {
-      base_fee: 0,
-      per_mile_fee: 0,
-      per_minute_wait_fee: 0,
-      discharge_fee: 0,
+      base_fee: 26,
+      per_mile_fee: 2,
+      deadhead_per_mile_ambulatory: 1,
+      wheelchair_base_fee: 40,
+      wheelchair_per_mile_fee: 3,
+      deadhead_per_mile_wheelchair: 1.5,
+      wait_time_free_minutes: 45,
+      wait_time_hourly_rate: 55,
     },
   });
 
   React.useEffect(() => {
     if (fees) {
       reset({
-        base_fee: Number(fees.base_fee) || 0,
-        per_mile_fee: Number(fees.per_mile_fee) || 0,
-        per_minute_wait_fee: Number(fees.per_minute_wait_fee) || 0,
-        discharge_fee: Number(fees.discharge_fee) || 0,
+        base_fee: Number(fees.base_fee) || 26,
+        per_mile_fee: Number(fees.per_mile_fee) || 2,
+        deadhead_per_mile_ambulatory:
+          Number(fees.deadhead_per_mile_ambulatory) || 1,
+        wheelchair_base_fee: Number(fees.wheelchair_base_fee) || 40,
+        wheelchair_per_mile_fee: Number(fees.wheelchair_per_mile_fee) || 3,
+        deadhead_per_mile_wheelchair:
+          Number(fees.deadhead_per_mile_wheelchair) || 1.5,
+        wait_time_free_minutes: Number(fees.wait_time_free_minutes) || 45,
+        wait_time_hourly_rate: Number(fees.wait_time_hourly_rate) || 55,
       });
     }
   }, [fees, reset]);
@@ -157,79 +170,66 @@ export function FeeSettingsPage() {
 
   // Preview Calculation
   const previewDistance = 10;
-  const previewWait = 5;
-  const standardCost =
-    (watchedValues.base_fee || 0) +
-    previewDistance * (watchedValues.per_mile_fee || 0) +
-    previewWait * (watchedValues.per_minute_wait_fee || 0);
+  const previewWaitMinutes = 60;
+
+  const calculateEstimate = (base: number, perMile: number) => {
+    const waitCharge =
+      Math.max(
+        0,
+        (previewWaitMinutes - (watchedValues.wait_time_free_minutes || 45)) /
+          60,
+      ) * (watchedValues.wait_time_hourly_rate || 55);
+    return (base || 0) + previewDistance * (perMile || 0) + waitCharge;
+  };
+
+  const ambulatoryEstimate = calculateEstimate(
+    watchedValues.base_fee,
+    watchedValues.per_mile_fee,
+  );
+  const wheelchairEstimate = calculateEstimate(
+    watchedValues.wheelchair_base_fee,
+    watchedValues.wheelchair_per_mile_fee,
+  );
 
   if (!currentOrganization) return null;
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px] space-y-4 animate-in fade-in duration-500">
-        <div className="relative">
-          <Loader2 className="w-12 h-12 animate-spin text-emerald-500" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Settings className="w-5 h-5 text-emerald-600 animate-pulse" />
-          </div>
-        </div>
-        <div className="text-center space-y-1">
-          <p className="text-lg font-bold text-slate-900">
-            Synchronizing Fee Schedule
-          </p>
-          <p className="text-sm text-slate-500">
-            Connecting to secure billing infrastructure...
-          </p>
-        </div>
+        <Loader2 className="w-12 h-12 animate-spin text-lime-600" />
+        <p className="text-lg font-bold text-slate-900">
+          Synchronizing Fee Schedule
+        </p>
       </div>
     );
   }
 
   if (queryError) {
     return (
-      <div className="max-w-2xl mx-auto mt-20 p-8 bg-red-50 rounded-2xl border border-red-100 text-center space-y-4 shadow-sm animate-in zoom-in-95 duration-300">
-        <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Info className="w-8 h-8" />
-        </div>
+      <div className="max-w-2xl mx-auto mt-20 p-8 bg-red-50 rounded-[1.5rem] border border-red-100 text-center space-y-4 shadow-sm animate-in zoom-in-95 duration-300">
         <h2 className="text-2xl font-bold text-red-900">
           Database Connection Error
         </h2>
         <p className="text-red-700 leading-relaxed">
-          We are unable to reach the fee schedule table. This usually indicates
-          that the database migration needs to be applied to your project.
+          We are unable to reach the fee schedule table. Please verify
+          migrations.
         </p>
-        <div className="pt-4 flex justify-center gap-3">
-          <Button
-            onClick={() => window.location.reload()}
-            variant="outline"
-            className="border-red-200 hover:bg-red-100 text-red-700"
-          >
-            Retry Connection
-          </Button>
-          <Button className="bg-red-600 hover:bg-red-700 text-white" asChild>
-            <a
-              href="https://supabase.com/dashboard/project/devszzjyobijwldayicb/sql"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open SQL Editor
-            </a>
-          </Button>
-        </div>
-        <p className="text-xs text-red-400 font-mono mt-4">
-          Error: {queryError.message}
-        </p>
+        <Button
+          onClick={() => window.location.reload()}
+          variant="outline"
+          className="rounded-xl border-red-200 text-red-700 hover:bg-red-100"
+        >
+          Retry Connection
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-100/50 shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-lime-50 text-lime-700 rounded-full text-[10px] font-bold uppercase tracking-wider border border-lime-100/50 shadow-sm">
             <ShieldCheck className="w-3.5 h-3.5" />
             Administrative Settings
           </div>
@@ -243,24 +243,21 @@ export function FeeSettingsPage() {
         </div>
         <div className="flex flex-col items-end gap-3">
           {fees?.updated_at && (
-            <div className="text-right space-y-1 mb-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                <User className="w-3 h-3 text-emerald-600" />
-                Last Modified By
-              </div>
-              <div className="text-sm font-bold text-slate-900">
+            <div className="text-right space-y-0.5 mb-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-end gap-1.5 line-clamp-1">
+                <User className="w-3 h-3" />
                 {fees.updated_by?.full_name || "System Administrator"}
               </div>
-              <div className="flex items-center justify-end gap-1.5 text-[10px] text-slate-400 font-medium">
+              <div className="text-[10px] text-slate-400 font-medium flex items-center justify-end gap-1.5">
                 <Clock className="w-3 h-3" />
-                {format(new Date(fees.updated_at), "MMM d, yyyy 'at' h:mm a")}
+                {format(new Date(fees.updated_at), "MMM d, h:mm a")}
               </div>
             </div>
           )}
           <Button
             onClick={handleSubmit(onSubmitHandler)}
             disabled={!isDirty || updateMutation.isPending}
-            className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white gap-2 px-8 h-14 text-sm font-bold rounded-2xl shadow-xl shadow-slate-200 transition-all hover:-translate-y-0.5"
+            className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white gap-2 px-8 h-12 text-sm font-bold rounded-[1.2rem] shadow-lg transition-all hover:scale-[1.02]"
           >
             {updateMutation.isPending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -272,192 +269,215 @@ export function FeeSettingsPage() {
         </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit(onSubmitHandler)}
-        className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-8">
-          <Card className="border-none shadow-2xl shadow-slate-200/60 bg-white rounded-[2rem] overflow-hidden group">
+          {/* Category: Ambulatory */}
+          <Card className="border-none shadow-xl shadow-slate-200/60 bg-white rounded-[2rem] overflow-hidden">
             <CardHeader className="bg-slate-50/50 p-8 border-b border-slate-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-emerald-500 transition-colors">
-                  <Settings className="w-5 h-5" />
+              <CardTitle className="text-xl font-bold text-slate-900">
+                Ambulatory (Common Carrier)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 divide-y divide-slate-100">
+              <div className="p-8 flex items-center justify-between gap-6">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-lg font-bold text-slate-800">
+                    Base Pickup Fee
+                  </Label>
+                  <p className="text-sm text-slate-400 italic">
+                    Initial charge for standard patient transport.
+                  </p>
                 </div>
-                <div>
-                  <CardTitle className="text-xl font-bold text-slate-900">
-                    Variable Rate Components
-                  </CardTitle>
-                  <CardDescription className="text-slate-500 font-medium">
-                    Primary factors for service pricing.
-                  </CardDescription>
+                <div className="w-40 relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                    $
+                  </span>
+                  <Input
+                    {...register("base_fee", { valueAsNumber: true })}
+                    type="number"
+                    step="0.01"
+                    className="pl-8 h-12 text-xl bg-slate-50 border-transparent focus:bg-white rounded-xl font-mono font-bold"
+                  />
                 </div>
               </div>
+              <div className="p-8 flex items-center justify-between gap-6">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-lg font-bold text-slate-800">
+                    Mileage Rate
+                  </Label>
+                  <p className="text-sm text-slate-400 italic">
+                    Loaded rate per mile driven.
+                  </p>
+                </div>
+                <div className="w-40 relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                    $
+                  </span>
+                  <Input
+                    {...register("per_mile_fee", { valueAsNumber: true })}
+                    type="number"
+                    step="0.01"
+                    className="pl-8 h-12 text-xl bg-slate-50 border-transparent focus:bg-white rounded-xl font-mono font-bold"
+                  />
+                </div>
+              </div>
+              <div className="p-8 flex items-center justify-between gap-6">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-lg font-bold text-slate-800">
+                    Deadhead Rate
+                  </Label>
+                  <p className="text-sm text-slate-400 italic">
+                    Rate per mile for empty mobilization.
+                  </p>
+                </div>
+                <div className="w-40 relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                    $
+                  </span>
+                  <Input
+                    {...register("deadhead_per_mile_ambulatory", {
+                      valueAsNumber: true,
+                    })}
+                    type="number"
+                    step="0.01"
+                    className="pl-8 h-12 text-xl bg-slate-50 border-transparent focus:bg-white rounded-xl font-mono font-bold"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Category: Wheelchair */}
+          <Card className="border-none shadow-xl shadow-slate-200/60 bg-white rounded-[2rem] overflow-hidden">
+            <CardHeader className="bg-slate-50/50 p-8 border-b border-slate-100">
+              <CardTitle className="text-xl font-bold text-slate-900">
+                Wheelchair & Specialized Van
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-slate-100">
-                {/* Base Fee */}
-                <div className="p-8 hover:bg-slate-50/50 transition-colors">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                          <Truck className="w-4 h-4" />
-                        </div>
-                        <Label className="text-lg font-bold text-slate-800 whitespace-nowrap">
-                          Base Pickup Fee
-                        </Label>
-                        <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase shrink-0">
-                          Standard
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-400 leading-relaxed max-w-lg italic">
-                        The initial mobilization fee applied at trip
-                        commencement.
-                      </p>
-                    </div>
-                    <div className="w-full md:w-48 group/input">
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold group-focus-within/input:text-emerald-500 pointer-events-none">
-                          $
-                        </span>
-                        <Input
-                          {...register("base_fee", { valueAsNumber: true })}
-                          type="number"
-                          step="0.01"
-                          className="pl-8 h-14 text-xl bg-slate-100/50 border-transparent focus:border-emerald-500/30 focus:bg-white transition-all font-mono font-bold text-slate-900 rounded-xl"
-                        />
-                      </div>
-                      {errors.base_fee && (
-                        <p className="text-[10px] text-red-500 font-bold mt-1.5 px-1 animate-pulse">
-                          {errors.base_fee.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+            <CardContent className="p-0 divide-y divide-slate-100">
+              <div className="p-8 flex items-center justify-between gap-6">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-lg font-bold text-slate-800">
+                    Wheelchair Pickup
+                  </Label>
+                  <p className="text-sm text-slate-400 italic">
+                    Base fee for lift or ramp equipped vehicles.
+                  </p>
                 </div>
-
-                {/* Per Mile Fee */}
-                <div className="p-8 hover:bg-slate-50/50 transition-colors">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                          <MapPin className="w-4 h-4" />
-                        </div>
-                        <Label className="text-lg font-bold text-slate-800 whitespace-nowrap">
-                          Mileage Rate (Per Mile)
-                        </Label>
-                        <span className="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full uppercase shrink-0">
-                          Dynamic
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-400 leading-relaxed max-w-lg italic">
-                        Cost applied per mile driven with the client onboard.
-                      </p>
-                    </div>
-                    <div className="w-full md:w-48 group/input">
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold group-focus-within/input:text-emerald-500 pointer-events-none">
-                          $
-                        </span>
-                        <Input
-                          {...register("per_mile_fee", { valueAsNumber: true })}
-                          type="number"
-                          step="0.01"
-                          className="pl-8 h-14 text-xl bg-slate-100/50 border-transparent focus:border-emerald-500/30 focus:bg-white transition-all font-mono font-bold text-slate-900 rounded-xl"
-                        />
-                      </div>
-                      {errors.per_mile_fee && (
-                        <p className="text-[10px] text-red-500 font-bold mt-1.5 px-1 animate-pulse">
-                          {errors.per_mile_fee.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                <div className="w-40 relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                    $
+                  </span>
+                  <Input
+                    {...register("wheelchair_base_fee", {
+                      valueAsNumber: true,
+                    })}
+                    type="number"
+                    step="0.01"
+                    className="pl-8 h-12 text-xl bg-slate-50 border-transparent focus:bg-white rounded-xl font-mono font-bold"
+                  />
                 </div>
-
-                {/* Per Min Wait */}
-                <div className="p-8 hover:bg-slate-50/50 transition-colors">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-                          <Timer className="w-4 h-4" />
-                        </div>
-                        <Label className="text-lg font-bold text-slate-800 whitespace-nowrap">
-                          Wait Time Rate (Per Minute)
-                        </Label>
-                        <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase shrink-0">
-                          Variable
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-400 leading-relaxed max-w-lg italic">
-                        Charged for inactive wait time during appointments.
-                      </p>
-                    </div>
-                    <div className="w-full md:w-48 group/input">
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold group-focus-within/input:text-emerald-500 pointer-events-none">
-                          $
-                        </span>
-                        <Input
-                          {...register("per_minute_wait_fee", {
-                            valueAsNumber: true,
-                          })}
-                          type="number"
-                          step="0.01"
-                          className="pl-8 h-14 text-xl bg-slate-100/50 border-transparent focus:border-emerald-500/30 focus:bg-white transition-all font-mono font-bold text-slate-900 rounded-xl"
-                        />
-                      </div>
-                      {errors.per_minute_wait_fee && (
-                        <p className="text-[10px] text-red-500 font-bold mt-1.5 px-1 animate-pulse">
-                          {errors.per_minute_wait_fee.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+              </div>
+              <div className="p-8 flex items-center justify-between gap-6">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-lg font-bold text-slate-800">
+                    Wheelchair Per Mile
+                  </Label>
+                  <p className="text-sm text-slate-400 italic">
+                    Premium mileage rate for specialized transport.
+                  </p>
                 </div>
+                <div className="w-40 relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                    $
+                  </span>
+                  <Input
+                    {...register("wheelchair_per_mile_fee", {
+                      valueAsNumber: true,
+                    })}
+                    type="number"
+                    step="0.01"
+                    className="pl-8 h-12 text-xl bg-slate-50 border-transparent focus:bg-white rounded-xl font-mono font-bold"
+                  />
+                </div>
+              </div>
+              <div className="p-8 flex items-center justify-between gap-6">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-lg font-bold text-slate-800">
+                    Deadhead (Wheelchair)
+                  </Label>
+                  <p className="text-sm text-slate-400 italic">
+                    Empty mile cost for larger vans.
+                  </p>
+                </div>
+                <div className="w-40 relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                    $
+                  </span>
+                  <Input
+                    {...register("deadhead_per_mile_wheelchair", {
+                      valueAsNumber: true,
+                    })}
+                    type="number"
+                    step="0.01"
+                    className="pl-8 h-12 text-xl bg-slate-50 border-transparent focus:bg-white rounded-xl font-mono font-bold"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                {/* Discharge Fee */}
-                <div className="p-8 hover:bg-slate-50/50 transition-colors">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-                          <Info className="w-4 h-4" />
-                        </div>
-                        <Label className="text-lg font-bold text-slate-800 whitespace-nowrap">
-                          Discharge Flat Rate
-                        </Label>
-                        <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full uppercase shrink-0">
-                          Facility
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-400 leading-relaxed max-w-lg italic">
-                        Fixed rate for facility discharge hospitalizations.
-                      </p>
-                    </div>
-                    <div className="w-full md:w-48 group/input">
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold group-focus-within/input:text-emerald-500 pointer-events-none">
-                          $
-                        </span>
-                        <Input
-                          {...register("discharge_fee", {
-                            valueAsNumber: true,
-                          })}
-                          type="number"
-                          step="0.01"
-                          className="pl-8 h-14 text-xl bg-slate-100/50 border-transparent focus:border-emerald-500/30 focus:bg-white transition-all font-mono font-bold text-slate-900 rounded-xl"
-                        />
-                      </div>
-                      {errors.discharge_fee && (
-                        <p className="text-[10px] text-red-500 font-bold mt-1.5 px-1 animate-pulse">
-                          {errors.discharge_fee.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+          {/* Category: Wait Time */}
+          <Card className="border-none shadow-xl shadow-slate-200/60 bg-white rounded-[2rem] overflow-hidden">
+            <CardHeader className="bg-slate-50/50 p-8 border-b border-slate-100">
+              <CardTitle className="text-xl font-bold text-slate-900">
+                Wait Time & Hourly Policy
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 divide-y divide-slate-100">
+              <div className="p-8 flex items-center justify-between gap-6">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-lg font-bold text-slate-800">
+                    Free Wait Allowance (Time)
+                  </Label>
+                  <p className="text-sm text-slate-400 italic">
+                    Minutes included before hourly billing begins.
+                  </p>
+                </div>
+                <div className="w-40 relative">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[10px] uppercase">
+                    min
+                  </span>
+                  <Input
+                    {...register("wait_time_free_minutes", {
+                      valueAsNumber: true,
+                    })}
+                    type="number"
+                    className="pr-12 h-12 text-xl bg-slate-50 border-transparent focus:bg-white rounded-xl font-mono font-bold"
+                  />
+                </div>
+              </div>
+              <div className="p-8 flex items-center justify-between gap-6">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-lg font-bold text-slate-800">
+                    Hourly Wait Rate
+                  </Label>
+                  <p className="text-sm text-slate-400 italic">
+                    Rate per hour after free allowance.
+                  </p>
+                </div>
+                <div className="w-40 relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                    $
+                  </span>
+                  <Input
+                    {...register("wait_time_hourly_rate", {
+                      valueAsNumber: true,
+                    })}
+                    type="number"
+                    step="0.01"
+                    className="pl-8 h-12 text-xl bg-slate-50 border-transparent focus:bg-white rounded-xl font-mono font-bold"
+                  />
                 </div>
               </div>
             </CardContent>
@@ -465,122 +485,86 @@ export function FeeSettingsPage() {
         </div>
 
         <div className="lg:col-span-4 space-y-6">
-          <Card className="border-none shadow-2xl shadow-emerald-900/10 bg-[#0A2619] text-white rounded-[2rem] overflow-hidden">
+          <Card className="border-none shadow-2xl shadow-emerald-900/10 bg-[#0A2619] text-white rounded-[2rem] overflow-hidden sticky top-8">
             <CardHeader className="p-8 pb-4">
-              <div className="flex items-center gap-2 text-emerald-400 mb-1">
+              <div className="flex items-center gap-2 text-lime-400 mb-1">
                 <Calculator className="w-5 h-5" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
-                  Calculator
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-40">
+                  Forecast Engine
                 </span>
               </div>
-              <CardTitle className="text-2xl font-bold tracking-tight leading-7">
-                Estimative <br /> Billing Forecast
+              <CardTitle className="text-2xl font-bold tracking-tight">
+                Billing Forecast
               </CardTitle>
+              <p className="text-xs text-white/40">10 mi trip • 1 hr wait</p>
             </CardHeader>
             <CardContent className="p-8 pt-4 space-y-8">
-              <div className="grid grid-cols-2 gap-px bg-white/5 rounded-2xl overflow-hidden border border-white/5">
-                <div className="p-4 bg-white/[0.02]">
-                  <div className="text-[10px] text-emerald-400/60 uppercase font-bold mb-1">
-                    Distance
-                  </div>
-                  <div className="text-xl font-bold font-mono tracking-tight">
-                    {previewDistance} mi
-                  </div>
-                </div>
-                <div className="p-4 bg-white/[0.02]">
-                  <div className="text-[10px] text-emerald-400/60 uppercase font-bold mb-1">
-                    Wait Time
-                  </div>
-                  <div className="text-xl font-bold font-mono tracking-tight">
-                    {previewWait} min
+              <div className="space-y-8">
+                <div className="group flex flex-col gap-1 items-end">
+                  <span className="text-5xl font-black text-white font-mono drop-shadow-lg">
+                    ${ambulatoryEstimate.toFixed(2)}
+                  </span>
+                  <div className="text-[10px] font-bold text-lime-500 uppercase tracking-widest opacity-60">
+                    Ambulatory (Common Carrier)
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-6">
-                <div className="flex flex-col gap-1 items-end group">
-                  <span className="text-xs text-emerald-100/40 uppercase font-bold tracking-widest">
-                    Standard Trip Total
-                  </span>
-                  <span className="text-5xl font-black text-white font-mono drop-shadow-lg scale-100 group-hover:scale-110 transition-transform origin-right">
-                    ${standardCost.toFixed(2)}
-                  </span>
-                </div>
                 <div className="h-px bg-white/5" />
-                <div className="flex justify-between items-center group">
-                  <span className="text-xs text-white/50 font-bold uppercase tracking-widest">
-                    Discharge Flat
+
+                <div className="group flex flex-col gap-1 items-end">
+                  <span className="text-5xl font-black text-emerald-200 font-mono drop-shadow-lg">
+                    ${wheelchairEstimate.toFixed(2)}
                   </span>
-                  <span className="text-2xl font-bold text-emerald-200 font-mono group-hover:translate-x-[-4px] transition-transform">
-                    ${(watchedValues.discharge_fee || 0).toFixed(2)}
-                  </span>
+                  <div className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest opacity-60">
+                    Foldable Wheelchair/Wheel Chair/Ramp Van
+                  </div>
                 </div>
               </div>
 
               <div className="p-5 bg-white/[0.03] rounded-[1.5rem] flex gap-3 items-start border border-white/[0.02]">
-                <Info className="w-5 h-5 text-emerald-400/60 shrink-0 mt-0.5" />
-                <p className="text-[11px] text-emerald-100/40 leading-relaxed font-medium">
-                  This simulation uses current rate configurations. Actual
-                  invoice totals may fluctuate based on dynamic routing
-                  variables and facility requirements.
+                <Zap className="w-5 h-5 text-lime-400/40 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-white/30 leading-relaxed">
+                  Estimates assume 1 hour of wait time (applying the{" "}
+                  {watchedValues.wait_time_free_minutes}m allowance) and 10
+                  miles.
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-xl shadow-slate-200/50 bg-slate-50 rounded-[1.5rem]">
-            <CardHeader className="p-6 pb-2">
-              <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Integration Log
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-              <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                Adjustments to the fee schedule are recorded in the audit trail
-                and applied globally to all prospective trip quote requests.
-              </p>
-              <div className="mt-4 flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                  <ChevronRight className="w-3 h-3 text-emerald-500" />
-                  Real-time propagation enabled
-                </div>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                  <ChevronRight className="w-3 h-3 text-emerald-500" />
-                  Estimate engine sync active
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="p-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] space-y-3">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Infrastructure
+            </h4>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+              Rate adjustments are propagated globally. Trip quotes will sync
+              with these parameters in real-time.
+            </p>
+          </div>
         </div>
-      </form>
+      </div>
 
-      {/* Confirmation Dialog */}
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-black text-slate-900">
-              Confirm Fee Schedule Update?
+        <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-10">
+          <AlertDialogHeader className="space-y-4">
+            <AlertDialogTitle className="text-3xl font-black text-slate-900 leading-tight">
+              Apply Changes?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-500 text-base leading-relaxed">
-              You are about to modify the core billing parameters for{" "}
-              <strong>{currentOrganization.name}</strong>. These changes will
-              take effect immediately for all new trip estimates and invoices.
+            <AlertDialogDescription className="text-slate-500 text-lg leading-relaxed">
+              You are updating the financial model for{" "}
+              <strong>{currentOrganization.name}</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-3">
-            <AlertDialogCancel className="rounded-xl border-slate-200 font-bold hover:bg-slate-50">
-              Review Changes
+          <AlertDialogFooter className="mt-8 gap-4">
+            <AlertDialogCancel className="h-12 rounded-2xl border-slate-200 font-bold px-8">
+              Review
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmSave}
-              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 font-bold px-8"
-              disabled={updateMutation.isPending}
+              className="h-12 rounded-2xl bg-[#3D5A3D] hover:bg-[#2E4A2E] font-bold px-10"
             >
-              {updateMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : null}
-              Confirm & Apply
+              Update Rates
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

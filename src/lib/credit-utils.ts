@@ -57,8 +57,12 @@ export function calculateCreditStatus(
 export interface OrganizationFees {
   base_fee: number;
   per_mile_fee: number;
-  per_minute_wait_fee: number;
-  discharge_fee: number;
+  wheelchair_base_fee: number;
+  wheelchair_per_mile_fee: number;
+  deadhead_per_mile_ambulatory: number;
+  deadhead_per_mile_wheelchair: number;
+  wait_time_free_minutes: number;
+  wait_time_hourly_rate: number;
 }
 
 export function calculateTripCost(
@@ -67,20 +71,32 @@ export function calculateTripCost(
 ): number {
   if (!fees) return ESTIMATED_COST_PER_TRIP;
 
-  // Discharge trips use flat fee
   const tripType = (trip.trip_type || "").toLowerCase();
-  if (tripType.includes("discharge")) {
-    return Number(fees.discharge_fee) || 0;
-  }
+  const isWheelchair =
+    tripType.includes("wheelchair") ||
+    tripType.includes("ramp") ||
+    tripType.includes("stretch");
 
-  const base = Number(fees.base_fee) || 0;
+  const base = isWheelchair
+    ? Number(fees.wheelchair_base_fee) || 0
+    : Number(fees.base_fee) || 0;
+
+  const perMileRate = isWheelchair
+    ? Number(fees.wheelchair_per_mile_fee) || 0
+    : Number(fees.per_mile_fee) || 0;
+
   // Use actual distance if available, otherwise scheduled distance, otherwise 0
   const distance =
     Number(trip.actual_distance_miles) || Number(trip.distance_miles) || 0;
-  const mileageCost = distance * (Number(fees.per_mile_fee) || 0);
+  const mileageCost = distance * perMileRate;
 
+  // Wait time calculation (Wait Time Hourly Rate / 60 * (total_wait - free_minutes))
   const waitMinutes = Number(trip.total_waiting_minutes) || 0;
-  const waitCost = waitMinutes * (Number(fees.per_minute_wait_fee) || 0);
+  const freeMinutes = Number(fees.wait_time_free_minutes) || 45;
+  const hourlyRate = Number(fees.wait_time_hourly_rate) || 55;
+
+  const billableWait = Math.max(0, waitMinutes - freeMinutes);
+  const waitCost = (billableWait / 60) * hourlyRate;
 
   return base + mileageCost + waitCost;
 }

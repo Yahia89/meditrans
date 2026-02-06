@@ -811,7 +811,7 @@ export function CreateTripForm({
 
                   let statusText = "";
                   if (hasNoCredit) {
-                    statusText = "- NO CREDITS ASSIGNED";
+                    statusText = "- NO CREDITS ASSIGNED (Discharge)";
                   } else if (isLow) {
                     statusText = "- INSUFFICIENT CREDIT";
                   }
