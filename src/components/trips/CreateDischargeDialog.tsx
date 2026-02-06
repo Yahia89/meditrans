@@ -20,7 +20,6 @@ import {
   User,
   MapPin,
   DownloadSimple,
-  Plus,
   ArrowRight,
   ShieldCheck,
   IdentificationBadge,
@@ -82,9 +81,9 @@ export function CreateDischargeDialog({
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState<"details" | "pricing" | "summary">(
-    "details",
-  );
+  const [step, setStep] = useState<
+    "details" | "pricing" | "review" | "success"
+  >("details");
 
   // Fetch Organization Fees for Calculation
   const { data: fees } = useQuery({
@@ -110,17 +109,8 @@ export function CreateDischargeDialog({
       if (!currentOrganization?.id) return [];
       const { data, error } = await supabase
         .from("drivers")
-        .select(
-          `
-          id,
-          first_name,
-          last_name,
-          organizations!inner (
-            id
-          )
-        `,
-        )
-        .eq("organizations.id", currentOrganization.id);
+        .select("id, first_name, last_name")
+        .eq("org_id", currentOrganization.id);
       if (error) throw error;
       return data;
     },
@@ -267,7 +257,9 @@ export function CreateDischargeDialog({
 
       toast.success("Discharge trip created successfully");
       queryClient.invalidateQueries({ queryKey: ["trips"] });
-      setStep("summary");
+      toast.success("Discharge trip created successfully");
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      setStep("success");
       onSuccess?.();
     } catch (err: any) {
       toast.error(err.message || "Failed to create discharge trip");
@@ -400,7 +392,7 @@ export function CreateDischargeDialog({
                   "w-10 h-1.5 rounded-full transition-all duration-500",
                   (step === "details" && i === 1) ||
                     (step === "pricing" && i === 2) ||
-                    (step === "summary" && i === 3)
+                    ((step === "review" || step === "success") && i === 3)
                     ? "bg-[#3D5A3D] w-16"
                     : "bg-slate-200",
                 )}
@@ -874,7 +866,82 @@ export function CreateDischargeDialog({
               </div>
             )}
 
-            {step === "summary" && (
+            {step === "review" && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-black text-slate-900">
+                    Review & Authorize
+                  </h3>
+                  <p className="text-slate-500">
+                    Verify trip details and download the discharge summary
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Trip Summary Card */}
+                  <Card className="p-6 space-y-4 border-slate-200 shadow-sm bg-slate-50/50">
+                    <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                      <Receipt className="w-5 h-5 text-[#3D5A3D]" />
+                      Billing Summary
+                    </h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between p-3 bg-white rounded-lg border border-slate-100">
+                        <span className="font-medium text-slate-600">
+                          Base Fee
+                        </span>
+                        <span className="font-bold text-slate-900">
+                          ${billingBreakdown?.baseFee.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between p-3 bg-white rounded-lg border border-slate-100">
+                        <span className="font-medium text-slate-600">
+                          Mileage ({formData.distanceMiles} mi)
+                        </span>
+                        <span className="font-bold text-slate-900">
+                          ${billingBreakdown?.mileageCost.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between p-3 bg-white rounded-lg border border-slate-100">
+                        <span className="font-medium text-slate-600">
+                          Deadhead ({formData.deadheadMiles} mi)
+                        </span>
+                        <span className="font-bold text-slate-900">
+                          ${billingBreakdown?.deadheadCost.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-2">
+                        <span className="font-black text-slate-900 text-lg">
+                          Total
+                        </span>
+                        <span className="font-black text-[#3D5A3D] text-lg">
+                          ${billingBreakdown?.total.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Actions Card */}
+                  <Card className="p-6 space-y-6 border-slate-200 shadow-sm bg-white flex flex-col justify-center">
+                    <div className="space-y-4">
+                      <Button
+                        onClick={generatePDF}
+                        variant="outline"
+                        className="w-full h-14 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 gap-2 font-bold shadow-sm"
+                      >
+                        <DownloadSimple size={20} weight="bold" />
+                        Download Discharge PDF
+                      </Button>
+                      <div className="text-center text-xs text-slate-400 font-medium px-4">
+                        Please download the PDF for your records before
+                        authorizing the trip.
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {step === "success" && (
               <div className="space-y-8 animate-in zoom-in-95 duration-500 text-center py-10">
                 <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Check size={48} weight="bold" />
@@ -944,16 +1011,37 @@ export function CreateDischargeDialog({
                 Back
               </Button>
               <Button
+                onClick={() => setStep("review")}
+                className="flex-1 h-14 bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white rounded-2xl text-xl font-black gap-3 shadow-xl transition-all"
+              >
+                Review & Authorize
+                <ArrowRight size={24} weight="bold" />
+              </Button>
+            </div>
+          )}
+
+          {step === "review" && (
+            <div className="flex gap-4 w-full">
+              <Button
+                variant="outline"
+                onClick={() => setStep("pricing")}
+                className="h-14 px-8 rounded-2xl font-bold text-slate-600"
+              >
+                Back
+              </Button>
+              <Button
                 onClick={handleCreateTrip}
                 disabled={isLoading}
                 className="flex-1 h-14 bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white rounded-2xl text-xl font-black gap-3 shadow-xl transition-all"
               >
                 {isLoading ? (
-                  <Plus size={24} className="animate-spin" />
+                  "Authorizing..."
                 ) : (
-                  <ShieldCheck size={28} weight="fill" />
+                  <>
+                    Authorize Trip
+                    <ShieldCheck size={24} weight="bold" />
+                  </>
                 )}
-                Authorize & Finalize Trip
               </Button>
             </div>
           )}

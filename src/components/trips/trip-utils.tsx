@@ -159,7 +159,7 @@ export const TimePicker = ({
       </div>
 
       {/* AM/PM Box */}
-      <div className="ml-2 flex items-center bg-blue-50/50 border border-blue-100 rounded-lg px-2 h-9 gap-1.5 transition-all focus-within:ring-2 focus-within:ring-blue-500/10">
+      <div className="ml-2 flex items-center gap-1">
         <select
           disabled={disabled}
           value={period}
