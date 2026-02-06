@@ -47,22 +47,6 @@ const GOOGLE_MAPS_LIBRARIES: (
 )[] = ["places"];
 
 // Vehicle type compatibility matrix
-const canDriverServePatient = (
-  driverVehicleType: string | null,
-  patientNeed: string | null,
-): boolean => {
-  if (!patientNeed || patientNeed === "COMMON CARRIER") return true;
-  if (!driverVehicleType) return false;
-
-  const compatibility: Record<string, string[]> = {
-    "COMMON CARRIER": ["COMMON CARRIER"],
-    "FOLDED WHEELCHAIR": ["COMMON CARRIER", "FOLDED WHEELCHAIR"],
-    WHEELCHAIR: ["COMMON CARRIER", "FOLDED WHEELCHAIR", "WHEELCHAIR"],
-    VAN: ["COMMON CARRIER", "FOLDED WHEELCHAIR", "WHEELCHAIR", "VAN"],
-  };
-
-  return compatibility[driverVehicleType]?.includes(patientNeed) || false;
-};
 
 interface TripDraft {
   id: string; // Temporary ID for UI handling
@@ -76,7 +60,7 @@ interface TripDraft {
   trip_type: string;
   other_trip_type: string;
   notes: string;
-  status: TripStatus;
+
   distance_miles?: number | null;
   duration_minutes?: number | null;
 }
@@ -123,7 +107,7 @@ export function CreateTripForm({
     trip_type: "MEDICAL APPOINTMENT",
     other_trip_type: "",
     notes: "",
-    status: "pending",
+
     distance_miles: null,
     duration_minutes: null,
   });
@@ -262,7 +246,7 @@ export function CreateTripForm({
           ? ""
           : existingTrip.trip_type || "",
         notes: existingTrip.notes || "",
-        status: existingTrip.status || "pending",
+
         distance_miles: existingTrip.distance_miles,
         duration_minutes: existingTrip.duration_minutes,
       };
@@ -353,15 +337,8 @@ export function CreateTripForm({
   );
 
   // Derived state for the current leg
-  const selectedPatient = patients?.find((p) => p.id === currentLeg.patient_id);
-  const patientVehicleNeed = selectedPatient?.vehicle_type_need || null;
 
-  const compatibleDrivers = useMemo(() => {
-    if (!patientVehicleNeed) return allPotentialDrivers;
-    return allPotentialDrivers.filter((d) =>
-      canDriverServePatient(d.vehicle_type, patientVehicleNeed),
-    );
-  }, [allPotentialDrivers, patientVehicleNeed]);
+  const compatibleDrivers = allPotentialDrivers;
 
   const addReturnTrip = () => {
     const lastLeg = tripLegs[tripLegs.length - 1];
@@ -525,19 +502,16 @@ export function CreateTripForm({
         const finalDriverId = leg.driver_id;
         // Logic for employee -> driver conversion removed. Driver must be selected from drivers list.
 
-        // Determine final status
-        let finalStatus = leg.status;
+        // Default status for new/edited trips
+        let finalStatus: TripStatus = "pending";
+        if (finalDriverId) {
+          finalStatus = "assigned";
+        }
+
+        // If editing an existing trip, keep its status if it's already past "pending/assigned"
         if (leg.db_id && existingTrip) {
-          // Logic for existing trips (edit mode)
-          if (existingTrip.status === "assigned" && !finalDriverId) {
-            finalStatus = "pending"; // Revert to pending if driver removed
-          } else if (existingTrip.status === "pending" && finalDriverId) {
-            finalStatus = "assigned"; // Auto-assign if driver added
-          }
-        } else {
-          // Logic for new trips (create mode)
-          if (finalStatus === "pending" && finalDriverId) {
-            finalStatus = "assigned";
+          if (!["pending", "assigned"].includes(existingTrip.status)) {
+            finalStatus = existingTrip.status;
           }
         }
 
@@ -866,12 +840,7 @@ export function CreateTripForm({
                 <Car className="w-4 h-4 text-emerald-500" />
                 Assign Driver (Optional)
               </Label>
-              {patientVehicleNeed && compatibleDrivers.length === 0 && (
-                <div className="flex items-center gap-2 text-amber-600 text-sm bg-amber-50 p-2 rounded-lg">
-                  <AlertCircle className="w-4 h-4" />
-                  No drivers available for {patientVehicleNeed} needs
-                </div>
-              )}
+
               <select
                 value={currentLeg.driver_id}
                 onChange={(e) => updateActiveLeg({ driver_id: e.target.value })}
@@ -881,9 +850,6 @@ export function CreateTripForm({
                 {compatibleDrivers.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.full_name}
-                    {d.vehicle_type
-                      ? ` (${d.vehicle_type.replace("_", " ")})`
-                      : ""}
                   </option>
                 ))}
               </select>
@@ -910,9 +876,9 @@ export function CreateTripForm({
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-slate-50/50 rounded-xl border border-slate-100/80">
+              <div className="space-y-2.5">
+                <Label className="flex items-center gap-2 text-slate-700 font-semibold">
                   <MapPin className="w-4 h-4 text-red-500" />
                   Pickup Location
                 </Label>
@@ -929,7 +895,7 @@ export function CreateTripForm({
                         place.formatted_address || place.name || "";
                       handleLocationSelect("pickup_location", address);
                     }}
-                    className="w-full rounded-md border border-input bg-white h-10 px-3 text-sm focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full rounded-md border border-slate-200 bg-white h-11 px-4 text-sm focus:ring-2 focus:ring-red-500/20 shadow-sm"
                   />
                 ) : (
                   <Input
@@ -939,11 +905,12 @@ export function CreateTripForm({
                     onChange={(e) =>
                       handleLocationSelect("pickup_location", e.target.value)
                     }
+                    className="h-11 bg-white"
                   />
                 )}
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+              <div className="space-y-2.5">
+                <Label className="flex items-center gap-2 text-slate-700 font-semibold">
                   <MapPin className="w-4 h-4 text-slate-500" />
                   Dropoff Location
                 </Label>
@@ -960,7 +927,7 @@ export function CreateTripForm({
                         place.formatted_address || place.name || "";
                       handleLocationSelect("dropoff_location", address);
                     }}
-                    className="w-full rounded-md border border-input bg-white h-10 px-3 text-sm focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full rounded-md border border-slate-200 bg-white h-11 px-4 text-sm focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                   />
                 ) : (
                   <Input
@@ -970,6 +937,7 @@ export function CreateTripForm({
                     onChange={(e) =>
                       handleLocationSelect("dropoff_location", e.target.value)
                     }
+                    className="h-11 bg-white"
                   />
                 )}
               </div>
@@ -999,11 +967,11 @@ export function CreateTripForm({
           </div>
 
           {/* Schedule Section */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-slate-500" />
-                Date
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white rounded-xl border border-slate-100 shadow-sm">
+            <div className="space-y-2.5">
+              <Label className="flex items-center gap-2 text-slate-700 font-semibold">
+                <Calendar className="w-4 h-4 text-emerald-500" />
+                Pickup Date
               </Label>
               <Input
                 required
@@ -1012,72 +980,53 @@ export function CreateTripForm({
                 onChange={(e) =>
                   updateActiveLeg({ pickup_date: e.target.value })
                 }
-                className="bg-white"
+                className="bg-slate-50 border-slate-200 h-11 focus:bg-white transition-colors"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-500" />
-                Time
+            <div className="space-y-2.5">
+              <Label className="flex items-center gap-2 text-slate-700 font-semibold">
+                <Clock className="w-4 h-4 text-emerald-500" />
+                Pickup Time
               </Label>
               <TimePicker
                 value={currentLeg.pickup_time}
                 onChange={(t) => updateActiveLeg({ pickup_time: t })}
                 disabled={currentLeg.trip_type === "WILL CALL"}
+                className="h-11"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clipboard className="w-4 h-4 text-slate-500" />
-                Trip Type
+            <div className="space-y-2.5">
+              <Label className="flex items-center gap-2 text-slate-700 font-semibold">
+                <Clipboard className="w-4 h-4 text-emerald-500" />
+                Trip Purpose
               </Label>
-              <select
-                value={currentLeg.trip_type}
-                onChange={(e) => updateActiveLeg({ trip_type: e.target.value })}
-                className="w-full rounded-md border-slate-200 bg-white h-10 px-3 text-sm"
-              >
-                {TRIP_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-              {currentLeg.trip_type === "OTHER" && (
-                <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <Input
-                    placeholder="Please specify trip type"
-                    value={currentLeg.other_trip_type}
-                    onChange={(e) =>
-                      updateActiveLeg({ other_trip_type: e.target.value })
-                    }
-                    className="h-10"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clipboard className="w-4 h-4 text-slate-500" />
-                Status
-              </Label>
-              <select
-                value={currentLeg.status}
-                onChange={(e) =>
-                  updateActiveLeg({ status: e.target.value as TripStatus })
-                }
-                className="w-full rounded-md border-slate-200 bg-white h-10 px-3 text-sm"
-              >
-                <option value="pending">Pending</option>
-                <option value="assigned" disabled={!currentLeg.driver_id}>
-                  Assigned
-                </option>
-                <option value="accepted">Accepted</option>
-                <option value="arrived">Arrived</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="no_show">No Show</option>
-              </select>
+              <div className="space-y-2">
+                <select
+                  value={currentLeg.trip_type}
+                  onChange={(e) =>
+                    updateActiveLeg({ trip_type: e.target.value })
+                  }
+                  className="w-full rounded-md border border-slate-200 bg-slate-50 h-11 px-3 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-colors"
+                >
+                  {TRIP_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                {currentLeg.trip_type === "OTHER" && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Input
+                      placeholder="Please specify trip type"
+                      value={currentLeg.other_trip_type}
+                      onChange={(e) =>
+                        updateActiveLeg({ other_trip_type: e.target.value })
+                      }
+                      className="h-11 bg-white"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

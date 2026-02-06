@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Plus, MapPin, Clock, Clipboard, Car } from "lucide-react";
-import { TimePicker, TRIP_TYPES, canDriverServePatient } from "./trip-utils";
+import { TimePicker, TRIP_TYPES } from "./trip-utils";
 import type { Trip } from "./types";
 import { useLoadScript } from "@react-google-maps/api";
 import { AddressAutocomplete } from "./AddressAutocomplete";
@@ -142,28 +142,7 @@ export function QuickAddLegDialog({
     [drivers],
   );
 
-  // Fetch Patient Details to check vehicle needs
-  const { data: patientDetails } = useQuery({
-    queryKey: ["patient-details-form", patientId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("patients")
-        .select("id, vehicle_type_need")
-        .eq("id", patientId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!patientId && open,
-  });
-
-  const compatibleDrivers = useMemo(() => {
-    const need = patientDetails?.vehicle_type_need;
-    if (!need) return allPotentialDrivers;
-    return allPotentialDrivers.filter((d) =>
-      canDriverServePatient(d.vehicle_type, need),
-    );
-  }, [allPotentialDrivers, patientDetails]);
+  const compatibleDrivers = allPotentialDrivers;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

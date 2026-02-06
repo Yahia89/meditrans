@@ -43,12 +43,6 @@ const GOOGLE_MAPS_LIBRARIES: (
 )[] = ["places"];
 
 // Vehicle type options
-const VEHICLE_TYPES = [
-  { value: "common_carrier", label: "Common Carrier" },
-  { value: "folded_wheelchair", label: "Folded Wheelchair" },
-  { value: "wheelchair", label: "Wheelchair" },
-  { value: "van", label: "Van" },
-] as const;
 
 // Schema for driver form
 const driverSchema = z.object({
@@ -63,7 +57,7 @@ const driverSchema = z.object({
   address: z.string().optional(),
   county: z.string().optional(),
   // Vehicle info
-  vehicle_type: z.string().optional(),
+
   vehicle_make: z.string().optional(),
   vehicle_model: z.string().optional(),
   vehicle_color: z.string().optional(),
@@ -165,7 +159,7 @@ export function DriverForm({
           phone: initialData.phone ? formatPhoneNumber(initialData.phone) : "",
           address: initialData.address || "",
           county: initialData.county || "",
-          vehicle_type: initialData.vehicle_type || "",
+
           vehicle_make: initialData.vehicle_make || "",
           vehicle_model: initialData.vehicle_model || "",
           vehicle_color: initialData.vehicle_color || "",
@@ -191,7 +185,7 @@ export function DriverForm({
           phone: "",
           address: "",
           county: "",
-          vehicle_type: "",
+
           vehicle_make: "",
           vehicle_model: "",
           vehicle_color: "",
@@ -282,7 +276,7 @@ export function DriverForm({
         phone: data.phone || null,
         address: data.address || null,
         county: data.county || null,
-        vehicle_type: data.vehicle_type || null,
+
         vehicle_make: data.vehicle_make || null,
         vehicle_model: data.vehicle_model || null,
         vehicle_color: data.vehicle_color || null,
@@ -370,7 +364,6 @@ export function DriverForm({
         break;
       case 2:
         fieldsToValidate = [
-          "vehicle_type",
           "vehicle_make",
           "vehicle_model",
           "vehicle_color",
@@ -684,26 +677,7 @@ export function DriverForm({
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-slate-700">
-                        Vehicle Type <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        {...register("vehicle_type")}
-                        className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
-                      >
-                        <option value="">Select vehicle type</option>
-                        {VEHICLE_TYPES.map((type) => (
-                          <option key={type.value} value={type.value}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-slate-500">
-                        Determines which patients can be assigned
-                      </p>
-                    </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 col-span-2 sm:col-span-1">
                       <label className="text-sm font-medium text-slate-700">
                         License Plate #
                       </label>
@@ -745,42 +719,6 @@ export function DriverForm({
                         placeholder="White"
                         className="h-9"
                       />
-                    </div>
-                  </div>
-
-                  <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-100">
-                    <h4 className="text-sm font-medium text-slate-700 mb-2">
-                      Vehicle Type Guide
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5" />
-                        <div>
-                          <span className="font-medium">COMMON CARRIER</span> -
-                          Ambulatory / Standard
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5" />
-                        <div>
-                          <span className="font-medium">FOLDED WHEELCHAIR</span>{" "}
-                          - Can fold wheelchair
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5" />
-                        <div>
-                          <span className="font-medium">WHEELCHAIR</span> -
-                          Standard Wheelchair
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5" />
-                        <div>
-                          <span className="font-medium">VAN</span> - Van / Ramp
-                          Service
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>

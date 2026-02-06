@@ -106,21 +106,3 @@ export const TimePicker = ({
     </div>
   );
 };
-
-// Vehicle type compatibility matrix
-export const canDriverServePatient = (
-  driverVehicleType: string | null,
-  patientNeed: string | null,
-): boolean => {
-  if (!patientNeed || patientNeed === "COMMON CARRIER") return true;
-  if (!driverVehicleType) return false;
-
-  const compatibility: Record<string, string[]> = {
-    "COMMON CARRIER": ["COMMON CARRIER"],
-    "FOLDED WHEELCHAIR": ["COMMON CARRIER", "FOLDED WHEELCHAIR"],
-    WHEELCHAIR: ["COMMON CARRIER", "FOLDED WHEELCHAIR", "WHEELCHAIR"],
-    VAN: ["COMMON CARRIER", "FOLDED WHEELCHAIR", "WHEELCHAIR", "VAN"],
-  };
-
-  return compatibility[driverVehicleType]?.includes(patientNeed) || false;
-};

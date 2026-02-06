@@ -54,6 +54,7 @@ export const pages = [
   "live-tracking",
   "companies",
   "reset-password",
+  "fees",
 ] as const;
 
 export type Page = (typeof pages)[number];
@@ -74,6 +75,7 @@ import { useDriverLocation } from "@/hooks/useDriverLocation";
 import { LiveTrackingPage } from "./components/live/LiveTrackingPage";
 import { CompaniesPage } from "./components/admin/companies-page";
 import { ResetPasswordPage } from "./components/reset-password-page";
+import { FeeSettingsPage } from "./components/admin/FeeSettingsPage";
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
@@ -477,6 +479,12 @@ function AppContent() {
         return (
           <DashboardPage title="Companies">
             <CompaniesPage onCreateClick={() => setCurrentPage("founder")} />
+          </DashboardPage>
+        );
+      case "fees":
+        return (
+          <DashboardPage title="Fee Schedule">
+            <FeeSettingsPage />
           </DashboardPage>
         );
       default:

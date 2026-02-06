@@ -26,15 +26,12 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { useQueryState } from "nuqs";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useState } from "react";
-import { FeeSettingsDialog } from "./admin/FeeSettingsDialog";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
   const { user, profile, signOut } = useAuth();
   const [, setPage] = useQueryState("page");
   const { canViewBilling, canViewNotifications, isDispatch } = usePermissions();
-  const [showFeesDialog, setShowFeesDialog] = useState(false);
 
   // Derive display values from auth context
   const name =
@@ -117,7 +114,7 @@ export function NavUser() {
                   </DropdownMenuItem>
                 )}
                 {isDispatch && (
-                  <DropdownMenuItem onClick={() => setShowFeesDialog(true)}>
+                  <DropdownMenuItem onClick={() => setPage("fees")}>
                     <Coins size={16} />
                     Fees
                   </DropdownMenuItem>
@@ -139,11 +136,6 @@ export function NavUser() {
           </DropdownMenu>
         </SidebarMenuItem>
       </SidebarMenu>
-
-      <FeeSettingsDialog
-        open={showFeesDialog}
-        onOpenChange={setShowFeesDialog}
-      />
     </>
   );
 }
