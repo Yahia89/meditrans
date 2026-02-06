@@ -55,14 +55,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { SignatureCaptureDialog, SignatureDisplay } from "./SignatureCapture";
 import { generateTripSummaryPDF } from "@/utils/pdf-generator";
-import {
-  getActiveTimezone,
-  formatInUserTimezone,
-  parseZonedTime,
-} from "@/lib/timezone";
+import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
+import { JourneyTimeline, useJourneyTrips } from "./JourneyTimeline";
 
 interface TripDetailsProps {
   tripId: string;
@@ -70,197 +67,6 @@ interface TripDetailsProps {
   onDeleteSuccess?: () => void;
   onBack?: () => void;
   onNavigate?: (id: string) => void;
-}
-
-function RelatedTripsTimeline({
-  currentTripId,
-  patientId,
-  date,
-  onNavigate,
-  canManage,
-  onEditMileage,
-  timezone,
-}: {
-  currentTripId: string;
-  patientId: string;
-  date: string;
-  onNavigate: (id: string) => void;
-  canManage?: boolean;
-  onEditMileage?: (trip: Trip) => void;
-  timezone: string;
-}) {
-  const { data: trips } = useQuery({
-    queryKey: ["patient-daily-trips", patientId, date],
-    queryFn: async () => {
-      // Use start/end of day logic
-      const dateStr = formatInUserTimezone(date, timezone, "yyyy-MM-dd");
-      const start = parseZonedTime(dateStr, "00:00", timezone).toISOString();
-      const end = parseZonedTime(dateStr, "23:59:59", timezone).toISOString();
-
-      const { data, error } = await supabase
-        .from("trips")
-        .select("*")
-        .eq("patient_id", patientId)
-        .gte("pickup_time", start)
-        .lte("pickup_time", end)
-        .order("pickup_time", { ascending: true });
-
-      if (error) throw error;
-      return data as Trip[];
-    },
-    enabled: !!patientId && !!date,
-  });
-
-  if (!trips || trips.length <= 1) return null;
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-      <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">
-        Journey Timeline
-      </h3>
-      <div className="relative">
-        {/* Connector Line */}
-        <div className="absolute left-[15px] top-6 bottom-6 w-0.5 bg-slate-100" />
-
-        <div className="space-y-6">
-          {trips.map((trip, idx) => {
-            const isCurrent = trip.id === currentTripId;
-            // Calculate total journey distance
-            const totalDistance = trips.reduce(
-              (sum, t) =>
-                sum +
-                (Number(t.actual_distance_miles || t.distance_miles) || 0),
-              0,
-            );
-            return (
-              <div key={trip.id} className="relative pl-10 group">
-                {/* Visual Node */}
-                <div
-                  className={cn(
-                    "absolute left-0 top-1 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all duration-300 z-10",
-                    isCurrent
-                      ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200"
-                      : "bg-white border-slate-200 text-slate-400 group-hover:border-blue-300 group-hover:text-blue-400",
-                  )}
-                >
-                  <span className="text-xs font-bold">{idx + 1}</span>
-                </div>
-
-                {/* Content */}
-                <div
-                  onClick={() => !isCurrent && onNavigate(trip.id)}
-                  className={cn(
-                    "rounded-xl border p-3 transition-all",
-                    isCurrent
-                      ? "bg-blue-50 border-blue-200 ring-1 ring-blue-100 cursor-default"
-                      : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-md cursor-pointer",
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className={cn(
-                        "text-sm font-bold",
-                        isCurrent ? "text-blue-900" : "text-slate-700",
-                      )}
-                    >
-                      {formatInUserTimezone(
-                        trip.pickup_time,
-                        timezone,
-                        "h:mm a",
-                      )}
-                    </span>
-                    <span
-                      className={cn(
-                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border",
-                        trip.status === "completed"
-                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                          : trip.status === "in_progress"
-                            ? "bg-blue-100 text-blue-700 border-blue-200"
-                            : "bg-slate-100 text-slate-600 border-slate-200",
-                      )}
-                    >
-                      {trip.status.replace("_", " ")}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 shrink-0" />
-                      <span
-                        className="text-xs text-slate-600 line-clamp-1"
-                        title={trip.pickup_location}
-                      >
-                        {trip.pickup_location}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                      <span
-                        className="text-xs text-slate-600 line-clamp-1"
-                        title={trip.dropoff_location}
-                      >
-                        {trip.dropoff_location}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Distance Badge for this leg */}
-                  {trip.distance_miles && (
-                    <div className="mt-2 pt-2 border-t border-slate-100/80">
-                      <div
-                        className={cn(
-                          "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold",
-                          isCurrent
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-slate-100 text-slate-600",
-                        )}
-                      >
-                        <Path weight="bold" className="w-3.5 h-3.5" />
-                        {Math.ceil(
-                          Number(
-                            trip.actual_distance_miles || trip.distance_miles,
-                          ),
-                        )}{" "}
-                        miles
-                        {isCurrent &&
-                          trip.status === "completed" &&
-                          canManage &&
-                          onEditMileage && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEditMileage(trip);
-                              }}
-                              className="ml-1 p-1 hover:bg-blue-200 rounded-full text-blue-600 transition-colors"
-                              title="Edit Mileage"
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </button>
-                          )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Show total distance only on the last item if it's the current trip */}
-                {idx === trips.length - 1 && totalDistance > 0 && (
-                  <div className="mt-3 pl-2">
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Path weight="duotone" className="w-4 h-4" />
-                      <span className="font-semibold">Total Journey:</span>
-                      <span className="text-slate-700 font-bold">
-                        {Math.ceil(totalDistance)} miles
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function EditMileageDialog({
@@ -353,7 +159,21 @@ export function TripDetails({
     null,
   );
 
-  const activeTimezone = getActiveTimezone(profile, currentOrganization);
+  const activeTimezone = useMemo(
+    () => getActiveTimezone(profile, currentOrganization),
+    [profile, currentOrganization],
+  );
+
+  const handleNavigate = useCallback(
+    (id: string) => {
+      onNavigate?.(id);
+    },
+    [onNavigate],
+  );
+
+  const handleEditMileage = useCallback((t: Trip) => {
+    setEditingMileageTrip(t);
+  }, []);
 
   const { data: trip, isLoading } = useQuery({
     queryKey: ["trip", tripId],
@@ -372,6 +192,10 @@ export function TripDetails({
       if (error) throw error;
       return data as Trip;
     },
+    // Prevent refetches for 1 minute - trip data is relatively stable
+    staleTime: 60 * 1000,
+    // Keep previous data while refetching to avoid flash
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: history } = useQuery({
@@ -386,43 +210,16 @@ export function TripDetails({
       return data as TripStatusHistory[];
     },
     enabled: !!tripId,
+    staleTime: 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 
-  // Fetch related trips for the journey timeline (same day) to pass to PDF
-  const { data: journeyTrips } = useQuery({
-    queryKey: ["patient-daily-trips", trip?.patient_id, trip?.pickup_time],
-    queryFn: async () => {
-      if (!trip?.patient_id || !trip?.pickup_time) return [];
-
-      const dateStr = formatInUserTimezone(
-        trip.pickup_time,
-        activeTimezone,
-        "yyyy-MM-dd",
-      );
-      const start = parseZonedTime(
-        dateStr,
-        "00:00",
-        activeTimezone,
-      ).toISOString();
-      const end = parseZonedTime(
-        dateStr,
-        "23:59:59",
-        activeTimezone,
-      ).toISOString();
-
-      const { data, error } = await supabase
-        .from("trips")
-        .select("*")
-        .eq("patient_id", trip.patient_id)
-        .gte("pickup_time", start)
-        .lte("pickup_time", end)
-        .order("pickup_time", { ascending: true });
-
-      if (error) throw error;
-      return data as Trip[];
-    },
-    enabled: !!trip?.patient_id && !!trip?.pickup_time,
-  });
+  // Use the route-level cached journey trips hook for PDF generation
+  const { data: journeyTrips } = useJourneyTrips(
+    trip?.patient_id,
+    trip?.pickup_time,
+    activeTimezone,
+  );
 
   // Fetch organization name
   const { data: org } = useQuery({
@@ -438,6 +235,8 @@ export function TripDetails({
       return data;
     },
     enabled: !!trip?.org_id,
+    staleTime: 5 * 60 * 1000, // Org name rarely changes
+    placeholderData: (previousData) => previousData,
   });
 
   const updateStatusMutation = useMutation({
@@ -610,6 +409,47 @@ export function TripDetails({
     },
   });
 
+  // Build a comprehensive timeline from trip data and history
+  const timelineEvents = useMemo(() => {
+    const events: Array<{
+      id: string;
+      status: string;
+      actor_name: string;
+      created_at: string;
+    }> = [];
+
+    // Add real history events first
+    if (history && history.length > 0) {
+      history.forEach((item) => {
+        events.push({
+          id: item.id,
+          status: item.status,
+          actor_name: item.actor_name,
+          created_at: item.created_at,
+        });
+      });
+    }
+
+    // Current status event - only show if history doesn't already capture the latest change
+    const hasHistoryForStatus = (status: string) =>
+      events.some((e) => e.status.toLowerCase().includes(status.toLowerCase()));
+
+    if (trip?.status && !hasHistoryForStatus(trip.status)) {
+      events.push({
+        id: `current-${trip.status}`,
+        status: trip.status.toUpperCase(),
+        actor_name: trip.driver?.full_name || "System",
+        created_at: trip.updated_at || trip.created_at,
+      });
+    }
+
+    // Sort by date descending (most recent first)
+    return events.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+  }, [history, trip]);
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -649,49 +489,6 @@ export function TripDetails({
     setCancelReason("");
     setCancelExplanation("");
   };
-
-  // Build a comprehensive timeline from trip data and history
-  const buildTimeline = () => {
-    const events: Array<{
-      id: string;
-      status: string;
-      actor_name: string;
-      created_at: string;
-    }> = [];
-
-    // Add real history events first
-    if (history && history.length > 0) {
-      history.forEach((item) => {
-        events.push({
-          id: item.id,
-          status: item.status,
-          actor_name: item.actor_name,
-          created_at: item.created_at,
-        });
-      });
-    }
-
-    // Current status event - only show if history doesn't already capture the latest change
-    const hasHistoryForStatus = (status: string) =>
-      events.some((e) => e.status.toLowerCase().includes(status.toLowerCase()));
-
-    if (trip.status && !hasHistoryForStatus(trip.status)) {
-      events.push({
-        id: `current-${trip.status}`,
-        status: trip.status.toUpperCase(),
-        actor_name: trip.driver?.full_name || "System",
-        created_at: trip.updated_at || trip.created_at,
-      });
-    }
-
-    // Sort by date descending (most recent first)
-    return events.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
-  };
-
-  const timelineEvents = buildTimeline();
 
   return (
     <div className="space-y-6">
@@ -1032,16 +829,16 @@ export function TripDetails({
 
         {/* Side Information */}
         <div className="flex flex-col gap-6">
-          {/* Related Trips / Journey Timeline */}
+          {/* Journey Timeline - Route-level cached, won't cause rerenders */}
           {trip.patient_id && (
-            <RelatedTripsTimeline
+            <JourneyTimeline
               currentTripId={trip.id}
               patientId={trip.patient_id}
-              date={trip.pickup_time}
-              onNavigate={(id) => onNavigate?.(id)}
-              canManage={canManage}
-              onEditMileage={(t) => setEditingMileageTrip(t)}
+              pickupTime={trip.pickup_time}
               timezone={activeTimezone}
+              canManage={canManage}
+              onNavigate={handleNavigate}
+              onEditMileage={handleEditMileage}
             />
           )}
 
