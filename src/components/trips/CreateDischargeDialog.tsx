@@ -109,7 +109,7 @@ export function CreateDischargeDialog({
       if (!currentOrganization?.id) return [];
       const { data, error } = await supabase
         .from("drivers")
-        .select("id, first_name, last_name")
+        .select("id, full_name")
         .eq("org_id", currentOrganization.id);
       if (error) throw error;
       return data;
@@ -529,7 +529,7 @@ export function CreateDischargeDialog({
                             <option value="">Unassigned</option>
                             {drivers?.map((driver: any) => (
                               <option key={driver.id} value={driver.id}>
-                                {driver.first_name} {driver.last_name}
+                                {driver.full_name}
                               </option>
                             ))}
                           </select>
@@ -587,7 +587,7 @@ export function CreateDischargeDialog({
                           onChange={(val: string) =>
                             setFormData((p) => ({ ...p, tripTime: val }))
                           }
-                          className="w-full"
+                          className="w-full h-14 rounded-2xl bg-white border-slate-200 focus:ring-4 focus:ring-[#3D5A3D]/10 focus:border-[#3D5A3D] transition-all"
                         />
                       </div>
                       <div className="space-y-2">

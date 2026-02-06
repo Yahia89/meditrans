@@ -967,7 +967,7 @@ export function CreateTripForm({
           </div>
 
           {/* Schedule Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white rounded-xl border border-slate-100 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6  p-6 bg-white rounded-xl border border-slate-100 shadow-sm">
             <div className="space-y-2.5">
               <Label className="flex items-center gap-2 text-slate-700 font-semibold">
                 <Calendar className="w-4 h-4 text-emerald-500" />
@@ -983,7 +983,7 @@ export function CreateTripForm({
                 className="bg-slate-50 border-slate-200 h-11 focus:bg-white transition-colors"
               />
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 md:justify-self-end">
               <Label className="flex items-center gap-2 text-slate-700 font-semibold">
                 <Clock className="w-4 h-4 text-emerald-500" />
                 Pickup Time
@@ -995,7 +995,7 @@ export function CreateTripForm({
                 className="h-11"
               />
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 md:col-span-2">
               <Label className="flex items-center gap-2 text-slate-700 font-semibold">
                 <Clipboard className="w-4 h-4 text-emerald-500" />
                 Trip Purpose

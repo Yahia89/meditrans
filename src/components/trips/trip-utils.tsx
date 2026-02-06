@@ -1,6 +1,13 @@
-import { useMemo } from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
-import { CaretUp, CaretDown } from "@phosphor-icons/react";
+import { Clock } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Helper to parse "HH:mm" -> { hour, minute, period }
 export const parseTime = (timeStr: string) => {
@@ -48,7 +55,10 @@ export const TimePicker = ({
   className?: string;
   disabled?: boolean;
 }) => {
-  const { hour, minute, period } = useMemo(() => parseTime(value), [value]);
+  const { hour, minute, period } = React.useMemo(
+    () => parseTime(value),
+    [value],
+  );
 
   const updateTime = (
     newHour: string,
@@ -61,140 +71,67 @@ export const TimePicker = ({
   return (
     <div
       className={cn(
-        "flex items-center gap-1.5 h-11 px-3 bg-white border border-slate-200 rounded-xl w-fit focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500 transition-all",
+        "flex items-center justify-between gap-2 h-11 px-3 bg-white border border-slate-200 rounded-xl w-fit focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500 transition-all",
         disabled && "opacity-50 cursor-not-allowed",
         className,
       )}
     >
-      {/* Hour Section */}
-      <div className="flex items-center">
-        <select
+      <div className="flex items-center gap-0.5">
+        {/* Hour Section */}
+        <Select
           disabled={disabled}
           value={hour}
-          onChange={(e) => updateTime(e.target.value, minute, period)}
-          className={cn(
-            "w-10 bg-transparent text-base font-bold text-slate-700 focus:outline-none cursor-pointer appearance-none text-right",
-            disabled && "text-slate-300 cursor-not-allowed",
-          )}
+          onValueChange={(val) => updateTime(val, minute, period)}
         >
-          {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-            <option key={h} value={h.toString().padStart(2, "0")}>
-              {h}
-            </option>
-          ))}
-        </select>
-        <div className="flex flex-col -space-y-2.5 ml-1">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => {
-              const currentH = parseInt(hour, 10);
-              const nextH = currentH === 12 ? 1 : currentH + 1;
-              updateTime(nextH.toString().padStart(2, "0"), minute, period);
-            }}
-            className="p-0.5 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-30"
-          >
-            <CaretUp size={10} weight="bold" />
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => {
-              const currentH = parseInt(hour, 10);
-              const prevH = currentH === 1 ? 12 : currentH - 1;
-              updateTime(prevH.toString().padStart(2, "0"), minute, period);
-            }}
-            className="p-0.5 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-30"
-          >
-            <CaretDown size={10} weight="bold" />
-          </button>
-        </div>
-      </div>
+          <SelectTrigger className="w-10 !border-none !shadow-none bg-transparent !p-0 h-auto focus:ring-0 [&>svg]:hidden text-slate-700">
+            <SelectValue placeholder="HH" />
+          </SelectTrigger>
+          <SelectContent align="center" className="min-w-[4rem]">
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+              <SelectItem key={h} value={h.toString().padStart(2, "0")}>
+                {h}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <span className="text-blue-400/50 font-black text-base mx-0.5">:</span>
+        <span className="text-blue-400/50 text-base mx-0.5">:</span>
 
-      {/* Minute Section */}
-      <div className="flex items-center">
-        <select
+        {/* Minute Section */}
+        <Select
           disabled={disabled}
           value={minute}
-          onChange={(e) => updateTime(hour, e.target.value, period)}
-          className={cn(
-            "w-10 bg-transparent text-base font-bold text-slate-700 focus:outline-none cursor-pointer appearance-none text-left",
-            disabled && "text-slate-300 cursor-not-allowed",
-          )}
+          onValueChange={(val) => updateTime(hour, val, period)}
         >
-          {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
-            <option key={m} value={m.toString().padStart(2, "0")}>
-              {m.toString().padStart(2, "0")}
-            </option>
-          ))}
-        </select>
-        <div className="flex flex-col -space-y-2.5">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => {
-              const currentM = parseInt(minute, 10);
-              const nextM = (currentM + 5) % 60;
-              updateTime(hour, nextM.toString().padStart(2, "0"), period);
-            }}
-            className="p-0.5 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-30"
-          >
-            <CaretUp size={10} weight="bold" />
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => {
-              const currentM = parseInt(minute, 10);
-              const prevM = (currentM - 5 + 60) % 60;
-              updateTime(hour, prevM.toString().padStart(2, "0"), period);
-            }}
-            className="p-0.5 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-30"
-          >
-            <CaretDown size={10} weight="bold" />
-          </button>
-        </div>
-      </div>
+          <SelectTrigger className="w-10 !border-none !shadow-none bg-transparent !p-0 h-auto focus:ring-0 [&>svg]:hidden text-slate-700 text-left">
+            <SelectValue placeholder="MM" />
+          </SelectTrigger>
+          <SelectContent align="center" className="min-w-[4rem]">
+            {Array.from({ length: 60 }, (_, i) => i).map((m) => (
+              <SelectItem key={m} value={m.toString().padStart(2, "0")}>
+                {m.toString().padStart(2, "0")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      {/* AM/PM Box */}
-      <div className="ml-2 flex items-center gap-1">
-        <select
+        {/* AM/PM Box */}
+        <Select
           disabled={disabled}
           value={period}
-          onChange={(e) => updateTime(hour, minute, e.target.value)}
-          className={cn(
-            "bg-transparent text-xs font-black text-slate-700 focus:outline-none cursor-pointer appearance-none",
-            disabled && "text-slate-300 cursor-not-allowed",
-          )}
+          onValueChange={(val) => updateTime(hour, minute, val)}
         >
-          <option value="AM">AM</option>
-          <option value="PM">PM</option>
-        </select>
-        <div className="flex flex-col -space-y-2.5">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() =>
-              updateTime(hour, minute, period === "AM" ? "PM" : "AM")
-            }
-            className="p-0.5 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-30"
-          >
-            <CaretUp size={10} weight="bold" />
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() =>
-              updateTime(hour, minute, period === "AM" ? "PM" : "AM")
-            }
-            className="p-0.5 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-30"
-          >
-            <CaretDown size={10} weight="bold" />
-          </button>
-        </div>
+          <SelectTrigger className="w-10 !border-none !shadow-none bg-transparent !p-0 h-auto focus:ring-0 [&>svg]:hidden ml-1 text-slate-700 text-xs text-left">
+            <SelectValue placeholder="AM/PM" />
+          </SelectTrigger>
+          <SelectContent align="center" className="min-w-[4rem]">
+            <SelectItem value="AM">AM</SelectItem>
+            <SelectItem value="PM">PM</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      <Clock className="w-4 h-4 text-slate-400 shrink-0" />
     </div>
   );
 };
