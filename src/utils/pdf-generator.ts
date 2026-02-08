@@ -15,14 +15,12 @@ export interface TripMapImage {
   height: number;
 }
 
-export const generateTripSummaryPDF = (
+export async function generateTripSummaryPDF(
   trip: Trip,
-  journeyTrips: Trip[] = [],
-  history: TripStatusHistory[] = [],
+  journeyTrips: Trip[],
+  history: TripStatusHistory[],
   orgName?: string,
-  /** Optional map image showing the route visualization */
-  mapImage?: TripMapImage,
-) => {
+) {
   // Initialize with compression enabled for smaller file sizes
   const doc = new jsPDF({
     compress: true,
@@ -99,60 +97,6 @@ export const generateTripSummaryPDF = (
   );
 
   let currentY = patientBlockY + 35;
-
-  // --- Trip Route Map (if provided) ---
-  if (mapImage && mapImage.dataUrl) {
-    try {
-      // Calculate dimensions to fit within page margins while maintaining aspect ratio
-      const maxMapWidth = pageWidth - margin * 2;
-      const maxMapHeight = 60; // Keep it compact for fast PDF generation
-
-      let mapDisplayWidth = mapImage.width;
-      let mapDisplayHeight = mapImage.height;
-
-      // Scale down to fit if needed
-      if (mapDisplayWidth > maxMapWidth) {
-        const scale = maxMapWidth / mapDisplayWidth;
-        mapDisplayWidth = maxMapWidth;
-        mapDisplayHeight = mapImage.height * scale;
-      }
-      if (mapDisplayHeight > maxMapHeight) {
-        const scale = maxMapHeight / mapDisplayHeight;
-        mapDisplayHeight = maxMapHeight;
-        mapDisplayWidth = mapDisplayWidth * scale;
-      }
-
-      // Center the map horizontally
-      const mapX = margin + (maxMapWidth - mapDisplayWidth) / 2;
-
-      doc.addImage(
-        mapImage.dataUrl,
-        "PNG",
-        mapX,
-        currentY,
-        mapDisplayWidth,
-        mapDisplayHeight,
-        undefined,
-        "FAST", // Compression for smaller file size
-      );
-
-      // Add map legend below the image
-      currentY += mapDisplayHeight + 4;
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 116, 139);
-      doc.text(
-        "● Blue: Planned Route  ● Orange: Deviation  ● A: Pickup  ● B: Dropoff",
-        pageWidth / 2,
-        currentY,
-        { align: "center" },
-      );
-      currentY += 10;
-    } catch (e) {
-      console.error("[PDF] Error adding map image:", e);
-      // Continue without map if there's an error
-    }
-  }
 
   // --- Journey Timeline Section ---
   if (journeyTrips && journeyTrips.length > 0) {
@@ -380,9 +324,10 @@ export const generateTripSummaryPDF = (
     startY: currentY,
     body: detailsData,
     theme: "plain",
+    tableWidth: "auto",
     styles: {
       fontSize: 10,
-      cellPadding: 3,
+      cellPadding: 4,
       textColor: [51, 65, 85],
       valign: "middle",
     },
@@ -392,7 +337,9 @@ export const generateTripSummaryPDF = (
     },
   });
 
-  currentY = (doc as any).lastAutoTable.finalY + 15;
+  const tableFinalY = (doc as any).lastAutoTable.finalY;
+
+  currentY = tableFinalY + 15;
 
   // --- Signature Section ---
   doc.setFont("helvetica", "bold");
@@ -401,7 +348,7 @@ export const generateTripSummaryPDF = (
   doc.text("Signature", margin, currentY);
   currentY += 8;
 
-  const signatureBoxHeight = 40;
+  const signatureBoxHeight = 60; // Increased from 40
 
   doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.5);
@@ -424,8 +371,8 @@ export const generateTripSummaryPDF = (
     try {
       const imgProps = doc.getImageProperties(trip.signature_data);
       // Center visually and make slightly larger
-      const maxWidth = 100;
-      const maxHeight = signatureBoxHeight - 14;
+      const maxWidth = 160; // Increased from 140
+      const maxHeight = signatureBoxHeight - 12;
 
       let finalWidth = maxWidth;
       let finalHeight = (imgProps.height * maxWidth) / imgProps.width;
@@ -440,7 +387,7 @@ export const generateTripSummaryPDF = (
         trip.signature_data,
         "PNG",
         (pageWidth - finalWidth) / 2, // Center visually
-        currentY + (signatureBoxHeight - finalHeight) / 2 - 2, // Center vertically
+        currentY + (signatureBoxHeight - finalHeight) / 2, // Center vertically
         finalWidth,
         finalHeight,
         undefined,
@@ -495,4 +442,4 @@ export const generateTripSummaryPDF = (
   }
 
   doc.save(`journey_summary_${new Date().toISOString().split("T")[0]}.pdf`);
-};
+}

@@ -137,7 +137,7 @@ export function AccountPage() {
 
   const formatPhoneNumber = (value: string) => {
     if (!value) return value;
-    const phoneNumber = value.replace(/[^\d]/g, "");
+    const phoneNumber = value.replace(/[^\d]/g, "").slice(0, 10);
     const phoneNumberLength = phoneNumber.length;
     if (phoneNumberLength < 4) return phoneNumber;
     if (phoneNumberLength < 7) {

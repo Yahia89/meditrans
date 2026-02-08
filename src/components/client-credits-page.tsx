@@ -32,8 +32,9 @@ import { formatInUserTimezone } from "@/lib/timezone";
 
 import {
   calculateCreditStatus,
+  calculateTripCost,
+  type OrganizationFees,
   type CreditInfo,
-  ESTIMATED_COST_PER_TRIP,
 } from "@/lib/credit-utils";
 
 interface Patient {
@@ -111,13 +112,30 @@ export function ClientCreditsPage() {
       const { data, error } = await supabase
         .from("patients")
         .select(
-          "id, full_name, monthly_credit, credit_used_for, referral_date, notes, phone, email, status",
+          "id, full_name, monthly_credit, credit_used_for, referral_date, notes, phone, email, status, service_type",
         )
         .eq("org_id", currentOrganization.id)
         .not("monthly_credit", "is", null);
 
       if (error) throw error;
       return data as Patient[];
+    },
+    enabled: !!currentOrganization?.id,
+  });
+
+  // Fetch organization fees
+  const { data: fees } = useQuery({
+    queryKey: ["organization_fees", currentOrganization?.id],
+    queryFn: async () => {
+      if (!currentOrganization?.id) return null;
+      const { data, error } = await supabase
+        .from("organization_fees")
+        .select("*")
+        .eq("org_id", currentOrganization.id)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error;
+      return data as OrganizationFees;
     },
     enabled: !!currentOrganization?.id,
   });
@@ -147,7 +165,9 @@ export function ClientCreditsPage() {
       if (!currentOrganization?.id) return [];
       const { data, error } = await supabase
         .from("trips")
-        .select("id, patient_id, pickup_time, status")
+        .select(
+          "id, patient_id, pickup_time, status, trip_type, actual_distance_miles, distance_miles, total_waiting_minutes",
+        )
         .eq("org_id", currentOrganization.id)
         .gte("pickup_time", startOfMonth.toISOString())
         .lte("pickup_time", endOfMonth.toISOString());
@@ -215,8 +235,11 @@ export function ClientCreditsPage() {
         (t) => t.patient_id === patient.id && t.status === "completed",
       );
 
-      // For now, estimate cost per trip since trip_cost is not in the database yet
-      const totalSpend = patientTrips.length * ESTIMATED_COST_PER_TRIP;
+      // Calculate total spend using organization fees
+      const totalSpend = patientTrips.reduce(
+        (sum, trip) => sum + calculateTripCost(trip, fees || null),
+        0,
+      );
 
       const monthlyCredit = patient.monthly_credit || 0;
       const remainingBalance = monthlyCredit - totalSpend;
@@ -399,14 +422,14 @@ export function ClientCreditsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25">
+          <div className="p-2.5 rounded-xl bg-[#3D5A3D] text-white shadow-sm">
             <CreditCard weight="duotone" className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
               Client Credits Tracker
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm font-medium text-slate-500">
               Monitor monthly credit usage and balances
             </p>
           </div>
@@ -448,10 +471,12 @@ export function ClientCreditsPage() {
 
       {/* Alerts Panel */}
       {showAlerts && lowBalancePatients.length > 0 && (
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-5 shadow-sm">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <Warning weight="duotone" className="w-5 h-5 text-red-500" />
-            <h3 className="font-semibold text-red-900">Low Balance Alerts</h3>
+            <Warning weight="duotone" className="w-5 h-5 text-red-600" />
+            <h3 className="font-bold text-slate-900 uppercase tracking-wider text-xs">
+              Low Balance Alerts
+            </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {lowBalancePatients.map((data) => (
@@ -478,37 +503,48 @@ export function ClientCreditsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <p className="text-sm text-slate-500 mb-1">Total Clients</p>
-          <p className="text-2xl font-bold text-slate-900">
-            {summaryStats.totalClients}
-          </p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <p className="text-sm text-slate-500 mb-1">Total Credit</p>
-          <p className="text-2xl font-bold text-emerald-600">
-            {formatCurrency(summaryStats.totalCredit)}
-          </p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <p className="text-sm text-slate-500 mb-1">Total Spent</p>
-          <p className="text-2xl font-bold text-slate-900">
-            {formatCurrency(summaryStats.totalSpend)}
-          </p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <p className="text-sm text-slate-500 mb-1">Total Remaining</p>
-          <p
-            className={cn(
-              "text-2xl font-bold",
+        {[
+          {
+            label: "Total Clients",
+            value: summaryStats.totalClients,
+            color: "text-slate-900",
+          },
+          {
+            label: "Total Credit",
+            value: formatCurrency(summaryStats.totalCredit),
+            color: "text-[#3D5A3D]",
+          },
+          {
+            label: "Total Spent",
+            value: formatCurrency(summaryStats.totalSpend),
+            color: "text-slate-900",
+          },
+          {
+            label: "Total Remaining",
+            value: formatCurrency(summaryStats.totalRemaining),
+            color:
               summaryStats.totalRemaining >= 0
-                ? "text-emerald-600"
-                : "text-red-600",
-            )}
+                ? "text-emerald-700"
+                : "text-red-700",
+          },
+        ].map((card, i) => (
+          <div
+            key={i}
+            className="bg-white rounded-[1.2rem] border border-slate-200 p-6 shadow-sm flex flex-col justify-between min-h-[120px]"
           >
-            {formatCurrency(summaryStats.totalRemaining)}
-          </p>
-        </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-4">
+              {card.label}
+            </p>
+            <p
+              className={cn(
+                "text-2xl md:text-3xl font-black tracking-tight font-mono",
+                card.color,
+              )}
+            >
+              {card.value}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Filters and Month Navigation */}

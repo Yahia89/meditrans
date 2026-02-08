@@ -555,7 +555,10 @@ export function PatientForm({
                   <Input
                     {...register("phone")}
                     onChange={(e) => {
-                      const formatted = formatPhoneNumber(e.target.value);
+                      const digits = e.target.value
+                        .replace(/[^\d]/g, "")
+                        .slice(0, 10);
+                      const formatted = formatPhoneNumber(digits);
                       setValue("phone", formatted, { shouldValidate: true });
                     }}
                     placeholder="(555) 123-4567"
@@ -807,7 +810,10 @@ export function PatientForm({
                   <Input
                     {...register("case_manager_phone")}
                     onChange={(e) => {
-                      const formatted = formatPhoneNumber(e.target.value);
+                      const digits = e.target.value
+                        .replace(/[^\d]/g, "")
+                        .slice(0, 10);
+                      const formatted = formatPhoneNumber(digits);
                       setValue("case_manager_phone", formatted, {
                         shouldValidate: true,
                       });

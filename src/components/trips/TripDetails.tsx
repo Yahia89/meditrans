@@ -60,6 +60,7 @@ import { SignatureCaptureDialog, SignatureDisplay } from "./SignatureCapture";
 import { generateTripSummaryPDF } from "@/utils/pdf-generator";
 import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
 import { JourneyTimeline, useJourneyTrips } from "./JourneyTimeline";
+import { Loader2 } from "lucide-react";
 
 interface TripDetailsProps {
   tripId: string;
@@ -158,6 +159,7 @@ export function TripDetails({
   const [editingMileageTrip, setEditingMileageTrip] = useState<Trip | null>(
     null,
   );
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const activeTimezone = useMemo(
     () => getActiveTimezone(profile, currentOrganization),
@@ -785,39 +787,47 @@ export function TripDetails({
                           className="w-6 h-6 text-emerald-500"
                         />
                         Trip Completed
-                        {trip.signature_data && (
-                          <span className="text-xs bg-emerald-100 px-2 py-0.5 rounded-full ml-1">
-                            Signed
-                          </span>
-                        )}
-                        {trip.signature_declined && (
-                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-1">
-                            Signature Declined
-                          </span>
-                        )}
                       </div>
 
                       <Button
                         variant="outline"
-                        onClick={() =>
-                          generateTripSummaryPDF(
-                            trip,
-                            journeyTrips || [],
-                            history || [],
-                            org?.name,
-                          )
-                        }
-                        className="h-11 border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 font-bold px-4 rounded-xl gap-2 transition-all shadow-sm bg-white"
+                        onClick={() => {
+                          setIsGeneratingPDF(true);
+                          // Use a slight delay to allow the Loading state to render (spins immediately)
+                          setTimeout(async () => {
+                            try {
+                              await generateTripSummaryPDF(
+                                trip,
+                                journeyTrips || [],
+                                history || [],
+                                org?.name,
+                              );
+                            } finally {
+                              setIsGeneratingPDF(false);
+                            }
+                          }, 100);
+                        }}
+                        disabled={isGeneratingPDF}
+                        className="h-11 border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 font-bold px-4 rounded-xl gap-2 transition-all shadow-sm bg-white min-w-[190px]"
                       >
-                        <FilePdf
-                          weight="duotone"
-                          className="w-5 h-5 text-red-500"
-                        />
-                        Download Summary
-                        <DownloadSimple
-                          weight="bold"
-                          className="w-4 h-4 ml-1 opacity-50"
-                        />
+                        {isGeneratingPDF ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
+                            Generating Report...
+                          </>
+                        ) : (
+                          <>
+                            <FilePdf
+                              weight="duotone"
+                              className="w-5 h-5 text-red-500"
+                            />
+                            Download Summary
+                            <DownloadSimple
+                              weight="bold"
+                              className="w-4 h-4 ml-1 opacity-50"
+                            />
+                          </>
+                        )}
                       </Button>
                     </div>
                   )}

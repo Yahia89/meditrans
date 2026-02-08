@@ -25,7 +25,8 @@ import type { TripStatus } from "./types";
 import { cn } from "@/lib/utils";
 import {
   calculateCreditStatus,
-  ESTIMATED_COST_PER_TRIP,
+  calculateTripCost,
+  type OrganizationFees,
 } from "@/lib/credit-utils";
 
 import { TimePicker, TRIP_TYPES } from "./trip-utils";
@@ -255,6 +256,23 @@ export function CreateTripForm({
     }
   }, [existingTrip, activeTimezone]);
 
+  // Fetch organization fees
+  const { data: fees } = useQuery({
+    queryKey: ["organization_fees", currentOrganization?.id],
+    queryFn: async () => {
+      if (!currentOrganization?.id) return null;
+      const { data, error } = await supabase
+        .from("organization_fees")
+        .select("*")
+        .eq("org_id", currentOrganization.id)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error;
+      return data as OrganizationFees;
+    },
+    enabled: !!currentOrganization?.id,
+  });
+
   const { data: patientsData } = useQuery({
     queryKey: ["patients-form-with-credits", currentOrganization?.id],
     queryFn: async () => {
@@ -285,9 +303,11 @@ export function CreateTripForm({
         59,
       ).toISOString();
 
-      const { data: tripCounts, error: tripsError } = await supabase
+      const { data: tripData, error: tripsError } = await supabase
         .from("trips")
-        .select("patient_id")
+        .select(
+          "patient_id, status, trip_type, actual_distance_miles, distance_miles, total_waiting_minutes",
+        )
         .eq("org_id", currentOrganization.id)
         .eq("status", "completed")
         .gte("pickup_time", startOfMonth)
@@ -297,12 +317,16 @@ export function CreateTripForm({
 
       // 3. Map status to patients
       return patients.map((p) => {
-        const completedCount =
-          tripCounts?.filter((t) => t.patient_id === p.id).length || 0;
-        const creditInfo = calculateCreditStatus(
-          p.monthly_credit,
-          completedCount * ESTIMATED_COST_PER_TRIP,
+        const patientTrips =
+          tripData?.filter((t) => t.patient_id === p.id) || [];
+
+        // Calculate total spend using organization fees
+        const totalSpend = patientTrips.reduce(
+          (sum, trip) => sum + calculateTripCost(trip, fees || null),
+          0,
         );
+
+        const creditInfo = calculateCreditStatus(p.monthly_credit, totalSpend);
         return {
           ...p,
           creditInfo,

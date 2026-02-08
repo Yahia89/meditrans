@@ -679,7 +679,10 @@ export function EmployeeForm({
                       <Input
                         {...register("phone")}
                         onChange={(e) => {
-                          const formatted = formatPhoneNumber(e.target.value);
+                          const digits = e.target.value
+                            .replace(/[^\d]/g, "")
+                            .slice(0, 10);
+                          const formatted = formatPhoneNumber(digits);
                           setValue("phone", formatted, {
                             shouldValidate: true,
                           });

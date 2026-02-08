@@ -8,7 +8,8 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { Loader2 } from "lucide-react";
 import {
   calculateCreditStatus,
-  ESTIMATED_COST_PER_TRIP,
+  calculateTripCost,
+  type OrganizationFees,
 } from "@/lib/credit-utils";
 
 interface LowBalancePatient {
@@ -33,8 +34,25 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
     0,
     23,
     59,
-    59
+    59,
   );
+
+  // Fetch organization fees
+  const { data: fees } = useQuery({
+    queryKey: ["organization_fees", currentOrganization?.id],
+    queryFn: async () => {
+      if (!currentOrganization?.id) return null;
+      const { data, error } = await supabase
+        .from("organization_fees")
+        .select("*")
+        .eq("org_id", currentOrganization.id)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error;
+      return data as OrganizationFees;
+    },
+    enabled: !!currentOrganization?.id,
+  });
 
   // Fetch patients with credits
   const { data: lowBalancePatients = [], isLoading } = useQuery({
@@ -52,10 +70,12 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
       if (patientsError) throw patientsError;
       if (!patients?.length) return [];
 
-      // Fetch completed trips for this month
+      // Fetch completed trips for this month with details for calculation
       const { data: trips, error: tripsError } = await supabase
         .from("trips")
-        .select("id, patient_id, status")
+        .select(
+          "id, patient_id, status, trip_type, actual_distance_miles, distance_miles, total_waiting_minutes",
+        )
         .eq("org_id", currentOrganization.id)
         .eq("status", "completed")
         .gte("pickup_time", startOfMonth.toISOString())
@@ -69,9 +89,14 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
       patients.forEach((patient) => {
         const patientTrips =
           trips?.filter((t) => t.patient_id === patient.id) || [];
-        const totalSpend = patientTrips.length * ESTIMATED_COST_PER_TRIP;
-        const monthlyCredit = patient.monthly_credit || 0;
 
+        // Calculate total spend using organization fees
+        const totalSpend = patientTrips.reduce(
+          (sum, trip) => sum + calculateTripCost(trip, fees || null),
+          0,
+        );
+
+        const monthlyCredit = patient.monthly_credit || 0;
         const creditInfo = calculateCreditStatus(monthlyCredit, totalSpend);
 
         if (creditInfo.status !== "good" && creditInfo.status !== "none") {
@@ -88,7 +113,7 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
       // Sort by percentage remaining (lowest first)
       return lowBalance.sort((a, b) => a.percentRemaining - b.percentRemaining);
     },
-    enabled: !!currentOrganization?.id,
+    enabled: !!currentOrganization?.id && fees !== undefined,
     refetchInterval: 60000, // Refresh every minute
   });
 
@@ -127,7 +152,7 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   const criticalCount = lowBalancePatients.filter(
-    (p) => p.percentRemaining * 100 <= 5
+    (p) => p.percentRemaining * 100 <= 5,
   ).length;
   const bgColor =
     criticalCount > 0
@@ -144,13 +169,13 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
       onClick={onNavigate}
       className={cn(
         "w-full flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer group text-left",
-        bgColor
+        bgColor,
       )}
     >
       <div
         className={cn(
           "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:text-white transition-colors",
-          iconBgColor
+          iconBgColor,
         )}
       >
         {criticalCount > 0 ? (
@@ -171,7 +196,7 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
               "px-2 py-0.5 rounded-full text-[10px] font-bold",
               criticalCount > 0
                 ? "bg-red-200 text-red-800"
-                : "bg-amber-200 text-amber-800"
+                : "bg-amber-200 text-amber-800",
             )}
           >
             {lowBalancePatients.length}
@@ -187,7 +212,7 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
         <div
           className={cn(
             "flex items-center gap-1 mt-2 text-xs font-medium",
-            textColor
+            textColor,
           )}
         >
           <span>View details</span>
