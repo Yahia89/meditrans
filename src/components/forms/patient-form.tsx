@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   Check,
   AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { cn, formatPhoneNumber } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -144,6 +145,7 @@ export function PatientForm({
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { canEditPatients, canViewBilling, canViewMedicaid } = usePermissions();
 
   // Load Google Maps API
   const { isLoaded, loadError } = useLoadScript({
@@ -278,16 +280,20 @@ export function PatientForm({
         }
       });
 
-      // Format patient phone to include +1 for SMS compatibility
-      let formattedPhone = data.phone;
-      if (data.phone) {
-        const cleaned = data.phone.replace(/[^\d]/g, "");
-        if (cleaned.length === 10) {
-          formattedPhone = `+1${cleaned}`;
-        } else if (cleaned.length === 11 && cleaned.startsWith("1")) {
-          formattedPhone = `+${cleaned}`;
-        }
-      }
+      // Extract only digits for storage, ensuring 10 digits without +1
+      const cleanedPhone = data.phone?.replace(/[^\d]/g, "") || "";
+      const formattedPhone =
+        cleanedPhone.length > 10 && cleanedPhone.startsWith("1")
+          ? cleanedPhone.slice(cleanedPhone.length - 10)
+          : cleanedPhone.slice(0, 10);
+
+      // Same for case manager phone
+      const cleanedCMPPhone =
+        data.case_manager_phone?.replace(/[^\d]/g, "") || "";
+      const formattedCMPPhone =
+        cleanedCMPPhone.length > 10 && cleanedCMPPhone.startsWith("1")
+          ? cleanedCMPPhone.slice(cleanedCMPPhone.length - 10)
+          : cleanedCMPPhone.slice(0, 10);
 
       const patientData = {
         org_id: currentOrganization.id,
@@ -310,7 +316,7 @@ export function PatientForm({
             ? otherServiceType
             : data.service_type || null,
         case_manager: data.case_manager || null,
-        case_manager_phone: data.case_manager_phone || null,
+        case_manager_phone: formattedCMPPhone || null,
         case_manager_email: data.case_manager_email || null,
         monthly_credit: data.monthly_credit
           ? parseFloat(data.monthly_credit)
@@ -485,6 +491,19 @@ export function PatientForm({
           onSubmit={handleSubmit(onSubmit)}
           className="flex-1 overflow-y-auto p-5"
         >
+          {/* Permission Alert */}
+          {!canEditPatients && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 text-amber-700">
+              <ShieldAlert className="w-5 h-5 shrink-0" />
+              <div>
+                <p className="font-bold text-sm">View Only Access</p>
+                <p className="text-xs mt-1">
+                  You do not have permission to modify patient records.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Google Maps Error Alert */}
           {loadError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
@@ -854,44 +873,48 @@ export function PatientForm({
                 Billing & Additional Information
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Monthly Credit ($)
-                  </label>
-                  <Input
-                    {...register("monthly_credit")}
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    className="h-9"
-                  />
+              {canViewBilling && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Monthly Credit ($)
+                    </label>
+                    <Input
+                      {...register("monthly_credit")}
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Credit Used For
+                    </label>
+                    <Input
+                      {...register("credit_used_for")}
+                      placeholder="e.g., Medical appointments only"
+                      className="h-9"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Credit Used For
-                  </label>
-                  <Input
-                    {...register("credit_used_for")}
-                    placeholder="e.g., Medical appointments only"
-                    className="h-9"
-                  />
-                </div>
-              </div>
+              )}
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">
-                  Medicaid ID
-                  <span className="text-xs text-slate-400 ml-2 font-normal">
-                    (Required for Medicaid billing)
-                  </span>
-                </label>
-                <Input
-                  {...register("medicaid_id")}
-                  placeholder="e.g., MN123456789"
-                  className="h-9"
-                />
-              </div>
+              {canViewMedicaid && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">
+                    Medicaid ID
+                    <span className="text-xs text-slate-400 ml-2 font-normal">
+                      (Required for Medicaid billing)
+                    </span>
+                  </label>
+                  <Input
+                    {...register("medicaid_id")}
+                    placeholder="e.g., MN123456789"
+                    className="h-9"
+                  />
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700">
@@ -973,56 +996,47 @@ export function PatientForm({
         </form>
 
         {/* Footer with Navigation */}
-        <DialogFooter className="p-5 border-t flex items-center justify-between gap-3 shrink-0">
-          <div className="text-sm text-slate-500">
-            Step {currentStep} of {STEPS.length}
-          </div>
-          <div className="flex gap-3">
-            {currentStep > 1 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleBack}
-                className="gap-1"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Back
-              </Button>
-            )}
-            {currentStep === 1 && (
+        <DialogFooter className="p-5 border-t bg-slate-50 shrink-0">
+          <div className="flex items-center justify-between w-full">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleBack}
+              disabled={currentStep === 1}
+              className="gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back
+            </Button>
+            <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-            )}
-            {currentStep < STEPS.length && (
-              <Button
-                type="button"
-                onClick={handleNext}
-                className="bg-[#3D5A3D] hover:bg-[#2E4A2E] gap-1"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            )}
-            {currentStep === STEPS.length && (
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                onClick={handleSubmit(onSubmit)}
-                className="bg-[#3D5A3D] hover:bg-[#2E4A2E]"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    {initialData ? "Saving..." : "Adding..."}
-                  </>
-                ) : initialData ? (
-                  "Save Changes"
-                ) : (
-                  "Add Patient"
-                )}
-              </Button>
-            )}
+              {currentStep < STEPS.length ? (
+                <Button type="button" onClick={handleNext} className="gap-2">
+                  Next Step
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !canEditPatients}
+                  className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white gap-2 min-w-[100px]"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      {initialData ? "Save Changes" : "Create Patient"}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </DialogFooter>
       </DialogContent>

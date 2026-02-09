@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Clock } from "lucide-react";
+import { Clock } from "@phosphor-icons/react";
 import {
   Select,
   SelectContent,

@@ -8,19 +8,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
-  Loader2,
   User,
   Car,
   MapPin,
   Calendar,
   Clock,
-  Clipboard,
-  AlertCircle,
+  ClipboardText,
+  WarningCircle,
   Plus,
-  ArrowRightLeft,
-  Trash2,
-  CheckCircle2,
-} from "lucide-react";
+  ArrowsLeftRight,
+  Trash,
+  CheckCircle,
+  CircleNotch,
+} from "@phosphor-icons/react";
 import type { TripStatus } from "./types";
 import { cn } from "@/lib/utils";
 import {
@@ -37,7 +37,9 @@ import {
   getActiveTimezone,
   parseZonedTime,
   formatInUserTimezone,
+  getTimezoneLabel,
 } from "@/lib/timezone";
+import { US_TIMEZONES } from "../timezone-selector";
 
 // Libraries must be defined outside component to avoid re-loading
 const GOOGLE_MAPS_LIBRARIES: (
@@ -113,9 +115,8 @@ export function CreateTripForm({
     duration_minutes: null,
   });
 
-  const [tripLegs, setTripLegs] = useState<TripDraft[]>([
-    createEmptyLeg("leg-1"),
-  ]);
+  const [tripLegs, setTripLegs] = useState<TripDraft[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Helper to update the currently active leg
   const updateActiveLeg = (updates: Partial<TripDraft>) => {
@@ -177,8 +178,8 @@ export function CreateTripForm({
     // Get the other field's current value
     const otherValue =
       field === "pickup_location"
-        ? currentLeg.dropoff_location
-        : currentLeg.pickup_location;
+        ? currentLeg?.dropoff_location
+        : currentLeg?.pickup_location;
 
     // If we have both addresses, calculate the route
     if (value && otherValue) {
@@ -187,19 +188,36 @@ export function CreateTripForm({
 
       const metrics = await calculateRoute(pickup, dropoff);
       if (metrics) {
-        // Update with the calculated metrics
-        setTripLegs((prev) =>
-          prev.map((leg) =>
-            leg.id === activeLegId
-              ? {
-                  ...leg,
-                  distance_miles: metrics.distance_miles,
-                  duration_minutes: metrics.duration_minutes,
-                }
-              : leg,
-          ),
-        );
+        updateActiveLeg({
+          distance_miles: metrics.distance_miles,
+          duration_minutes: metrics.duration_minutes,
+        });
       }
+    }
+  };
+
+  const swapLocations = () => {
+    if (!currentLeg) return;
+    const oldPickup = currentLeg.pickup_location;
+    const oldDropoff = currentLeg.dropoff_location;
+
+    updateActiveLeg({
+      pickup_location: oldDropoff,
+      dropoff_location: oldPickup,
+    });
+
+    // Re-calculate route metrics if both locations are present
+    if (oldPickup && oldDropoff) {
+      calculateRoute(oldDropoff, oldPickup).then((metrics) => {
+        if (metrics) {
+          updateActiveLeg({
+            pickup_location: oldDropoff,
+            dropoff_location: oldPickup,
+            distance_miles: metrics.distance_miles,
+            duration_minutes: metrics.duration_minutes,
+          });
+        }
+      });
     }
   };
 
@@ -220,41 +238,51 @@ export function CreateTripForm({
   });
 
   useEffect(() => {
-    if (existingTrip && existingTrip.pickup_time) {
-      const initialLeg: TripDraft = {
-        id: "leg-1",
-        db_id: existingTrip.id,
-        patient_id: existingTrip.patient_id,
-        driver_id: existingTrip.driver_id || "",
-        pickup_location: existingTrip.pickup_location || "",
-        dropoff_location: existingTrip.dropoff_location || "",
-        pickup_date: formatInUserTimezone(
-          existingTrip.pickup_time,
-          activeTimezone,
-          "yyyy-MM-dd",
-        ),
-        pickup_time: formatInUserTimezone(
-          existingTrip.pickup_time,
-          activeTimezone,
-          "HH:mm",
-        ),
-        trip_type: TRIP_TYPES.some((t) => t.value === existingTrip.trip_type)
-          ? existingTrip.trip_type
-          : "OTHER",
-        other_trip_type: TRIP_TYPES.some(
-          (t) => t.value === existingTrip.trip_type,
-        )
-          ? ""
-          : existingTrip.trip_type || "",
-        notes: existingTrip.notes || "",
-
-        distance_miles: existingTrip.distance_miles,
-        duration_minutes: existingTrip.duration_minutes,
-      };
-      setTripLegs([initialLeg]);
-      setActiveLegId("leg-1");
+    if (!isInitialized) {
+      if (tripId) {
+        if (existingTrip && existingTrip.pickup_time) {
+          const initialLeg: TripDraft = {
+            id: "leg-1",
+            db_id: existingTrip.id,
+            patient_id: existingTrip.patient_id,
+            driver_id: existingTrip.driver_id || "",
+            pickup_location: existingTrip.pickup_location || "",
+            dropoff_location: existingTrip.dropoff_location || "",
+            pickup_date: formatInUserTimezone(
+              existingTrip.pickup_time,
+              activeTimezone,
+              "yyyy-MM-dd",
+            ),
+            pickup_time: formatInUserTimezone(
+              existingTrip.pickup_time,
+              activeTimezone,
+              "HH:mm",
+            ),
+            trip_type: TRIP_TYPES.some(
+              (t) => t.value === existingTrip.trip_type,
+            )
+              ? existingTrip.trip_type
+              : "OTHER",
+            other_trip_type: TRIP_TYPES.some(
+              (t) => t.value === existingTrip.trip_type,
+            )
+              ? ""
+              : existingTrip.trip_type || "",
+            notes: existingTrip.notes || "",
+            distance_miles: existingTrip.distance_miles,
+            duration_minutes: existingTrip.duration_minutes,
+          };
+          setTripLegs([initialLeg]);
+          setActiveLegId("leg-1");
+          setIsInitialized(true);
+        }
+      } else {
+        // New trip mode
+        setTripLegs([createEmptyLeg("leg-1")]);
+        setIsInitialized(true);
+      }
     }
-  }, [existingTrip, activeTimezone]);
+  }, [existingTrip, activeTimezone, tripId, isInitialized]);
 
   // Fetch organization fees
   const { data: fees } = useQuery({
@@ -630,10 +658,10 @@ export function CreateTripForm({
     }
   };
 
-  if (isLoadingTrip) {
+  if (isLoadingTrip || !isInitialized) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        <CircleNotch className="h-8 w-8 animate-spin text-slate-400" />
       </div>
     );
   }
@@ -645,7 +673,10 @@ export function CreateTripForm({
         <div className="w-full lg:w-1/3 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden flex flex-col">
           <div className="p-4 border-b border-slate-200 bg-slate-100/50">
             <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-              <Clipboard className="w-4 h-4 text-slate-500" />
+              <ClipboardText
+                weight="duotone"
+                className="w-4 h-4 text-slate-500"
+              />
               Trip Itinerary
             </h3>
             <p className="text-xs text-slate-500 mt-1">
@@ -686,7 +717,7 @@ export function CreateTripForm({
                     )}
                   >
                     {isValid ? (
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <CheckCircle weight="duotone" className="w-3.5 h-3.5" />
                     ) : (
                       <div className="w-2 h-2 rounded-full bg-current" />
                     )}
@@ -714,7 +745,7 @@ export function CreateTripForm({
                           className="text-slate-400 hover:text-red-500 p-1"
                           type="button"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash weight="duotone" className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
@@ -769,7 +800,7 @@ export function CreateTripForm({
               onClick={addReturnTrip}
               className="w-full text-xs"
             >
-              <ArrowRightLeft className="w-3.5 h-3.5 mr-2" />
+              <ArrowsLeftRight weight="duotone" className="w-3.5 h-3.5 mr-2" />
               Return Trip
             </Button>
             <Button
@@ -796,7 +827,7 @@ export function CreateTripForm({
           {/* Google Maps Error Alert */}
           {loadError && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
-              <AlertCircle className="w-5 h-5 shrink-0" />
+              <WarningCircle weight="duotone" className="w-5 h-5 shrink-0" />
               <div>
                 <p className="font-bold text-sm">Google Maps failed to load</p>
                 <p className="text-xs mt-1">
@@ -811,7 +842,7 @@ export function CreateTripForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-slate-700 font-medium text-sm">
-                <User className="w-4 h-4 text-blue-500" />
+                <User weight="duotone" className="w-4 h-4 text-blue-500" />
                 Patient Information
               </Label>
               <select
@@ -861,7 +892,7 @@ export function CreateTripForm({
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-slate-700 font-medium text-sm">
-                <Car className="w-4 h-4 text-emerald-500" />
+                <Car weight="duotone" className="w-4 h-4 text-emerald-500" />
                 Assign Driver (Optional)
               </Label>
 
@@ -900,17 +931,17 @@ export function CreateTripForm({
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-slate-50/50 rounded-xl border border-slate-100/80">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16 p-6 bg-slate-50/50 rounded-xl border border-slate-100/80 relative">
               <div className="space-y-2.5">
                 <Label className="flex items-center gap-2 text-slate-700 font-semibold">
-                  <MapPin className="w-4 h-4 text-red-500" />
+                  <MapPin weight="duotone" className="w-4 h-4 text-red-500" />
                   Pickup Location
                 </Label>
                 {isLoaded ? (
                   <AddressAutocomplete
                     isLoaded={isLoaded}
                     placeholder="Enter full address"
-                    value={currentLeg.pickup_location}
+                    value={currentLeg?.pickup_location || ""}
                     onChange={(value) =>
                       updateActiveLeg({ pickup_location: value })
                     }
@@ -925,7 +956,7 @@ export function CreateTripForm({
                   <Input
                     required
                     placeholder="Enter full address"
-                    value={currentLeg.pickup_location}
+                    value={currentLeg?.pickup_location || ""}
                     onChange={(e) =>
                       handleLocationSelect("pickup_location", e.target.value)
                     }
@@ -933,16 +964,30 @@ export function CreateTripForm({
                   />
                 )}
               </div>
+
+              {/* Swap Button */}
+              <div className="absolute left-1/2 top-[52px] -translate-x-1/2 z-10 hidden md:block">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={swapLocations}
+                  className="rounded-full h-10 w-10 bg-white border-slate-200 hover:border-[#3D5A3D] hover:text-[#3D5A3D] shadow-lg transition-all hover:scale-110 active:scale-95 border-2"
+                >
+                  <ArrowsLeftRight weight="bold" className="w-5 h-5" />
+                </Button>
+              </div>
+
               <div className="space-y-2.5">
                 <Label className="flex items-center gap-2 text-slate-700 font-semibold">
-                  <MapPin className="w-4 h-4 text-slate-500" />
+                  <MapPin weight="duotone" className="w-4 h-4 text-slate-500" />
                   Dropoff Location
                 </Label>
                 {isLoaded ? (
                   <AddressAutocomplete
                     isLoaded={isLoaded}
                     placeholder="Enter full address"
-                    value={currentLeg.dropoff_location}
+                    value={currentLeg?.dropoff_location || ""}
                     onChange={(value) =>
                       updateActiveLeg({ dropoff_location: value })
                     }
@@ -957,7 +1002,7 @@ export function CreateTripForm({
                   <Input
                     required
                     placeholder="Enter full address"
-                    value={currentLeg.dropoff_location}
+                    value={currentLeg?.dropoff_location || ""}
                     onChange={(e) =>
                       handleLocationSelect("dropoff_location", e.target.value)
                     }
@@ -994,7 +1039,10 @@ export function CreateTripForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6  p-6 bg-white rounded-xl border border-slate-100 shadow-sm">
             <div className="space-y-2.5">
               <Label className="flex items-center gap-2 text-slate-700 font-semibold">
-                <Calendar className="w-4 h-4 text-emerald-500" />
+                <Calendar
+                  weight="duotone"
+                  className="w-4 h-4 text-emerald-500"
+                />
                 Pickup Date
               </Label>
               <Input
@@ -1008,9 +1056,19 @@ export function CreateTripForm({
               />
             </div>
             <div className="space-y-2.5 md:justify-self-end">
-              <Label className="flex items-center gap-2 text-slate-700 font-semibold">
-                <Clock className="w-4 h-4 text-emerald-500" />
-                Pickup Time
+              <Label className="flex items-center gap-2 text-slate-700 font-semibold justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock
+                    weight="duotone"
+                    className="w-4 h-4 text-emerald-500"
+                  />
+                  Pickup Time
+                </div>
+                <span className="text-[10px] text-slate-500 font-bold border border-slate-200 px-2 py-0.5 rounded-full bg-slate-50 shadow-sm">
+                  {profile?.timezone
+                    ? getTimezoneLabel(activeTimezone, US_TIMEZONES)
+                    : `Org Default (${getTimezoneLabel(activeTimezone, US_TIMEZONES)})`}
+                </span>
               </Label>
               <TimePicker
                 value={currentLeg.pickup_time}
@@ -1021,7 +1079,10 @@ export function CreateTripForm({
             </div>
             <div className="space-y-2.5 md:col-span-2">
               <Label className="flex items-center gap-2 text-slate-700 font-semibold">
-                <Clipboard className="w-4 h-4 text-emerald-500" />
+                <ClipboardText
+                  weight="duotone"
+                  className="w-4 h-4 text-emerald-500"
+                />
                 Trip Purpose
               </Label>
               <div className="space-y-2">
@@ -1069,7 +1130,10 @@ export function CreateTripForm({
           {conflictError && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-bottom-2">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <WarningCircle
+                  weight="duotone"
+                  className="w-5 h-5 text-red-600 shrink-0 mt-0.5"
+                />
                 <div>
                   <h4 className="font-semibold text-red-900 text-sm">
                     Unable to Schedule Trip

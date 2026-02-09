@@ -577,7 +577,9 @@ export function PatientDetailsPage({
                   <div>
                     <p className="text-xs text-slate-500">Contact Number</p>
                     <p className="text-sm font-medium text-slate-900">
-                      {patient.case_manager_phone || "N/A"}
+                      {patient.case_manager_phone
+                        ? formatPhoneNumber(patient.case_manager_phone)
+                        : "N/A"}
                     </p>
                   </div>
                 </div>

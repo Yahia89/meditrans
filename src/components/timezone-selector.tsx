@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Check, ChevronsUpDown, Globe, Monitor } from "lucide-react";
+import {
+  Check,
+  CaretUpDown,
+  Globe,
+  Monitor,
+  Buildings,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +24,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-const US_TIMEZONES = [
+export const US_TIMEZONES = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
   { value: "America/Chicago", label: "Central Time (CT)" },
   { value: "America/Denver", label: "Mountain Time (MT)" },
@@ -52,6 +58,7 @@ export function TimezoneSelector({
   }, []);
 
   const selectedLabel = useMemo(() => {
+    if (value === "") return "Organization Default";
     if (!value) return null;
 
     // Check browser timezone first
@@ -77,12 +84,20 @@ export function TimezoneSelector({
           )}
         >
           <div className="flex items-center gap-2 text-left">
-            <Globe className="w-4 h-4 text-[#3D5A3D] shrink-0" />
-            <span className={cn(!value && "text-slate-500")}>
+            <Globe
+              weight="duotone"
+              className="w-4 h-4 text-[#3D5A3D] shrink-0"
+            />
+            <span
+              className={cn(
+                "truncate",
+                value === undefined && "text-slate-500",
+              )}
+            >
               {selectedLabel || placeholder}
             </span>
           </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <CaretUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -97,6 +112,32 @@ export function TimezoneSelector({
           <CommandList className="max-h-[280px]">
             <CommandEmpty>No timezone found.</CommandEmpty>
 
+            {/* Default Group */}
+            <CommandGroup heading="Preferences">
+              <CommandItem
+                value="org-default"
+                onSelect={() => {
+                  onValueChange("");
+                  setOpen(false);
+                }}
+                className="cursor-pointer rounded-lg py-2.5"
+              >
+                <Buildings
+                  weight="duotone"
+                  className="mr-2 h-4 w-4 text-blue-500"
+                />
+                <span className="font-medium text-slate-700">
+                  Use Organization Default
+                </span>
+                <Check
+                  className={cn(
+                    "ml-auto h-4 w-4",
+                    value === "" ? "opacity-100" : "opacity-0",
+                  )}
+                />
+              </CommandItem>
+            </CommandGroup>
+
             {/* Local Timezone Group */}
             {browserTimezone && (
               <CommandGroup heading="Local Timezone">
@@ -108,7 +149,10 @@ export function TimezoneSelector({
                   }}
                   className="cursor-pointer rounded-lg py-2.5"
                 >
-                  <Monitor className="mr-2 h-4 w-4 text-[#65a30d]" />
+                  <Monitor
+                    weight="duotone"
+                    className="mr-2 h-4 w-4 text-emerald-500"
+                  />
                   <span className="font-medium text-slate-700">
                     My Device ({browserTimezone})
                   </span>

@@ -55,3 +55,15 @@ export function parseZonedTime(
 ): Date {
   return fromZonedTime(`${dateStr} ${timeStr}`, timezone);
 }
+
+/**
+ * Returns a human-readable label for a timezone value.
+ */
+export function getTimezoneLabel(
+  value: string,
+  US_TIMEZONES: { value: string; label: string }[],
+): string {
+  if (!value) return "";
+  const found = US_TIMEZONES.find((tz) => tz.value === value);
+  return found?.label || value;
+}
