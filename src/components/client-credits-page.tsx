@@ -56,6 +56,13 @@ interface Trip {
   patient_id: string;
   pickup_time: string;
   status: string;
+  trip_type: string;
+  actual_distance_miles: number | null;
+  distance_miles: number | null;
+  total_waiting_minutes: number | null;
+  billing_details?: {
+    service_type?: string;
+  } | null;
 }
 
 interface PatientCreditData {
@@ -166,7 +173,7 @@ export function ClientCreditsPage() {
       const { data, error } = await supabase
         .from("trips")
         .select(
-          "id, patient_id, pickup_time, status, trip_type, actual_distance_miles, distance_miles, total_waiting_minutes",
+          "id, patient_id, pickup_time, status, trip_type, actual_distance_miles, distance_miles, total_waiting_minutes, billing_details",
         )
         .eq("org_id", currentOrganization.id)
         .gte("pickup_time", startOfMonth.toISOString())

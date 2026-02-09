@@ -270,6 +270,13 @@ export function PatientForm({
   const onSubmit = async (data: PatientFormData) => {
     if (!currentOrganization) return;
 
+    // If not on the last step, just go to the next step
+    // This allows the "Enter" key to act as "Next" instead of submitting the form
+    if (currentStep < STEPS.length) {
+      handleNext();
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -352,6 +359,7 @@ export function PatientForm({
       handleClose();
     } catch (err) {
       console.error("Failed to save patient:", err);
+      alert(err instanceof Error ? err.message : "Failed to save patient");
     } finally {
       setIsSubmitting(false);
     }
@@ -489,556 +497,576 @@ export function PatientForm({
         {/* Form Content */}
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="flex-1 overflow-y-auto p-5"
+          className="flex flex-col flex-1 overflow-hidden"
         >
-          {/* Permission Alert */}
-          {!canEditPatients && (
-            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 text-amber-700">
-              <ShieldAlert className="w-5 h-5 shrink-0" />
-              <div>
-                <p className="font-bold text-sm">View Only Access</p>
-                <p className="text-xs mt-1">
-                  You do not have permission to modify patient records.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Google Maps Error Alert */}
-          {loadError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <div>
-                <p className="font-bold text-sm">Google Maps failed to load</p>
-                <p className="text-xs mt-1">
-                  {loadError.message ||
-                    "Please check your API key configuration."}
-                </p>
-              </div>
-            </div>
-          )}
-          {/* Step 1: Basic Information */}
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <User className="w-4 h-4 text-[#3D5A3D]" />
-                Basic Information
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    {...register("full_name")}
-                    placeholder="John Smith"
-                    className={cn("h-9", errors.full_name && "border-red-500")}
-                  />
-                  {errors.full_name && (
-                    <p className="text-xs text-red-500">
-                      {errors.full_name.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Date of Birth
-                  </label>
-                  <Input {...register("dob")} type="date" className="h-9" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Email
-                  </label>
-                  <Input
-                    {...register("email")}
-                    type="email"
-                    placeholder="patient@email.com"
-                    className={cn("h-9", errors.email && "border-red-500")}
-                  />
-                  {errors.email && (
-                    <p className="text-xs text-red-500">
-                      {errors.email.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Phone
-                  </label>
-                  <Input
-                    {...register("phone")}
-                    onChange={(e) => {
-                      const digits = e.target.value
-                        .replace(/[^\d]/g, "")
-                        .slice(0, 10);
-                      const formatted = formatPhoneNumber(digits);
-                      setValue("phone", formatted, { shouldValidate: true });
-                    }}
-                    placeholder="(555) 123-4567"
-                    className={cn("h-9", errors.phone && "border-red-500")}
-                  />
-                  {errors.phone && (
-                    <p className="text-xs text-red-500">
-                      {errors.phone.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Address
-                  </label>
-                  <AddressAutocomplete
-                    isLoaded={isLoaded}
-                    onAddressSelect={(place) => {
-                      if (place.formatted_address) {
-                        setValue("primary_address", place.formatted_address, {
-                          shouldValidate: true,
-                        });
-                        // Optionally extract county/city/state etc if needed?
-                        // For now just setting the full address string.
-                      }
-                    }}
-                    {...register("primary_address")}
-                    onChange={(val) => {
-                      setValue("primary_address", val, {
-                        shouldValidate: true,
-                      });
-                    }}
-                    placeholder="123 Main St, City, State ZIP"
-                    className="h-9"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    County
-                  </label>
-                  <Input
-                    {...register("county")}
-                    placeholder="County name"
-                    className="h-9"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Transportation Needs */}
-          {currentStep === 2 && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <Truck className="w-4 h-4 text-[#3D5A3D]" />
-                Transportation Needs
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Vehicle Type Needed <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register("vehicle_type_need")}
-                    className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
-                  >
-                    <option value="">Select type needed</option>
-                    {VEHICLE_TYPE_NEEDS.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-slate-500">
-                    Used to match with compatible drivers
+          <div className="flex-1 overflow-y-auto p-5">
+            {/* Permission Alert */}
+            {!canEditPatients && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 text-amber-700">
+                <ShieldAlert className="w-5 h-5 shrink-0" />
+                <div>
+                  <p className="font-bold text-sm">View Only Access</p>
+                  <p className="text-xs mt-1">
+                    You do not have permission to modify patient records.
                   </p>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Service Type
-                  </label>
-                  <select
-                    {...register("service_type")}
-                    className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
-                  >
-                    <option value="">Select service type</option>
-                    {SERVICE_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                  {watchedServiceType === "Other" && (
-                    <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <Input
-                        placeholder="Please specify service type"
-                        value={otherServiceType}
-                        onChange={(e) => setOtherServiceType(e.target.value)}
-                        className="h-9"
-                      />
-                    </div>
-                  )}
-                </div>
               </div>
+            )}
 
-              <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-100">
-                <h4 className="text-sm font-medium text-slate-700 mb-2">
-                  Vehicle Type Guide
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5" />
-                    <div>
-                      <span className="font-medium">COMMON CARRIER</span> -
-                      Ambulatory / Standard
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5" />
-                    <div>
-                      <span className="font-medium">FOLDED WHEELCHAIR</span> -
-                      Can fold wheelchair
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5" />
-                    <div>
-                      <span className="font-medium">WHEELCHAIR</span> - Standard
-                      Wheelchair
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5" />
-                    <div>
-                      <span className="font-medium">VAN</span> - Van / Ramp
-                      Service
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Service & Referral */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#3D5A3D]" />
-                Service & Referral Information
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Waiver Type
-                  </label>
-                  <select
-                    {...register("waiver_type")}
-                    className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
-                  >
-                    <option value="">Select waiver type</option>
-                    {WAIVER_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Referred By
-                  </label>
-                  <select
-                    {...register("referral_by")}
-                    className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
-                  >
-                    <option value="">Select source</option>
-                    {REFERRAL_SOURCES.map((source) => (
-                      <option key={source} value={source}>
-                        {source}
-                      </option>
-                    ))}
-                  </select>
-                  {watchedReferralBy === "Other" && (
-                    <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <Input
-                        placeholder="Please specify source"
-                        value={otherReferralBy}
-                        onChange={(e) => setOtherReferralBy(e.target.value)}
-                        className="h-9"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Referral Date
-                  </label>
-                  <Input
-                    {...register("referral_date")}
-                    type="date"
-                    className="h-9"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Referral Expiration
-                  </label>
-                  <Input
-                    {...register("referral_expiration_date")}
-                    type="date"
-                    className="h-9"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Case Management */}
-          {currentStep === 4 && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-[#3D5A3D]" />
-                Case Management
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Case Manager Name
-                  </label>
-                  <Input
-                    {...register("case_manager")}
-                    placeholder="Case manager name"
-                    className="h-9"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Case Manager Phone
-                  </label>
-                  <Input
-                    {...register("case_manager_phone")}
-                    onChange={(e) => {
-                      const digits = e.target.value
-                        .replace(/[^\d]/g, "")
-                        .slice(0, 10);
-                      const formatted = formatPhoneNumber(digits);
-                      setValue("case_manager_phone", formatted, {
-                        shouldValidate: true,
-                      });
-                    }}
-                    placeholder="(555) 123-4567"
-                    className="h-9"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">
-                  Case Manager Email
-                </label>
-                <Input
-                  {...register("case_manager_email")}
-                  type="email"
-                  placeholder="casemanager@example.com"
-                  className={cn(
-                    "h-9",
-                    errors.case_manager_email && "border-red-500",
-                  )}
-                />
-                {errors.case_manager_email && (
-                  <p className="text-xs text-red-500">
-                    {errors.case_manager_email.message}
+            {/* Google Maps Error Alert */}
+            {loadError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <div>
+                  <p className="font-bold text-sm">
+                    Google Maps failed to load
                   </p>
-                )}
+                  <p className="text-xs mt-1">
+                    {loadError.message ||
+                      "Please check your API key configuration."}
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            {/* Step 1: Basic Information */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <User className="w-4 h-4 text-[#3D5A3D]" />
+                  Basic Information
+                </h3>
 
-          {/* Step 5: Billing & Notes */}
-          {currentStep === 5 && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-[#3D5A3D]" />
-                Billing & Additional Information
-              </h3>
-
-              {canViewBilling && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">
-                      Monthly Credit ($)
+                      Full Name <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      {...register("monthly_credit")}
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
+                      {...register("full_name")}
+                      placeholder="John Smith"
+                      className={cn(
+                        "h-9",
+                        errors.full_name && "border-red-500",
+                      )}
+                    />
+                    {errors.full_name && (
+                      <p className="text-xs text-red-500">
+                        {errors.full_name.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Date of Birth
+                    </label>
+                    <Input {...register("dob")} type="date" className="h-9" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Email
+                    </label>
+                    <Input
+                      {...register("email")}
+                      type="email"
+                      placeholder="patient@email.com"
+                      className={cn("h-9", errors.email && "border-red-500")}
+                    />
+                    {errors.email && (
+                      <p className="text-xs text-red-500">
+                        {errors.email.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Phone
+                    </label>
+                    <Input
+                      {...register("phone")}
+                      onChange={(e) => {
+                        const digits = e.target.value
+                          .replace(/[^\d]/g, "")
+                          .slice(0, 10);
+                        const formatted = formatPhoneNumber(digits);
+                        setValue("phone", formatted, { shouldValidate: true });
+                      }}
+                      placeholder="(555) 123-4567"
+                      className={cn("h-9", errors.phone && "border-red-500")}
+                    />
+                    {errors.phone && (
+                      <p className="text-xs text-red-500">
+                        {errors.phone.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Address
+                    </label>
+                    <AddressAutocomplete
+                      isLoaded={isLoaded}
+                      onAddressSelect={(place) => {
+                        if (place.formatted_address) {
+                          setValue("primary_address", place.formatted_address, {
+                            shouldValidate: true,
+                          });
+                          // Optionally extract county/city/state etc if needed?
+                          // For now just setting the full address string.
+                        }
+                      }}
+                      {...register("primary_address")}
+                      onChange={(val) => {
+                        setValue("primary_address", val, {
+                          shouldValidate: true,
+                        });
+                      }}
+                      placeholder="123 Main St, City, State ZIP"
                       className="h-9"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">
-                      Credit Used For
+                      County
                     </label>
                     <Input
-                      {...register("credit_used_for")}
-                      placeholder="e.g., Medical appointments only"
+                      {...register("county")}
+                      placeholder="County name"
                       className="h-9"
                     />
                   </div>
                 </div>
-              )}
-
-              {canViewMedicaid && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    Medicaid ID
-                    <span className="text-xs text-slate-400 ml-2 font-normal">
-                      (Required for Medicaid billing)
-                    </span>
-                  </label>
-                  <Input
-                    {...register("medicaid_id")}
-                    placeholder="e.g., MN123456789"
-                    className="h-9"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">
-                  Notes
-                </label>
-                <textarea
-                  {...register("notes")}
-                  placeholder="Any additional notes about the patient..."
-                  className="w-full min-h-[80px] rounded-md border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
-                />
               </div>
+            )}
 
-              {/* Custom Fields Section */}
-              <div className="border-t border-slate-200 pt-4 mt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h4 className="text-sm font-medium text-slate-900">
-                      Custom Fields
-                    </h4>
+            {/* Step 2: Transportation Needs */}
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-[#3D5A3D]" />
+                  Transportation Needs
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Vehicle Type Needed{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      {...register("vehicle_type_need")}
+                      className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+                    >
+                      <option value="">Select type needed</option>
+                      {VEHICLE_TYPE_NEEDS.map((type) => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
                     <p className="text-xs text-slate-500">
-                      Add organization-specific data
+                      Used to match with compatible drivers
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addCustomField}
-                    className="gap-1 h-8"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add Field
-                  </Button>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Service Type
+                    </label>
+                    <select
+                      {...register("service_type")}
+                      className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+                    >
+                      <option value="">Select service type</option>
+                      {SERVICE_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                    {watchedServiceType === "Other" && (
+                      <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <Input
+                          placeholder="Please specify service type"
+                          value={otherServiceType}
+                          onChange={(e) => setOtherServiceType(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {customFields.length > 0 && (
-                  <div className="space-y-2">
-                    {customFields.map((cf, index) => (
-                      <div key={index} className="flex gap-2 items-center">
-                        <Input
-                          placeholder="Field name"
-                          value={cf.key}
-                          onChange={(e) =>
-                            updateCustomField(index, "key", e.target.value)
-                          }
-                          className="flex-1 h-9"
-                        />
-                        <Input
-                          placeholder="Value"
-                          value={cf.value}
-                          onChange={(e) =>
-                            updateCustomField(index, "value", e.target.value)
-                          }
-                          className="flex-1 h-9"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeCustomField(index)}
-                          className="text-slate-400 hover:text-red-500 h-9 w-9 p-0"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-100">
+                  <h4 className="text-sm font-medium text-slate-700 mb-2">
+                    Vehicle Type Guide
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5" />
+                      <div>
+                        <span className="font-medium">COMMON CARRIER</span> -
+                        Ambulatory / Standard
                       </div>
-                    ))}
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5" />
+                      <div>
+                        <span className="font-medium">FOLDED WHEELCHAIR</span> -
+                        Can fold wheelchair
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5" />
+                      <div>
+                        <span className="font-medium">WHEELCHAIR</span> -
+                        Standard Wheelchair
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5" />
+                      <div>
+                        <span className="font-medium">VAN</span> - Van / Ramp
+                        Service
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Service & Referral */}
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#3D5A3D]" />
+                  Service & Referral Information
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Waiver Type
+                    </label>
+                    <select
+                      {...register("waiver_type")}
+                      className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+                    >
+                      <option value="">Select waiver type</option>
+                      {WAIVER_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Referred By
+                    </label>
+                    <select
+                      {...register("referral_by")}
+                      className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+                    >
+                      <option value="">Select source</option>
+                      {REFERRAL_SOURCES.map((source) => (
+                        <option key={source} value={source}>
+                          {source}
+                        </option>
+                      ))}
+                    </select>
+                    {watchedReferralBy === "Other" && (
+                      <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <Input
+                          placeholder="Please specify source"
+                          value={otherReferralBy}
+                          onChange={(e) => setOtherReferralBy(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Referral Date
+                    </label>
+                    <Input
+                      {...register("referral_date")}
+                      type="date"
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Referral Expiration
+                    </label>
+                    <Input
+                      {...register("referral_expiration_date")}
+                      type="date"
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Case Management */}
+            {currentStep === 4 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-[#3D5A3D]" />
+                  Case Management
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Case Manager Name
+                    </label>
+                    <Input
+                      {...register("case_manager")}
+                      placeholder="Case manager name"
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Case Manager Phone
+                    </label>
+                    <Input
+                      {...register("case_manager_phone")}
+                      onChange={(e) => {
+                        const digits = e.target.value
+                          .replace(/[^\d]/g, "")
+                          .slice(0, 10);
+                        const formatted = formatPhoneNumber(digits);
+                        setValue("case_manager_phone", formatted, {
+                          shouldValidate: true,
+                        });
+                      }}
+                      placeholder="(555) 123-4567"
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">
+                    Case Manager Email
+                  </label>
+                  <Input
+                    {...register("case_manager_email")}
+                    type="email"
+                    placeholder="casemanager@example.com"
+                    className={cn(
+                      "h-9",
+                      errors.case_manager_email && "border-red-500",
+                    )}
+                  />
+                  {errors.case_manager_email && (
+                    <p className="text-xs text-red-500">
+                      {errors.case_manager_email.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Billing & Notes */}
+            {currentStep === 5 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-[#3D5A3D]" />
+                  Billing & Additional Information
+                </h3>
+
+                {canViewBilling && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700">
+                        Monthly Credit ($)
+                      </label>
+                      <Input
+                        {...register("monthly_credit")}
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700">
+                        Credit Used For
+                      </label>
+                      <Input
+                        {...register("credit_used_for")}
+                        placeholder="e.g., Medical appointments only"
+                        className="h-9"
+                      />
+                    </div>
                   </div>
                 )}
 
-                {customFields.length === 0 && (
-                  <p className="text-xs text-slate-400 italic">
-                    No custom fields added. Click "Add Field" to create
-                    organization-specific fields.
-                  </p>
+                {canViewMedicaid && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">
+                      Medicaid ID
+                      <span className="text-xs text-slate-400 ml-2 font-normal">
+                        (Required for Medicaid billing)
+                      </span>
+                    </label>
+                    <Input
+                      {...register("medicaid_id")}
+                      placeholder="e.g., MN123456789"
+                      className="h-9"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">
+                    Notes
+                  </label>
+                  <textarea
+                    {...register("notes")}
+                    placeholder="Any additional notes about the patient..."
+                    className="w-full min-h-[80px] rounded-md border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
+                  />
+                </div>
+
+                {/* Custom Fields Section */}
+                <div className="border-t border-slate-200 pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-900">
+                        Custom Fields
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        Add organization-specific data
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addCustomField}
+                      className="gap-1 h-8"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Field
+                    </Button>
+                  </div>
+
+                  {customFields.length > 0 && (
+                    <div className="space-y-2">
+                      {customFields.map((cf, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <Input
+                            placeholder="Field name"
+                            value={cf.key}
+                            onChange={(e) =>
+                              updateCustomField(index, "key", e.target.value)
+                            }
+                            className="flex-1 h-9"
+                          />
+                          <Input
+                            placeholder="Value"
+                            value={cf.value}
+                            onChange={(e) =>
+                              updateCustomField(index, "value", e.target.value)
+                            }
+                            className="flex-1 h-9"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeCustomField(index)}
+                            className="text-slate-400 hover:text-red-500 h-9 w-9 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {customFields.length === 0 && (
+                    <p className="text-xs text-slate-400 italic">
+                      No custom fields added. Click "Add Field" to create
+                      organization-specific fields.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer with Navigation */}
+          <DialogFooter className="p-5 border-t bg-slate-50 shrink-0">
+            <div className="flex items-center justify-between w-full">
+              <Button
+                key="back-button"
+                type="button"
+                variant="ghost"
+                onClick={handleBack}
+                disabled={currentStep === 1}
+                className="gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  key="cancel-button"
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                >
+                  Cancel
+                </Button>
+                {currentStep < STEPS.length ? (
+                  <Button
+                    key="next-button"
+                    type="button"
+                    onClick={handleNext}
+                    className="gap-2"
+                  >
+                    Next Step
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    key="submit-button"
+                    type="submit"
+                    disabled={isSubmitting || !canEditPatients}
+                    className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white gap-2 min-w-[100px]"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        {initialData ? "Save Changes" : "Create Patient"}
+                      </>
+                    )}
+                  </Button>
                 )}
               </div>
             </div>
-          )}
+          </DialogFooter>
         </form>
-
-        {/* Footer with Navigation */}
-        <DialogFooter className="p-5 border-t bg-slate-50 shrink-0">
-          <div className="flex items-center justify-between w-full">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleBack}
-              disabled={currentStep === 1}
-              className="gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Back
-            </Button>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={handleClose}>
-                Cancel
-              </Button>
-              {currentStep < STEPS.length ? (
-                <Button type="button" onClick={handleNext} className="gap-2">
-                  Next Step
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  disabled={isSubmitting || !canEditPatients}
-                  className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white gap-2 min-w-[100px]"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      {initialData ? "Save Changes" : "Create Patient"}
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

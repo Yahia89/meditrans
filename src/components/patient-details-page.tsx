@@ -132,6 +132,7 @@ export function PatientDetailsPage({
   const [tripStatusFilter, setTripStatusFilter] = useState<TripStatus | "all">(
     "all",
   );
+  const [selectedTripDate, setSelectedTripDate] = useState<Date | null>(null);
 
   const canManagePatients = canEditPatients;
 
@@ -188,6 +189,26 @@ export function PatientDetailsPage({
 
   // Filter trips by month and status
   const filteredTrips = useMemo(() => {
+    // If a specific date is selected, filter by that day
+    if (selectedTripDate) {
+      const targetDateStr = formatInUserTimezone(
+        selectedTripDate,
+        activeTimezone,
+        "yyyy-MM-dd",
+      );
+      return allTrips.filter((trip) => {
+        const tripDateStr = formatInUserTimezone(
+          trip.pickup_time,
+          activeTimezone,
+          "yyyy-MM-dd",
+        );
+        const matchesStatus =
+          tripStatusFilter === "all" || trip.status === tripStatusFilter;
+        return tripDateStr === targetDateStr && matchesStatus;
+      });
+    }
+
+    // Otherwise show all trips for the selected month
     const monthStr = formatInUserTimezone(tripMonth, activeTimezone, "yyyy-MM");
     const startOfMonthUTC = parseZonedTime(
       `${monthStr}-01`,
@@ -212,7 +233,7 @@ export function PatientDetailsPage({
         tripStatusFilter === "all" || trip.status === tripStatusFilter;
       return inMonth && matchesStatus;
     });
-  }, [allTrips, tripMonth, tripStatusFilter]);
+  }, [allTrips, tripMonth, tripStatusFilter, selectedTripDate, activeTimezone]);
 
   // Paginate filtered trips
   const paginatedTrips = useMemo(() => {
@@ -225,7 +246,7 @@ export function PatientDetailsPage({
   // Reset to page 1 when filters change
   useMemo(() => {
     setTripPage(1);
-  }, [tripMonth, tripStatusFilter]);
+  }, [tripMonth, tripStatusFilter, selectedTripDate]);
 
   const goToPrevMonth = () => {
     setTripMonth(
@@ -690,34 +711,63 @@ export function PatientDetailsPage({
           {/* Trip Filters */}
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              {/* Month Navigation */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={goToPrevMonth}
-                  className="h-8 w-8 p-0"
-                >
-                  <CaretLeft size={16} weight="bold" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToCurrentMonth}
-                  className="h-8 px-3 text-xs font-medium min-w-[140px]"
-                >
-                  <CalendarBlank size={14} weight="duotone" className="mr-2" />
-                  {formatInUserTimezone(tripMonth, activeTimezone, "MMMM yyyy")}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={goToNextMonth}
-                  className="h-8 w-8 p-0"
-                >
-                  <CaretRight size={16} weight="bold" />
-                </Button>
-              </div>
+              {/* Month Navigation - Hide when filtering by specific day */}
+              {!selectedTripDate ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={goToPrevMonth}
+                    className="h-8 w-8 p-0"
+                  >
+                    <CaretLeft size={16} weight="bold" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToCurrentMonth}
+                    className="h-8 px-3 text-xs font-medium min-w-[140px]"
+                  >
+                    <CalendarBlank
+                      size={14}
+                      weight="duotone"
+                      className="mr-2"
+                    />
+                    {formatInUserTimezone(
+                      tripMonth,
+                      activeTimezone,
+                      "MMMM yyyy",
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={goToNextMonth}
+                    className="h-8 w-8 p-0"
+                  >
+                    <CaretRight size={16} weight="bold" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium text-slate-900 bg-slate-100 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-slate-500" />
+                    {formatInUserTimezone(
+                      selectedTripDate,
+                      activeTimezone,
+                      "MMMM d, yyyy",
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedTripDate(null)}
+                    className="h-8 px-3 text-xs hover:bg-slate-100 text-slate-500"
+                  >
+                    Show all
+                  </Button>
+                </div>
+              )}
 
               {/* Status Filter */}
               <div className="flex items-center gap-2">
@@ -760,7 +810,17 @@ export function PatientDetailsPage({
                 </h3>
                 <p className="text-sm text-slate-500">
                   No trips scheduled for{" "}
-                  {formatInUserTimezone(tripMonth, activeTimezone, "MMMM yyyy")}
+                  {selectedTripDate
+                    ? formatInUserTimezone(
+                        selectedTripDate,
+                        activeTimezone,
+                        "MMMM d, yyyy",
+                      )
+                    : formatInUserTimezone(
+                        tripMonth,
+                        activeTimezone,
+                        "MMMM yyyy",
+                      )}
                   {tripStatusFilter !== "all"
                     ? ` with status "${tripStatusFilter.replace("_", " ")}"`
                     : ""}
@@ -875,6 +935,10 @@ export function PatientDetailsPage({
           referralDate={patient.referral_date}
           referralExpiration={patient.referral_expiration_date}
           serviceType={patient.service_type}
+          onDayClick={(date) => {
+            setSelectedTripDate(date);
+            setActiveTab("trips");
+          }}
         />
       )}
 

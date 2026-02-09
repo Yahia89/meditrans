@@ -130,17 +130,17 @@ export function FeeSettingsPage() {
       per_mile_fee: 2,
       deadhead_per_mile_ambulatory: 1,
 
-      foldable_wheelchair_base_fee: 35,
-      foldable_wheelchair_per_mile_fee: 2.5,
-      foldable_wheelchair_deadhead_fee: 1.25,
+      foldable_wheelchair_base_fee: 40,
+      foldable_wheelchair_per_mile_fee: 3,
+      foldable_wheelchair_deadhead_fee: 1.5,
 
       wheelchair_base_fee: 40,
       wheelchair_per_mile_fee: 3,
       wheelchair_deadhead_fee: 1.5,
 
-      ramp_van_base_fee: 55,
-      ramp_van_per_mile_fee: 4,
-      ramp_van_deadhead_fee: 2,
+      ramp_van_base_fee: 40,
+      ramp_van_per_mile_fee: 3,
+      ramp_van_deadhead_fee: 1.5,
 
       wait_time_free_minutes: 45,
       wait_time_hourly_rate: 55,
@@ -162,19 +162,19 @@ export function FeeSettingsPage() {
           Number(fees.deadhead_per_mile_ambulatory) || 1,
 
         foldable_wheelchair_base_fee:
-          Number(fees.foldable_wheelchair_base_fee) || 35,
+          Number(fees.foldable_wheelchair_base_fee) || 40,
         foldable_wheelchair_per_mile_fee:
-          Number(fees.foldable_wheelchair_per_mile_fee) || 2.5,
+          Number(fees.foldable_wheelchair_per_mile_fee) || 3,
         foldable_wheelchair_deadhead_fee:
-          Number(fees.foldable_wheelchair_deadhead_fee) || 1.25,
+          Number(fees.foldable_wheelchair_deadhead_fee) || 1.5,
 
         wheelchair_base_fee: Number(fees.wheelchair_base_fee) || 40,
         wheelchair_per_mile_fee: Number(fees.wheelchair_per_mile_fee) || 3,
         wheelchair_deadhead_fee: Number(fees.wheelchair_deadhead_fee) || 1.5,
 
-        ramp_van_base_fee: Number(fees.ramp_van_base_fee) || 55,
-        ramp_van_per_mile_fee: Number(fees.ramp_van_per_mile_fee) || 4,
-        ramp_van_deadhead_fee: Number(fees.ramp_van_deadhead_fee) || 2,
+        ramp_van_base_fee: Number(fees.ramp_van_base_fee) || 40,
+        ramp_van_per_mile_fee: Number(fees.ramp_van_per_mile_fee) || 3,
+        ramp_van_deadhead_fee: Number(fees.ramp_van_deadhead_fee) || 1.5,
 
         wait_time_free_minutes: Number(fees.wait_time_free_minutes) || 45,
         wait_time_hourly_rate: Number(fees.wait_time_hourly_rate) || 55,
@@ -237,12 +237,10 @@ export function FeeSettingsPage() {
   const previewWaitMinutes = 60;
 
   const calculateEstimate = (base: number, perMile: number) => {
-    const waitCharge =
-      Math.max(
-        0,
-        (previewWaitMinutes - (watchedValues.wait_time_free_minutes || 45)) /
-          60,
-      ) * (watchedValues.wait_time_hourly_rate || 55);
+    // Wait time: flat rate if exceeds free minutes (not pro-rated)
+    const freeMinutes = watchedValues.wait_time_free_minutes || 45;
+    const waitFlatRate = watchedValues.wait_time_hourly_rate || 55;
+    const waitCharge = previewWaitMinutes > freeMinutes ? waitFlatRate : 0;
 
     let customChargeTotal = 0;
     if (watchedValues.custom_charges) {

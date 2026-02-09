@@ -37,6 +37,7 @@ interface PatientCreditTabProps {
   referralDate: string | null;
   referralExpiration: string | null;
   serviceType: string | null;
+  onDayClick?: (date: Date) => void;
 }
 
 interface Trip {
@@ -49,6 +50,9 @@ interface Trip {
   actual_distance_miles: number | null;
   distance_miles: number | null;
   total_waiting_minutes: number | null;
+  billing_details?: {
+    service_type?: string;
+  } | null;
 }
 
 // Moved to @/lib/credit-utils.ts
@@ -62,6 +66,7 @@ export function PatientCreditTab({
   referralDate,
   referralExpiration,
   serviceType,
+  onDayClick,
 }: PatientCreditTabProps) {
   const { isOwner, isAdmin } = usePermissions();
   const { currentOrganization } = useOrganization();
@@ -117,7 +122,7 @@ export function PatientCreditTab({
       const { data, error } = await supabase
         .from("trips")
         .select(
-          "id, pickup_time, status, trip_type, pickup_location, dropoff_location, actual_distance_miles, distance_miles, total_waiting_minutes",
+          "id, pickup_time, status, trip_type, pickup_location, dropoff_location, actual_distance_miles, distance_miles, total_waiting_minutes, billing_details",
         )
         .eq("patient_id", patientId)
         .gte("pickup_time", startOfMonth.toISOString())
@@ -382,20 +387,28 @@ export function PatientCreditTab({
                   const day = i + 1;
                   const spend = dailySpend[day] || 0;
                   const hasSpend = spend > 0;
+                  const clickDate = new Date(
+                    selectedMonth.getFullYear(),
+                    selectedMonth.getMonth(),
+                    day,
+                  );
 
                   return (
                     <div
                       key={day}
+                      onClick={() => hasSpend && onDayClick?.(clickDate)}
                       className={cn(
                         "aspect-square rounded-lg border flex flex-col items-center justify-center text-xs transition-colors",
                         hasSpend
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-700 cursor-pointer hover:bg-emerald-100 hover:border-emerald-300"
                           : "bg-slate-50 border-slate-100 text-slate-400",
                       )}
                     >
                       <span className="font-medium">{day}</span>
                       {hasSpend && (
-                        <span className="text-[10px] font-bold">${spend}</span>
+                        <span className="text-[10px] font-bold">
+                          ${Math.round(spend)}
+                        </span>
                       )}
                     </div>
                   );
