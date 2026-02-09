@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Trip, TripStatusHistory } from "@/components/trips/types";
+import { formatInUserTimezone, US_TIMEZONES } from "@/lib/timezone";
 
 /**
  * Optional map image data for trip route visualization.
@@ -15,11 +16,25 @@ export interface TripMapImage {
   height: number;
 }
 
+/**
+ * Helper to get short timezone abbreviation from a timezone string
+ */
+const getTimezoneSuffix = (timezone?: string) => {
+  if (!timezone) return "";
+  const found = US_TIMEZONES.find((tz) => tz.value === timezone);
+  if (found) {
+    const match = found.label.match(/\(([^)]+)\)/);
+    return match ? ` (${match[1]})` : ` (${timezone})`;
+  }
+  return ` (${timezone})`;
+};
+
 export async function generateTripSummaryPDF(
   trip: Trip,
   journeyTrips: Trip[],
   history: TripStatusHistory[],
   orgName?: string,
+  timezone: string = "America/Chicago",
 ) {
   // Initialize with compression enabled for smaller file sizes
   const doc = new jsPDF({
@@ -28,6 +43,7 @@ export async function generateTripSummaryPDF(
 
   const pageWidth = doc.internal.pageSize.width;
   const margin = 14;
+  const tzSuffix = getTimezoneSuffix(timezone);
 
   // --- Header ---
   if (orgName) {
@@ -47,14 +63,18 @@ export async function generateTripSummaryPDF(
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139); // Slate 500
   const headerY = orgName ? 34 : 26;
-  doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, headerY);
+  doc.text(
+    `Generated on: ${formatInUserTimezone(new Date(), timezone, "MMM d, yyyy h:mm a")}${tzSuffix}`,
+    margin,
+    headerY,
+  );
   doc.text(`Trip ID: ${trip.id}`, margin, headerY + 5);
 
   if (trip.eta_sms_sent_at) {
     doc.setTextColor(30, 64, 175); // Blue 800
     doc.setFont("helvetica", "bold");
     doc.text(
-      `ETA SMS Sent at: ${new Date(trip.eta_sms_sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+      `ETA SMS Sent at: ${formatInUserTimezone(trip.eta_sms_sent_at, timezone, "h:mm a")}${tzSuffix}`,
       margin,
       headerY + 10,
     );
@@ -86,7 +106,7 @@ export async function generateTripSummaryPDF(
   doc.setTextColor(15, 23, 42); // Slate 900
   doc.text(trip.patient?.full_name || "N/A", margin + 5, patientBlockY + 14);
   doc.text(
-    new Date(trip.pickup_time).toLocaleDateString(),
+    formatInUserTimezone(trip.pickup_time, timezone, "MMM d, yyyy"),
     margin + 80,
     patientBlockY + 14,
   );
@@ -107,10 +127,7 @@ export async function generateTripSummaryPDF(
     currentY += 5;
 
     const timelineData = journeyTrips.map((leg, index) => {
-      const time = new Date(leg.pickup_time).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      const time = `${formatInUserTimezone(leg.pickup_time, timezone, "h:mm a")}${tzSuffix}`;
 
       const cleanLocation = (loc: string) =>
         loc.replace(/[!“"']+$|^\s*|\s*$/g, "").trim();
@@ -156,7 +173,7 @@ export async function generateTripSummaryPDF(
       },
       columnStyles: {
         0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 28, halign: "center" }, // Increased width for time
+        1: { cellWidth: 32, halign: "center" }, // Increased width for time + suffix
         2: { cellWidth: "auto", halign: "left" }, // Route left-aligned but padded
         3: { cellWidth: 35, fontSize: 8, halign: "center" },
         4: { cellWidth: 15, halign: "center" },
@@ -194,12 +211,12 @@ export async function generateTripSummaryPDF(
     currentY += 8;
 
     const historyData = history.map((item) => {
-      const date = new Date(item.created_at);
-      const timeStr = date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      const dateStr = date.toLocaleDateString();
+      const timeStr = `${formatInUserTimezone(item.created_at, timezone, "h:mm a")}${tzSuffix}`;
+      const dateStr = formatInUserTimezone(
+        item.created_at,
+        timezone,
+        "MM/dd/yyyy",
+      );
 
       let statusText = item.status.replace(/_/g, " ").toUpperCase();
       if (statusText.startsWith("UPDATED:")) {
@@ -229,7 +246,7 @@ export async function generateTripSummaryPDF(
         fontSize: 7,
       },
       columnStyles: {
-        0: { cellWidth: 25, halign: "center" },
+        0: { cellWidth: 32, halign: "center" }, // Increased width for time + suffix
         1: { cellWidth: "auto", fontStyle: "bold" },
         2: { cellWidth: 40, halign: "center" },
       },
@@ -402,7 +419,7 @@ export async function generateTripSummaryPDF(
       if (trip.signed_by_name)
         signerInfo += `Signed by: ${trip.signed_by_name}  |  `;
       if (trip.signature_captured_at)
-        signerInfo += `Captured: ${new Date(trip.signature_captured_at).toLocaleString()}`;
+        signerInfo += `Captured: ${formatInUserTimezone(trip.signature_captured_at, timezone, "MMM d, yyyy h:mm a")}${tzSuffix}`;
 
       if (signerInfo) {
         doc.text(signerInfo, pageWidth / 2, currentY + signatureBoxHeight - 4, {

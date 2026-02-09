@@ -14,7 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { formatInUserTimezone, parseZonedTime } from "@/lib/timezone";
-import { Path, Pencil } from "@phosphor-icons/react";
+import { Path, Pencil, Timer } from "@phosphor-icons/react";
 import type { Trip } from "./types";
 
 // ============================================================================
@@ -29,6 +29,7 @@ interface JourneyTimelineProps {
   canManage?: boolean;
   onNavigate: (id: string) => void;
   onEditMileage?: (trip: Trip) => void;
+  onEditWaitTime?: (trip: Trip) => void;
 }
 
 interface TimelineLegProps {
@@ -41,6 +42,7 @@ interface TimelineLegProps {
   totalDistance: number;
   onNavigate: (id: string) => void;
   onEditMileage?: (trip: Trip) => void;
+  onEditWaitTime?: (trip: Trip) => void;
 }
 
 // ============================================================================
@@ -111,6 +113,7 @@ const TimelineLeg = memo(function TimelineLeg({
   totalDistance,
   onNavigate,
   onEditMileage,
+  onEditWaitTime,
 }: TimelineLegProps) {
   // Stable click handler
   const handleClick = useCallback(() => {
@@ -130,6 +133,8 @@ const TimelineLeg = memo(function TimelineLeg({
   const distance = Math.ceil(
     Number(trip.actual_distance_miles || trip.distance_miles || 0),
   );
+
+  const waitMinutes = Number(trip.total_waiting_minutes) || 0;
 
   return (
     <div className="relative pl-10 group">
@@ -227,6 +232,36 @@ const TimelineLeg = memo(function TimelineLeg({
             </div>
           </div>
         )}
+
+        {/* Wait Time Badge - Only show for completed trips */}
+        {trip.status === "completed" &&
+          (waitMinutes > 0 || (isCurrent && canManage && onEditWaitTime)) && (
+            <div className="mt-2 pt-2 border-t border-slate-100/80">
+              <div
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold",
+                  isCurrent
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-slate-100 text-slate-600",
+                )}
+              >
+                <Timer weight="bold" className="w-3.5 h-3.5" />
+                {waitMinutes} min wait
+                {isCurrent && canManage && onEditWaitTime && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditWaitTime?.(trip);
+                    }}
+                    className="ml-1 p-1 hover:bg-amber-200 rounded-full text-amber-600 transition-colors"
+                    title="Edit Wait Time"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Total distance only on last item */}
@@ -257,6 +292,7 @@ export const JourneyTimeline = memo(function JourneyTimeline({
   canManage,
   onNavigate,
   onEditMileage,
+  onEditWaitTime,
 }: JourneyTimelineProps) {
   // Use the route-level cached hook
   const { data: trips } = useJourneyTrips(patientId, pickupTime, timezone);
@@ -296,6 +332,7 @@ export const JourneyTimeline = memo(function JourneyTimeline({
               totalDistance={totalDistance}
               onNavigate={onNavigate}
               onEditMileage={onEditMileage}
+              onEditWaitTime={onEditWaitTime}
             />
           ))}
         </div>

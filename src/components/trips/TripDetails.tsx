@@ -21,6 +21,7 @@ import {
   CaretLeft,
   Path,
   ArrowsClockwise,
+  Timer,
   Signature,
   PencilSimpleLine,
   FilePdf,
@@ -140,6 +141,76 @@ function EditMileageDialog({
   );
 }
 
+function EditWaitTimeDialog({
+  isOpen,
+  onOpenChange,
+  trip,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  trip: Trip | null;
+  onConfirm: (minutes: number) => void;
+}) {
+  const [minutes, setMinutes] = useState<string>("");
+
+  useEffect(() => {
+    if (trip && isOpen) {
+      setMinutes((trip.total_waiting_minutes || 0).toString());
+    }
+  }, [trip, isOpen]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onConfirm(parseInt(minutes) || 0);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit Wait Time</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">
+              Total Wait Time (Minutes)
+            </label>
+            <div className="relative">
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                required
+                value={minutes}
+                onChange={(e) => setMinutes(e.target.value)}
+                className="pl-9"
+              />
+              <div className="absolute left-3 top-2.5 text-slate-400">
+                <Timer className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">
+              Update the wait time for accurate billing. Wait time beyond the
+              free minutes will be charged.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">Save Changes</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function TripDetails({
   tripId,
   onEdit,
@@ -159,6 +230,9 @@ export function TripDetails({
   const [editingMileageTrip, setEditingMileageTrip] = useState<Trip | null>(
     null,
   );
+  const [editingWaitTimeTrip, setEditingWaitTimeTrip] = useState<Trip | null>(
+    null,
+  );
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const activeTimezone = useMemo(
@@ -175,6 +249,10 @@ export function TripDetails({
 
   const handleEditMileage = useCallback((t: Trip) => {
     setEditingMileageTrip(t);
+  }, []);
+
+  const handleEditWaitTime = useCallback((t: Trip) => {
+    setEditingWaitTimeTrip(t);
   }, []);
 
   const { data: trip, isLoading } = useQuery({
@@ -314,6 +392,46 @@ export function TripDetails({
       queryClient.invalidateQueries({
         queryKey: ["patient-daily-trips", trip?.patient_id],
       });
+    },
+  });
+
+  const updateWaitTimeMutation = useMutation({
+    mutationFn: async ({
+      tripId,
+      minutes,
+    }: {
+      tripId: string;
+      minutes: number;
+    }) => {
+      const { error } = await supabase
+        .from("trips")
+        .update({
+          total_waiting_minutes: minutes,
+        })
+        .eq("id", tripId);
+
+      if (error) throw error;
+
+      await supabase.from("trip_status_history").insert({
+        trip_id: tripId,
+        status: `UPDATED: Wait Time ${minutes} minutes`,
+        actor_id: user?.id,
+        actor_name: profile?.full_name || user?.email || "System",
+      });
+    },
+    onSuccess: () => {
+      setEditingWaitTimeTrip(null);
+      queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
+      queryClient.invalidateQueries({
+        queryKey: ["patient-daily-trips", trip?.patient_id],
+      });
+      // Invalidate journey-trips so wait time shows immediately in JourneyTimeline
+      queryClient.invalidateQueries({ queryKey: ["journey-trips"] });
+      // Also invalidate credits to recalculate
+      queryClient.invalidateQueries({ queryKey: ["trips-credits"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-credits"] });
     },
   });
 
@@ -801,6 +919,7 @@ export function TripDetails({
                                 journeyTrips || [],
                                 history || [],
                                 org?.name,
+                                activeTimezone,
                               );
                             } finally {
                               setIsGeneratingPDF(false);
@@ -837,6 +956,73 @@ export function TripDetails({
           )}
         </div>
 
+        {/* Trip Metrics - For completed trips, show mileage and wait time with edit options */}
+        {trip.status === "completed" && canManage && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">
+              Trip Metrics
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Mileage */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Path weight="duotone" className="w-4 h-4 text-blue-500" />
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Distance
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleEditMileage(trip)}
+                    className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600 transition-colors"
+                    title="Edit Mileage"
+                  >
+                    <PencilSimpleLine className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-2xl font-bold text-slate-900">
+                  {Math.ceil(
+                    Number(
+                      trip.actual_distance_miles || trip.distance_miles || 0,
+                    ),
+                  )}{" "}
+                  <span className="text-sm font-semibold text-slate-500">
+                    miles
+                  </span>
+                </p>
+              </div>
+
+              {/* Wait Time */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Timer
+                      weight="duotone"
+                      className="w-4 h-4 text-amber-500"
+                    />
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Wait Time
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleEditWaitTime(trip)}
+                    className="p-1.5 hover:bg-amber-100 rounded-lg text-amber-600 transition-colors"
+                    title="Edit Wait Time"
+                  >
+                    <PencilSimpleLine className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-2xl font-bold text-slate-900">
+                  {Number(trip.total_waiting_minutes) || 0}{" "}
+                  <span className="text-sm font-semibold text-slate-500">
+                    minutes
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Side Information */}
         <div className="flex flex-col gap-6">
           {/* Journey Timeline - Route-level cached, won't cause rerenders */}
@@ -849,6 +1035,7 @@ export function TripDetails({
               canManage={canManage}
               onNavigate={handleNavigate}
               onEditMileage={handleEditMileage}
+              onEditWaitTime={handleEditWaitTime}
             />
           )}
 
@@ -1302,6 +1489,20 @@ export function TripDetails({
               updateMileageMutation.mutate({
                 tripId: editingMileageTrip.id,
                 miles,
+              });
+            }
+          }}
+        />
+
+        <EditWaitTimeDialog
+          isOpen={!!editingWaitTimeTrip}
+          onOpenChange={(open) => !open && setEditingWaitTimeTrip(null)}
+          trip={editingWaitTimeTrip}
+          onConfirm={(minutes) => {
+            if (editingWaitTimeTrip) {
+              updateWaitTimeMutation.mutate({
+                tripId: editingWaitTimeTrip.id,
+                minutes,
               });
             }
           }}

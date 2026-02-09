@@ -18,6 +18,14 @@ export const VEHICLE_TYPE_NEEDS = [
   { value: "VAN", label: "Van" },
 ] as const;
 
+// Transport service types for trips (affects billing rates)
+export const TRANSPORT_SERVICE_TYPES = [
+  { value: "Ambulatory", label: "Ambulatory (Common Carrier)" },
+  { value: "Foldable Wheelchair", label: "Foldable Wheelchair" },
+  { value: "Wheelchair", label: "Wheelchair (Standard)" },
+  { value: "Ramp Van", label: "Ramp Van" },
+] as const;
+
 export const WAIVER_TYPES = [
   "Elderly Waiver (EW)",
   "MSHO",

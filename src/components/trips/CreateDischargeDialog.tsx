@@ -31,7 +31,13 @@ import { useLoadScript } from "@react-google-maps/api";
 import { AddressAutocomplete } from "./AddressAutocomplete";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import {
+  formatInUserTimezone,
+  getActiveTimezone,
+  US_TIMEZONES,
+} from "@/lib/timezone";
 import { TimePicker } from "./trip-utils";
+import { TRANSPORT_SERVICE_TYPES } from "@/lib/constants";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { cn } from "@/lib/utils";
@@ -57,6 +63,11 @@ export function CreateDischargeDialog({
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Get active timezone for date/time formatting and PDF summary context
+  const activeTimezone = useMemo(() => {
+    return getActiveTimezone(null, currentOrganization);
+  }, [currentOrganization]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -117,20 +128,24 @@ export function CreateDischargeDialog({
     enabled: !!currentOrganization?.id && open,
   });
 
-  // Sync Fees to FormData
+  // Sync Fees to FormData based on service type
   useEffect(() => {
     if (fees) {
-      const isWheelchair = formData.serviceType !== "Ambulatory";
+      // Wheelchair-based services: Wheelchair, Foldable Wheelchair, Ramp Van
+      const isWheelchairBased = formData.serviceType !== "Ambulatory";
       setFormData((prev) => ({
         ...prev,
-        baseFee: isWheelchair
-          ? Number(fees.wheelchair_base_fee)
+        baseFee: isWheelchairBased
+          ? Number(fees.wheelchair_base_fee || fees.base_fee)
           : Number(fees.base_fee),
-        perMileRate: isWheelchair
-          ? Number(fees.wheelchair_per_mile_fee)
+        perMileRate: isWheelchairBased
+          ? Number(fees.wheelchair_per_mile_fee || fees.per_mile_fee)
           : Number(fees.per_mile_fee),
-        dhRate: isWheelchair
-          ? Number(fees.deadhead_per_mile_wheelchair)
+        dhRate: isWheelchairBased
+          ? Number(
+              fees.deadhead_per_mile_wheelchair ||
+                fees.deadhead_per_mile_ambulatory,
+            )
           : Number(fees.deadhead_per_mile_ambulatory),
       }));
     }
@@ -272,6 +287,13 @@ export function CreateDischargeDialog({
     const doc = new jsPDF();
     const primaryColor = [61, 90, 61]; // #3D5A3D
 
+    // Helper to get short timezone abbreviation
+    const found = US_TIMEZONES.find((tz) => tz.value === activeTimezone);
+    const tzLabel = found
+      ? found.label.match(/\(([^)]+)\)/)?.[1] || activeTimezone
+      : activeTimezone;
+    const tzSuffix = ` (${tzLabel})`;
+
     // Header
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.rect(0, 0, 210, 40, "F");
@@ -284,9 +306,12 @@ export function CreateDischargeDialog({
     doc.setTextColor(50, 50, 50);
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Generated on: ${format(new Date(), "PPpp")}`, 105, 48, {
-      align: "center",
-    });
+    doc.text(
+      `Generated on: ${formatInUserTimezone(new Date(), activeTimezone, "PPpp")}${tzSuffix}`,
+      105,
+      48,
+      { align: "center" },
+    );
 
     // Organization Info
     doc.setFontSize(12);
@@ -304,7 +329,10 @@ export function CreateDischargeDialog({
           "Patient Name",
           `${formData.patientFirstName} ${formData.patientLastName}`,
         ],
-        ["Scheduled For", `${formData.tripDate} at ${formData.tripTime}`],
+        [
+          "Scheduled For",
+          `${formData.tripDate} at ${formData.tripTime}${tzSuffix}`,
+        ],
         ["Pickup From", formData.pickupLocation],
         ["Destination", formData.dropoffLocation],
         ["Trip Distance", `${formData.distanceMiles} miles`],
@@ -508,8 +536,11 @@ export function CreateDischargeDialog({
                             }
                             className="w-full h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none cursor-pointer"
                           >
-                            <option value="Ambulatory">Common Carrier</option>
-                            <option value="Wheelchair">Wheelchair</option>
+                            {TRANSPORT_SERVICE_TYPES.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <div className="space-y-2">

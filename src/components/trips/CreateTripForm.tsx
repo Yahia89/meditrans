@@ -28,6 +28,7 @@ import {
   calculateTripCost,
   type OrganizationFees,
 } from "@/lib/credit-utils";
+import { TRANSPORT_SERVICE_TYPES } from "@/lib/constants";
 
 import { TimePicker, TRIP_TYPES } from "./trip-utils";
 
@@ -39,8 +40,6 @@ import {
   formatInUserTimezone,
   getTimezoneLabel,
 } from "@/lib/timezone";
-import { US_TIMEZONES } from "../timezone-selector";
-
 // Libraries must be defined outside component to avoid re-loading
 const GOOGLE_MAPS_LIBRARIES: (
   | "places"
@@ -66,6 +65,8 @@ interface TripDraft {
 
   distance_miles?: number | null;
   duration_minutes?: number | null;
+  service_type: string; // Transport service type (Ambulatory, Wheelchair, etc.)
+  status?: string; // Trip status (for editing existing trips)
 }
 
 interface CreateTripFormProps {
@@ -113,6 +114,7 @@ export function CreateTripForm({
 
     distance_miles: null,
     duration_minutes: null,
+    service_type: "Ambulatory", // Default service type
   });
 
   const [tripLegs, setTripLegs] = useState<TripDraft[]>([]);
@@ -271,6 +273,9 @@ export function CreateTripForm({
             notes: existingTrip.notes || "",
             distance_miles: existingTrip.distance_miles,
             duration_minutes: existingTrip.duration_minutes,
+            service_type:
+              existingTrip.billing_details?.service_type || "Ambulatory",
+            status: existingTrip.status,
           };
           setTripLegs([initialLeg]);
           setActiveLegId("leg-1");
@@ -560,9 +565,13 @@ export function CreateTripForm({
           finalStatus = "assigned";
         }
 
-        // If editing an existing trip, keep its status if it's already past "pending/assigned"
+        // If editing an existing trip, use the user-selected status from the form
         if (leg.db_id && existingTrip) {
-          if (!["pending", "assigned"].includes(existingTrip.status)) {
+          // Use the status from the form if it was set (user edited it)
+          if (leg.status) {
+            finalStatus = leg.status as TripStatus;
+          } else if (!["pending", "assigned"].includes(existingTrip.status)) {
+            // Fallback: keep existing status if it's already past "pending/assigned"
             finalStatus = existingTrip.status;
           }
         }
@@ -580,6 +589,9 @@ export function CreateTripForm({
           status: finalStatus,
           distance_miles: leg.distance_miles,
           duration_minutes: leg.duration_minutes,
+          billing_details: {
+            service_type: leg.service_type,
+          },
         };
 
         if (leg.db_id) {
@@ -605,6 +617,18 @@ export function CreateTripForm({
             if (existingTrip.notes !== payload.notes) changes.push("Notes");
             if (existingTrip.distance_miles !== payload.distance_miles) {
               changes.push(`Distance: ${payload.distance_miles} miles`);
+            }
+            // Track status changes
+            if (existingTrip.status !== payload.status) {
+              changes.push(
+                `Status: ${existingTrip.status} → ${payload.status}`,
+              );
+            }
+            // Track service type changes
+            const existingServiceType =
+              existingTrip.billing_details?.service_type;
+            if (existingServiceType !== leg.service_type) {
+              changes.push(`Service Type: ${leg.service_type}`);
             }
           }
 
@@ -1066,8 +1090,8 @@ export function CreateTripForm({
                 </div>
                 <span className="text-[10px] text-slate-500 font-bold border border-slate-200 px-2 py-0.5 rounded-full bg-slate-50 shadow-sm">
                   {profile?.timezone
-                    ? getTimezoneLabel(activeTimezone, US_TIMEZONES)
-                    : `Org Default (${getTimezoneLabel(activeTimezone, US_TIMEZONES)})`}
+                    ? getTimezoneLabel(activeTimezone)
+                    : `Org Default (${getTimezoneLabel(activeTimezone)})`}
                 </span>
               </Label>
               <TimePicker
@@ -1113,6 +1137,63 @@ export function CreateTripForm({
                 )}
               </div>
             </div>
+
+            {/* Service Type - affects billing rates */}
+            <div className="space-y-2.5">
+              <Label className="flex items-center gap-2 text-slate-700 font-semibold">
+                <Car weight="duotone" className="w-4 h-4 text-blue-500" />
+                Service Type
+              </Label>
+              <select
+                value={currentLeg.service_type}
+                onChange={(e) =>
+                  updateActiveLeg({ service_type: e.target.value })
+                }
+                className="w-full rounded-md border border-slate-200 bg-slate-50 h-11 px-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-colors"
+              >
+                {TRANSPORT_SERVICE_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500">
+                Service type determines billing rates (ambulatory vs
+                wheelchair-based)
+              </p>
+            </div>
+
+            {/* Status - only shown in edit mode */}
+            {tripId && currentLeg.status && (
+              <div className="space-y-2.5">
+                <Label className="flex items-center gap-2 text-slate-700 font-semibold">
+                  <CheckCircle
+                    weight="duotone"
+                    className="w-4 h-4 text-emerald-500"
+                  />
+                  Trip Status
+                </Label>
+                <select
+                  value={currentLeg.status}
+                  onChange={(e) => updateActiveLeg({ status: e.target.value })}
+                  className="w-full rounded-md border border-slate-200 bg-slate-50 h-11 px-3 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-colors"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="en_route">En Route</option>
+                  <option value="arrived">Arrived</option>
+                  <option value="waiting">Waiting</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="no_show">No Show</option>
+                </select>
+                <p className="text-xs text-slate-500">
+                  Update trip status to correct any issues
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Notes Section */}

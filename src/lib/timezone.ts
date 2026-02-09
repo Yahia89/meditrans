@@ -1,6 +1,16 @@
 import { formatInTimeZone, toZonedTime, fromZonedTime } from "date-fns-tz";
 import { format } from "date-fns";
 
+export const US_TIMEZONES = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Phoenix", label: "Mountain Time (no DST)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HST)" },
+];
+
 /**
  * Gets the active timezone for the user.
  * Order of precedence:
@@ -59,10 +69,7 @@ export function parseZonedTime(
 /**
  * Returns a human-readable label for a timezone value.
  */
-export function getTimezoneLabel(
-  value: string,
-  US_TIMEZONES: { value: string; label: string }[],
-): string {
+export function getTimezoneLabel(value: string): string {
   if (!value) return "";
   const found = US_TIMEZONES.find((tz) => tz.value === value);
   return found?.label || value;

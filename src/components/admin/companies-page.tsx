@@ -39,7 +39,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { TimezoneSelector } from "../timezone-selector";
-import { US_TIMEZONES } from "../timezone-selector";
 import { getTimezoneLabel } from "@/lib/timezone";
 import { StateSelector } from "../state-selector";
 
@@ -67,7 +66,7 @@ interface Organization {
   contact_phone: string | null;
   operating_state: string | null;
   created_at: string;
-  onboarding_status: "pending" | "accepted" | "operating" | "in_system_already";
+  onboarding_status: "pending" | "accepted";
   accepted_at: string | null;
   org_invites?: {
     id: string;
@@ -357,32 +356,22 @@ export function CompaniesPage({
                                 weight="duotone"
                                 className="w-3.5 h-3.5 text-blue-500"
                               />
-                              {getTimezoneLabel(org.timezone, US_TIMEZONES)}
+                              {getTimezoneLabel(org.timezone)}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          {status === "pending" ? (
-                            <div className="flex items-center gap-1.5 text-xs text-amber-600 font-bold bg-amber-50 px-2.5 py-1 rounded-full w-fit">
-                              <Clock weight="fill" className="w-4 h-4" />
-                              Pending
-                            </div>
-                          ) : status === "accepted" ? (
+                          {status === "accepted" ? (
                             <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-full w-fit">
                               <CheckCircle weight="fill" className="w-4 h-4" />
                               Accepted{" "}
                               {acceptedAt &&
                                 format(new Date(acceptedAt), "MMM d")}
                             </div>
-                          ) : status === "operating" ? (
-                            <div className="flex items-center gap-1.5 text-xs text-blue-600 font-bold bg-blue-50 px-2.5 py-1 rounded-full w-fit">
-                              <Buildings weight="fill" className="w-4 h-4" />
-                              Operating
-                            </div>
                           ) : (
-                            <div className="flex items-center gap-1.5 text-xs text-slate-600 font-bold bg-slate-50 px-2.5 py-1 rounded-full w-fit">
-                              <CheckCircle weight="fill" className="w-4 h-4" />
-                              In System
+                            <div className="flex items-center gap-1.5 text-xs text-amber-600 font-bold bg-amber-50 px-2.5 py-1 rounded-full w-fit">
+                              <Clock weight="fill" className="w-4 h-4" />
+                              Pending
                             </div>
                           )}
                         </TableCell>
@@ -525,14 +514,17 @@ export function CompaniesPage({
                     setEditForm((prev) => ({
                       ...prev,
                       onboarding_status: e.target.value as any,
+                      // Auto-set accepted_at to now if moving to accepted and currently null
+                      accepted_at:
+                        e.target.value === "accepted" && !prev.accepted_at
+                          ? new Date().toISOString()
+                          : prev.accepted_at,
                     }))
                   }
                   className="rounded-xl bg-slate-50/50 border-slate-200 h-11 focus:bg-white transition-all w-full px-3 text-sm font-medium border focus:ring-1 focus:ring-[#3D5A3D]/20 outline-none"
                 >
                   <option value="pending">Pending</option>
                   <option value="accepted">Accepted</option>
-                  <option value="operating">Operating</option>
-                  <option value="in_system_already">Already in System</option>
                 </select>
               </div>
             </div>
@@ -599,6 +591,8 @@ export function CompaniesPage({
                           accepted_at: date
                             ? new Date(date).toISOString()
                             : null,
+                          // Sync onboarding_status if date is set
+                          onboarding_status: date ? "accepted" : "pending",
                         }));
                       }}
                       className="rounded-xl bg-slate-50/50 border-slate-200 h-11 focus:bg-white transition-all pl-10"
