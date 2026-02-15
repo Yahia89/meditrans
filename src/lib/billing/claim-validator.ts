@@ -23,18 +23,21 @@ export interface TripForValidation {
   driver_id: string | null;
   pickup_location: string;
   dropoff_location: string;
-  pickup_time: string;
+  scheduled_date: string;
   actual_distance_miles: number | null;
   status: string;
+  vehicle_type?: string;
   patient?: {
     full_name: string;
     medicaid_id: string | null;
+    diagnosis_code?: string;
   };
   driver?: {
     full_name: string;
     umpi: string | null;
     npi: string | null;
   };
+  service_agreement_number?: string;
 }
 
 export interface OrganizationForValidation {
@@ -50,7 +53,7 @@ export interface OrganizationForValidation {
  * Validate organization billing setup
  */
 export function validateOrganization(
-  org: OrganizationForValidation
+  org: OrganizationForValidation,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 
@@ -94,7 +97,7 @@ export function validateOrganization(
  */
 export function validateTrip(
   trip: TripForValidation,
-  org: OrganizationForValidation
+  org: OrganizationForValidation,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 
@@ -145,6 +148,15 @@ export function validateTrip(
     }
   }
 
+  // Check Service Agreement for MN
+  if (org.billing_state === "MN" && !trip.service_agreement_number) {
+    errors.push({
+      field: "service_agreement_number",
+      message: "Missing Service Agreement (SA) number for MN waiver claim",
+      severity: "error",
+    });
+  }
+
   // Check mileage
   if (!trip.actual_distance_miles || trip.actual_distance_miles <= 0) {
     errors.push({
@@ -179,7 +191,7 @@ export function validateTrip(
  */
 export function validateTripsForClaim(
   trips: TripForValidation[],
-  org: OrganizationForValidation
+  org: OrganizationForValidation,
 ): ClaimValidationResult {
   const allErrors: ValidationError[] = [];
   const allWarnings: ValidationError[] = [];
@@ -222,7 +234,7 @@ export function validateTripsForClaim(
  */
 export async function checkDuplicateBilling(
   tripId: string,
-  supabase: any
+  supabase: any,
 ): Promise<boolean> {
   const { data } = await supabase
     .from("billing_claim_lines")

@@ -12,6 +12,10 @@ interface Organization {
   billing_state?: string;
   billing_enabled?: boolean;
   timezone: string;
+  sftp_enabled?: boolean;
+  sftp_host?: string;
+  sftp_username?: string;
+  mn_its_submitter_id?: string;
 }
 
 interface OrganizationContextType {

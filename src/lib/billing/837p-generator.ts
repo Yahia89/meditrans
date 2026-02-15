@@ -7,13 +7,6 @@
  * Reference: https://www.dhs.state.mn.us (MN NEMT billing guide)
  */
 
-import {
-  getCodesForVehicleType,
-  determineVehicleType,
-  calculateMileageCharge,
-  DEFAULT_RATES,
-} from "./hcpcs-codes";
-
 export interface Claim837PData {
   organization: {
     name: string;
@@ -80,16 +73,16 @@ export function generate837P(data: Claim837PData): string {
     `ISA${elementSeparator}00${elementSeparator}          ${elementSeparator}00${elementSeparator}          ${elementSeparator}ZZ${elementSeparator}${data.organization.tax_id
       .replace("-", "")
       .padEnd(
-        15
+        15,
       )}${elementSeparator}ZZ${elementSeparator}${receiverInfo.id.padEnd(
-      15
+      15,
     )}${elementSeparator}${timestamp.slice(
       2,
-      8
+      8,
     )}${elementSeparator}${timestamp.slice(
       8,
-      12
-    )}${elementSeparator}^${elementSeparator}00501${elementSeparator}${interchangeControlNumber}${elementSeparator}0${elementSeparator}T${elementSeparator}${subElementSeparator}${segmentTerminator}`
+      12,
+    )}${elementSeparator}^${elementSeparator}00501${elementSeparator}${interchangeControlNumber}${elementSeparator}0${elementSeparator}T${elementSeparator}${subElementSeparator}${segmentTerminator}`,
   );
 
   // GS - Functional Group Header
@@ -97,20 +90,20 @@ export function generate837P(data: Claim837PData): string {
   segments.push(
     `GS${elementSeparator}HC${elementSeparator}${data.organization.tax_id.replace(
       "-",
-      ""
+      "",
     )}${elementSeparator}${receiverInfo.id}${elementSeparator}${timestamp.slice(
       2,
-      10
+      10,
     )}${elementSeparator}${timestamp.slice(
       8,
-      12
-    )}${elementSeparator}${groupControlNumber}${elementSeparator}X${elementSeparator}005010X222A1${segmentTerminator}`
+      12,
+    )}${elementSeparator}${groupControlNumber}${elementSeparator}X${elementSeparator}005010X222A1${segmentTerminator}`,
   );
 
   // ST - Transaction Set Header
   const transactionSetControlNumber = "0001";
   segments.push(
-    `ST${elementSeparator}837${elementSeparator}${transactionSetControlNumber}${elementSeparator}005010X222A1${segmentTerminator}`
+    `ST${elementSeparator}837${elementSeparator}${transactionSetControlNumber}${elementSeparator}005010X222A1${segmentTerminator}`,
   );
 
   // BHT - Beginning of Hierarchical Transaction
@@ -119,11 +112,11 @@ export function generate837P(data: Claim837PData): string {
       data.claim.controlNumber
     }${elementSeparator}${timestamp.slice(
       2,
-      10
+      10,
     )}${elementSeparator}${timestamp.slice(
       8,
-      12
-    )}${elementSeparator}CH${segmentTerminator}`
+      12,
+    )}${elementSeparator}CH${segmentTerminator}`,
   );
 
   // NM1 - Submitter Name (Organization)
@@ -132,43 +125,43 @@ export function generate837P(data: Claim837PData): string {
       data.organization.name
     }${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}46${elementSeparator}${data.organization.tax_id.replace(
       "-",
-      ""
-    )}${segmentTerminator}`
+      "",
+    )}${segmentTerminator}`,
   );
 
   // PER - Submitter Contact
   segments.push(
-    `PER${elementSeparator}IC${elementSeparator}${data.organization.name}${elementSeparator}TE${elementSeparator}0000000000${segmentTerminator}`
+    `PER${elementSeparator}IC${elementSeparator}${data.organization.name}${elementSeparator}TE${elementSeparator}0000000000${segmentTerminator}`,
   );
 
   // NM1 - Receiver Name (State Medicaid)
   segments.push(
-    `NM1${elementSeparator}40${elementSeparator}2${elementSeparator}${receiverInfo.name}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}46${elementSeparator}${receiverInfo.id}${segmentTerminator}`
+    `NM1${elementSeparator}40${elementSeparator}2${elementSeparator}${receiverInfo.name}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}46${elementSeparator}${receiverInfo.id}${segmentTerminator}`,
   );
 
   // HL - Billing Provider Hierarchical Level
   segments.push(
-    `HL${elementSeparator}1${elementSeparator}${elementSeparator}20${elementSeparator}1${segmentTerminator}`
+    `HL${elementSeparator}1${elementSeparator}${elementSeparator}20${elementSeparator}1${segmentTerminator}`,
   );
 
   // NM1 - Billing Provider Name
   segments.push(
-    `NM1${elementSeparator}85${elementSeparator}2${elementSeparator}${data.organization.name}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}XX${elementSeparator}${data.organization.npi}${segmentTerminator}`
+    `NM1${elementSeparator}85${elementSeparator}2${elementSeparator}${data.organization.name}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}XX${elementSeparator}${data.organization.npi}${segmentTerminator}`,
   );
 
   // N3 - Billing Provider Address
   segments.push(
-    `N3${elementSeparator}${data.organization.address}${segmentTerminator}`
+    `N3${elementSeparator}${data.organization.address}${segmentTerminator}`,
   );
 
   // N4 - Billing Provider City/State/ZIP
   segments.push(
-    `N4${elementSeparator}${data.organization.city}${elementSeparator}${data.organization.state}${elementSeparator}${data.organization.zip}${segmentTerminator}`
+    `N4${elementSeparator}${data.organization.city}${elementSeparator}${data.organization.state}${elementSeparator}${data.organization.zip}${segmentTerminator}`,
   );
 
   // REF - Billing Provider Tax ID
   segments.push(
-    `REF${elementSeparator}EI${elementSeparator}${data.organization.tax_id}${segmentTerminator}`
+    `REF${elementSeparator}EI${elementSeparator}${data.organization.tax_id}${segmentTerminator}`,
   );
 
   // Group lines by patient
@@ -182,7 +175,6 @@ export function generate837P(data: Claim837PData): string {
   });
 
   let subscriberCount = 0;
-  let serviceLineCount = 0;
 
   // For each patient (subscriber)
   patientGroups.forEach((lines, medicaidId) => {
@@ -193,30 +185,30 @@ export function generate837P(data: Claim837PData): string {
     segments.push(
       `HL${elementSeparator}${
         subscriberCount + 1
-      }${elementSeparator}1${elementSeparator}22${elementSeparator}0${segmentTerminator}`
+      }${elementSeparator}1${elementSeparator}22${elementSeparator}0${segmentTerminator}`,
     );
 
     // SBR - Subscriber Information
     segments.push(
-      `SBR${elementSeparator}P${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}11${segmentTerminator}`
+      `SBR${elementSeparator}P${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}11${segmentTerminator}`,
     );
 
     // NM1 - Subscriber Name
     const [lastName, ...firstNameParts] = firstLine.patientName.split(" ");
     const firstName = firstNameParts.join(" ") || lastName;
     segments.push(
-      `NM1${elementSeparator}IL${elementSeparator}1${elementSeparator}${lastName}${elementSeparator}${firstName}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}MI${elementSeparator}${medicaidId}${segmentTerminator}`
+      `NM1${elementSeparator}IL${elementSeparator}1${elementSeparator}${lastName}${elementSeparator}${firstName}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}MI${elementSeparator}${medicaidId}${segmentTerminator}`,
     );
 
     // DMG - Subscriber Demographics
     const dob = firstLine.patientDOB.replace(/[-/]/g, "");
     segments.push(
-      `DMG${elementSeparator}D8${elementSeparator}${dob}${segmentTerminator}`
+      `DMG${elementSeparator}D8${elementSeparator}${dob}${segmentTerminator}`,
     );
 
     // NM1 - Payer Name
     segments.push(
-      `NM1${elementSeparator}PR${elementSeparator}2${elementSeparator}${receiverInfo.name}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}PI${elementSeparator}${receiverInfo.id}${segmentTerminator}`
+      `NM1${elementSeparator}PR${elementSeparator}2${elementSeparator}${receiverInfo.name}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}PI${elementSeparator}${receiverInfo.id}${segmentTerminator}`,
     );
 
     // CLM - Claim Information
@@ -224,25 +216,23 @@ export function generate837P(data: Claim837PData): string {
       .reduce((sum, line) => sum + line.chargeAmount, 0)
       .toFixed(2);
     segments.push(
-      `CLM${elementSeparator}${data.claim.controlNumber}-${subscriberCount}${elementSeparator}${totalCharge}${elementSeparator}${elementSeparator}${elementSeparator}11${subElementSeparator}B${subElementSeparator}1${elementSeparator}Y${elementSeparator}A${elementSeparator}Y${elementSeparator}Y${segmentTerminator}`
+      `CLM${elementSeparator}${data.claim.controlNumber}-${subscriberCount}${elementSeparator}${totalCharge}${elementSeparator}${elementSeparator}${elementSeparator}11${subElementSeparator}B${subElementSeparator}1${elementSeparator}Y${elementSeparator}A${elementSeparator}Y${elementSeparator}Y${segmentTerminator}`,
     );
 
-    // REF - Authorization Number (CA specific requirement for many trips)
-    if (isCA && firstLine.authorizationNumber) {
+    // REF - Authorization Number (SA number for MN, Auth number for CA)
+    if (firstLine.authorizationNumber) {
       segments.push(
-        `REF${elementSeparator}G1${elementSeparator}${firstLine.authorizationNumber}${segmentTerminator}`
+        `REF${elementSeparator}G1${elementSeparator}${firstLine.authorizationNumber}${segmentTerminator}`,
       );
     }
 
     // HI - Health Care Diagnosis Code
     segments.push(
-      `HI${elementSeparator}ABK${subElementSeparator}${firstLine.diagnosisCode}${segmentTerminator}`
+      `HI${elementSeparator}ABK${subElementSeparator}${firstLine.diagnosisCode}${segmentTerminator}`,
     );
 
     // For each service line
     lines.forEach((line, index) => {
-      serviceLineCount++;
-
       // LX - Service Line Number
       segments.push(`LX${elementSeparator}${index + 1}${segmentTerminator}`);
 
@@ -254,16 +244,16 @@ export function generate837P(data: Claim837PData): string {
         `SV1${elementSeparator}HC${subElementSeparator}${
           line.hcpcsCode
         }${modifierPart}${elementSeparator}${line.chargeAmount.toFixed(
-          2
+          2,
         )}${elementSeparator}UN${elementSeparator}${
           line.units
-        }${elementSeparator}${elementSeparator}${elementSeparator}1${segmentTerminator}`
+        }${elementSeparator}${elementSeparator}${elementSeparator}1${segmentTerminator}`,
       );
 
       // DTP - Service Date
       const serviceDate = line.serviceDate.replace(/[-/]/g, "");
       segments.push(
-        `DTP${elementSeparator}472${elementSeparator}D8${elementSeparator}${serviceDate}${segmentTerminator}`
+        `DTP${elementSeparator}472${elementSeparator}D8${elementSeparator}${serviceDate}${segmentTerminator}`,
       );
 
       // NM1 - Rendering Provider (Driver)
@@ -271,7 +261,7 @@ export function generate837P(data: Claim837PData): string {
       const renderingId = isCA
         ? line.driverNPI || data.organization.npi
         : line.driverUMPI || line.driverNPI || data.organization.npi;
-      const idType = isCA ? "XX" : line.driverUMPI ? "XX" : "XX"; // Usually XX (NPI) or 1D (Medicaid ID)
+      const idType = "XX"; // Always XX (NPI) in 5010 Professional
 
       segments.push(
         `NM1${elementSeparator}82${elementSeparator}1${elementSeparator}${
@@ -280,13 +270,13 @@ export function generate837P(data: Claim837PData): string {
           .split(" ")
           .slice(1)
           .join(
-            " "
-          )}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${idType}${elementSeparator}${renderingId}${segmentTerminator}`
+            " ",
+          )}${elementSeparator}${elementSeparator}${elementSeparator}${elementSeparator}${idType}${elementSeparator}${renderingId}${segmentTerminator}`,
       );
 
       // NTE - Additional Information (Pickup/Dropoff)
       segments.push(
-        `NTE${elementSeparator}ADD${elementSeparator}PICKUP: ${line.pickupAddress} DROPOFF: ${line.dropoffAddress}${segmentTerminator}`
+        `NTE${elementSeparator}ADD${elementSeparator}PICKUP: ${line.pickupAddress} DROPOFF: ${line.dropoffAddress}${segmentTerminator}`,
       );
     });
   });
@@ -295,17 +285,17 @@ export function generate837P(data: Claim837PData): string {
   segments.push(
     `SE${elementSeparator}${
       segments.length - 3 + 1
-    }${elementSeparator}${transactionSetControlNumber}${segmentTerminator}`
+    }${elementSeparator}${transactionSetControlNumber}${segmentTerminator}`,
   );
 
   // GE - Functional Group Trailer
   segments.push(
-    `GE${elementSeparator}1${elementSeparator}${groupControlNumber}${segmentTerminator}`
+    `GE${elementSeparator}1${elementSeparator}${groupControlNumber}${segmentTerminator}`,
   );
 
   // IEA - Interchange Control Trailer
   segments.push(
-    `IEA${elementSeparator}1${elementSeparator}${interchangeControlNumber}${segmentTerminator}`
+    `IEA${elementSeparator}1${elementSeparator}${interchangeControlNumber}${segmentTerminator}`,
   );
 
   return segments.join("");
@@ -324,7 +314,7 @@ export function generateDownloadable837P(data: Claim837PData): {
     data.organization.billing_state === "CA" ? "CA_837P" : "MN_837P";
   const filename = `${prefix}_${data.organization.tax_id.replace(
     "-",
-    ""
+    "",
   )}_${timestamp}.txt`;
 
   return { content, filename };
