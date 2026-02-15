@@ -1,4 +1,6 @@
-Automating NEMT (Non‐Emergency Medical Transportation) Billing
+Automating Waiver type and NEMT (Non‐Emergency Medical Transportation) Billing
+
+
 Overview: Both Minnesota and California handle NEMT as a Medicaid benefit. In each state, claims must be submitted electronically using the HIPAA 837P professional claim format (the electronic equivalent of the CMS‑1500 form)[1][2]. In other words, yes – you will use 837P transactions (not paper forms) to bill Medicaid for trips. Providers must enroll with the state Medicaid program (Minnesota Health Care Programs – MHCP; or California’s Medi-Cal) as authorized NEMT/NMT providers and obtain the required identifiers (e.g. provider NPI and, in Minnesota, a unique Minnesota Provider Identifier (UMPI) for each driver)[3][4].
 Minnesota NEMT Billing (State-Administered)
 Claim Submission: Minnesota requires NEMT providers to bill the state directly, electronically through MN–ITS or a clearinghouse, using the 837P format[1]. (County/tribal NEMT programs may have separate local billing, but for state-plan NEMT services you submit to MHCP.) The provider (pay‐to) NPI/UMPI goes in the billing loop and the individual driver’s UMPI is the rendering provider on the claim[3]. Enter the member’s MHCP ID in the subscriber loop, the dates of transport, and as the diagnosis use Z02.9 (“Encounter for administrative examinations, unspecified”)[3] (since NEMT is an administrative transport service).

@@ -21,12 +21,7 @@ import {
   List,
   Loader2,
 } from "lucide-react";
-import {
-  Plus,
-  CloudArrowUp,
-  ArrowClockwise,
-  Globe,
-} from "@phosphor-icons/react";
+import { Plus, CloudArrowUp, ArrowClockwise } from "@phosphor-icons/react";
 import type { Trip, TripStatus } from "./types";
 import { cn } from "@/lib/utils";
 import { formatInUserTimezone, getTimezoneLabel } from "@/lib/timezone";
@@ -477,7 +472,6 @@ export function TripsScheduler({
           {/* View toggle & Timezone */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center bg-slate-100 rounded-lg p-1 mr-2 relative">
-              <Globe className="w-4 h-4 text-slate-500 mx-2" />
               <TimezoneSelector
                 value={profile?.timezone || ""}
                 onValueChange={handleUpdateTimezone}
