@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useOrganization } from "@/contexts/OrganizationContext";
 import type { Trip, TripStatus, TripStatusHistory } from "./types";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,9 +58,10 @@ import { Textarea } from "@/components/ui/textarea";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { SignatureCaptureDialog, SignatureDisplay } from "./SignatureCapture";
 import { generateTripSummaryPDF } from "@/utils/pdf-generator";
-import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
+import { formatInUserTimezone } from "@/lib/timezone";
 import { JourneyTimeline, useJourneyTrips } from "./JourneyTimeline";
 import { Loader2 } from "lucide-react";
+import { useTimezone } from "@/hooks/useTimezone";
 
 interface TripDetailsProps {
   tripId: string;
@@ -220,7 +220,6 @@ export function TripDetails({
 }: TripDetailsProps) {
   const { user, profile } = useAuth();
   const { canManageTrips } = usePermissions();
-  const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [statusToUpdate, setStatusToUpdate] = useState<TripStatus | null>(null);
@@ -235,10 +234,7 @@ export function TripDetails({
   );
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  const activeTimezone = useMemo(
-    () => getActiveTimezone(profile, currentOrganization),
-    [profile, currentOrganization],
-  );
+  const activeTimezone = useTimezone();
 
   const handleNavigate = useCallback(
     (id: string) => {

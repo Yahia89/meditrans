@@ -21,13 +21,22 @@ import {
   List,
   Loader2,
 } from "lucide-react";
-import { Plus, CloudArrowUp, ArrowClockwise } from "@phosphor-icons/react";
+import {
+  Plus,
+  CloudArrowUp,
+  ArrowClockwise,
+  Globe,
+} from "@phosphor-icons/react";
 import type { Trip, TripStatus } from "./types";
 import { cn } from "@/lib/utils";
-import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
+import { formatInUserTimezone, getTimezoneLabel } from "@/lib/timezone";
 import { TripTimeline, TripTimelineVertical } from "./TripTimeline";
 import { Input } from "@/components/ui/input";
 import { QuickAddLegDialog } from "./QuickAddLegDialog";
+import { useTimezone } from "@/hooks/useTimezone";
+import { TimezoneSelector } from "../timezone-selector";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { toast } from "sonner";
 
 interface TripsSchedulerProps {
   onCreateClick?: () => void;
@@ -52,33 +61,42 @@ const statusColors: Record<TripStatus, string> = {
 };
 
 // Generate dates for week view
-function getWeekDates(date: Date): Date[] {
+function getWeekDates(date: Date, timezone: string): Date[] {
+  const zonedDate = toZonedTime(date, timezone);
   const dates: Date[] = [];
-  const start = new Date(date);
-  start.setDate(start.getDate() - start.getDay()); // Start from Sunday
+
+  // Start from Sunday of the current week in the target timezone
+  const dayOfWeek = zonedDate.getDay();
+  const start = new Date(zonedDate);
+  start.setDate(zonedDate.getDate() - dayOfWeek);
 
   for (let i = 0; i < 7; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    dates.push(d);
+    // Convert back from zoned local to a real UTC Date representing 12am in that timezone
+    dates.push(fromZonedTime(d, timezone));
   }
   return dates;
 }
 
 // Generate dates for month view (shy calendar)
-function getMonthDates(date: Date): Date[] {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const startDay = firstDay.getDay(); // 0 = Sunday
+function getMonthDates(date: Date, timezone: string): Date[] {
+  const zonedDate = toZonedTime(date, timezone);
+  const year = zonedDate.getFullYear();
+  const month = zonedDate.getMonth();
+
+  // First day of the month in the target timezone
+  const firstDayZoned = new Date(year, month, 1);
+  const startDay = firstDayZoned.getDay(); // 0 = Sunday
 
   const dates: Date[] = [];
-  const curr = new Date(firstDay);
+  const curr = new Date(firstDayZoned);
   curr.setDate(curr.getDate() - startDay);
 
   // 42 days for 6 weeks grid to cover all months fully
   for (let i = 0; i < 42; i++) {
-    dates.push(new Date(curr));
+    const d = new Date(curr);
+    dates.push(fromZonedTime(d, timezone));
     curr.setDate(curr.getDate() + 1);
   }
   return dates;
@@ -93,8 +111,10 @@ export function TripsScheduler({
   driverId,
 }: TripsSchedulerProps) {
   const { currentOrganization } = useOrganization();
-  const { profile } = useAuth();
+  const { profile, refresh } = useAuth();
   const { isDriver } = usePermissions();
+  const activeTimezone = useTimezone();
+  const [isUpdatingTimezone, setIsUpdatingTimezone] = useState(false);
 
   // View state
   const [viewMode, setViewMode] = useState<"timeline" | "list" | "cards">(
@@ -154,18 +174,35 @@ export function TripsScheduler({
     refetchInterval: 30000, // Auto refresh every 30 seconds
   });
 
-  // Get active timezone
-  const activeTimezone = useMemo(
-    () => getActiveTimezone(profile, currentOrganization),
-    [profile, currentOrganization],
-  );
+  const handleUpdateTimezone = async (newTimezone: string) => {
+    if (!profile) return;
+    setIsUpdatingTimezone(true);
+    try {
+      const { error } = await supabase
+        .from("user_profiles")
+        .update({ timezone: newTimezone || null })
+        .eq("user_id", profile.user_id);
+
+      if (error) throw error;
+      await refresh();
+      const timezoneLabel = newTimezone
+        ? getTimezoneLabel(newTimezone)
+        : "Organization Default";
+      toast.success(`Timezone updated to ${timezoneLabel}`);
+    } catch (error: any) {
+      console.error("Error updating timezone:", error);
+      toast.error(error.message || "Failed to update timezone");
+    } finally {
+      setIsUpdatingTimezone(false);
+    }
+  };
 
   // Dates for navigation (Week or Month)
   const calendarDates = useMemo(() => {
     return isMonthExpanded
-      ? getMonthDates(selectedDate)
-      : getWeekDates(selectedDate);
-  }, [selectedDate, isMonthExpanded]);
+      ? getMonthDates(selectedDate, activeTimezone)
+      : getWeekDates(selectedDate, activeTimezone);
+  }, [selectedDate, isMonthExpanded, activeTimezone]);
 
   // Filter trips
   const filteredTrips = useMemo(() => {
@@ -437,8 +474,22 @@ export function TripsScheduler({
             </Button>
           </div>
 
-          {/* View toggle */}
-          <div className="flex items-center gap-2">
+          {/* View toggle & Timezone */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center bg-slate-100 rounded-lg p-1 mr-2 relative">
+              <Globe className="w-4 h-4 text-slate-500 mx-2" />
+              <TimezoneSelector
+                value={profile?.timezone || ""}
+                onValueChange={handleUpdateTimezone}
+                className="h-8 border-none bg-transparent shadow-none hover:bg-white/50 min-w-[200px]"
+              />
+              {isUpdatingTimezone && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+                </div>
+              )}
+            </div>
+
             <div className="relative flex-1 md:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
@@ -526,7 +577,14 @@ export function TripsScheduler({
 
             const isSelected = dateStr === selectedDateStr;
             const isToday = dateStr === todayStr;
-            const isCurrentMonth = date.getMonth() === selectedDate.getMonth();
+
+            // For Month view, check if same month in target timezone
+            const zonedDate = toZonedTime(date, activeTimezone);
+            const zonedSelected = toZonedTime(selectedDate, activeTimezone);
+            const isCurrentMonth =
+              zonedDate.getMonth() === zonedSelected.getMonth() &&
+              zonedDate.getFullYear() === zonedSelected.getFullYear();
+
             const tripCount = tripCountByDay[dateStr] || 0;
 
             return (
@@ -547,7 +605,7 @@ export function TripsScheduler({
                   {formatInUserTimezone(date, activeTimezone, "EEE")}
                 </span>
                 <span className="text-lg font-bold mt-0.5">
-                  {date.getDate()}
+                  {toZonedTime(date, activeTimezone).getDate()}
                 </span>
                 {tripCount > 0 && (
                   <span
