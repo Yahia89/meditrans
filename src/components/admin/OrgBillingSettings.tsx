@@ -273,9 +273,9 @@ export function OrgbillingSettings() {
               />
               <p className="text-[11px] leading-relaxed">
                 <span className="text-white font-bold">Automation Policy:</span>{" "}
-                When active, batches are transmitted every Tuesday and Thursday.
-                999 acknowledgements are automatically ingested 4 hours
-                post-submission.
+                Batches are transmitted only when manually initiated. 999 and
+                835 responses are automatically polled and reconciled
+                periodically from your state mailbox.
               </p>
             </div>
           </CardContent>

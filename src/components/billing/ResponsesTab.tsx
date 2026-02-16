@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import { format } from "date-fns";
 
 export function ResponsesTab() {
@@ -26,27 +27,26 @@ export function ResponsesTab() {
   const { data: responses, isLoading } = useQuery({
     queryKey: ["billing-responses", currentOrganization?.id],
     queryFn: async () => {
-      // Placeholder for response ingestion logs
-      return [
-        {
-          id: "1",
-          file_name: "999_ACK_CLAIM_20240214.txt",
-          type: "999 Acknowledgement",
-          claim_control: "BC-20240214-001",
-          status: "accepted",
-          received_at: new Date().toISOString(),
-          details: "1 claim accepted, 0 rejected",
-        },
-        {
-          id: "2",
-          file_name: "835_REMIT_CLAIM_20240201.txt",
-          type: "835 Remittance",
-          claim_control: "BC-20240201-042",
-          status: "paid",
-          received_at: new Date(Date.now() - 86400000).toISOString(),
-          details: "Total PAID: $452.20",
-        },
-      ];
+      const { data, error } = await supabase
+        .from("billing_response_logs")
+        .select("*")
+        .eq("org_id", currentOrganization?.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.warn("Response logs table might be missing:", error);
+        return [];
+      }
+
+      return data.map((r: any) => ({
+        id: r.id,
+        file_name: r.file_name,
+        type: r.file_type === "999" ? "999 Acknowledgement" : "835 Remittance",
+        status: r.status,
+        received_at: r.created_at,
+        details:
+          r.file_type === "999" ? "Acknowledgement" : "Remittance Detail",
+      }));
     },
     enabled: !!currentOrganization?.id,
   });

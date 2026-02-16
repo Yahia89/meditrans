@@ -10,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Warning,
   CircleNotch,
@@ -20,6 +22,7 @@ import {
   XCircle,
   ArrowsClockwise,
   DownloadSimple,
+  PaperPlaneTilt,
 } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -51,6 +54,9 @@ export function ClaimSummaryDialog({
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
   const [selectedTrips, setSelectedTrips] = useState<Set<string>>(new Set());
+  const [submitAutomatically, setSubmitAutomatically] = useState(
+    currentOrganization?.sftp_enabled || false,
+  );
 
   // Fetch Service Agreements for automatic SA# mapping
   const { data: serviceAgreements } = useQuery({
@@ -291,7 +297,29 @@ export function ClaimSummaryDialog({
       };
 
       const { content, filename } = generateDownloadable837P(claimData as any);
-      download837PFile(content, filename);
+
+      // Update with file data for automation worker
+      await supabase
+        .from("billing_claims")
+        .update({
+          generated_file_name: filename,
+          generated_file_data: content,
+        })
+        .eq("id", claim.id);
+
+      if (submitAutomatically) {
+        // Call Edge Function
+        const { error: submitError } = await supabase.functions.invoke(
+          "submit-claims",
+          {
+            body: { claim_id: claim.id },
+          },
+        );
+        if (submitError) throw submitError;
+      } else {
+        download837PFile(content, filename);
+      }
+
       return claim;
     },
     onSuccess: () => {
@@ -493,10 +521,28 @@ export function ClaimSummaryDialog({
         </div>
 
         <DialogFooter className="p-8 border-t border-slate-100 bg-white shrink-0 flex items-center justify-between">
-          <div className="hidden sm:block">
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
-              Selected {selectedTrips.size} / {validTrips.length}
-            </p>
+          <div className="flex items-center gap-6">
+            <div className="hidden sm:block">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                Selected {selectedTrips.size} / {validTrips.length}
+              </p>
+            </div>
+
+            {currentOrganization?.sftp_enabled && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100">
+                <Switch
+                  id="auto-submit"
+                  checked={submitAutomatically}
+                  onCheckedChange={setSubmitAutomatically}
+                />
+                <Label
+                  htmlFor="auto-submit"
+                  className="text-[10px] font-black uppercase tracking-widest text-slate-500 cursor-pointer"
+                >
+                  Direct Transmit
+                </Label>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Button
@@ -511,16 +557,20 @@ export function ClaimSummaryDialog({
                 selectedTrips.size === 0 || generateClaimMutation.isPending
               }
               onClick={() => generateClaimMutation.mutate()}
-              className="bg-slate-900 text-white hover:bg-slate-800 gap-3 px-8 h-12 font-black shadow-xl shadow-slate-900/10 min-w-[220px]"
+              className={`${submitAutomatically ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-900 hover:bg-slate-800"} text-white gap-3 px-8 h-12 font-black shadow-xl min-w-[220px] transition-all`}
             >
               {generateClaimMutation.isPending ? (
                 <CircleNotch size={20} className="animate-spin" weight="bold" />
+              ) : submitAutomatically ? (
+                <PaperPlaneTilt size={20} weight="bold" />
               ) : (
                 <DownloadSimple size={20} weight="bold" />
               )}
               {generateClaimMutation.isPending
-                ? "Generating..."
-                : "Finalize & Export"}
+                ? "Processing..."
+                : submitAutomatically
+                  ? "Transmit via MN-ITS"
+                  : "Finalize & Export"}
             </Button>
           </div>
         </DialogFooter>
