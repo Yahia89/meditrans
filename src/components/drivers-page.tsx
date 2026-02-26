@@ -36,6 +36,14 @@ import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-di
 import { DriverDetailsPage } from "@/components/driver-details-page";
 import { Checkbox } from "@/components/ui/checkbox";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useQueryState } from "nuqs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Driver {
   id: string;
@@ -125,8 +133,6 @@ const demoDrivers: Driver[] = [
     status: "offline",
   },
 ];
-
-const ITEMS_PER_PAGE = 5;
 
 // Inline stat component matching reference design
 function InlineStat({
@@ -223,7 +229,13 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
   // View and pagination state
   const [viewMode, setViewMode] = useState<"bento" | "list">("bento");
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useQueryState("limit", {
+    defaultValue: "5",
+    parse: (v) => v || "5",
+  });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const limit = itemsPerPage === "all" ? 9999 : parseInt(itemsPerPage, 10);
 
   const { data: realDrivers, isLoading } = useQuery({
     queryKey: ["drivers", currentOrganization?.id],
@@ -351,11 +363,11 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
   }, [drivers, searchQuery]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredDrivers.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredDrivers.length / limit);
   const paginatedDrivers = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredDrivers.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredDrivers, currentPage]);
+    const start = (currentPage - 1) * limit;
+    return filteredDrivers.slice(start, start + limit);
+  }, [filteredDrivers, currentPage, limit]);
 
   // Reset to page 1 when search changes
   useMemo(() => {
@@ -600,13 +612,27 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
           />
         </div>
-        <Button
-          variant="outline"
-          className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
+        <Select
+          value={itemsPerPage}
+          onValueChange={(val) => {
+            setItemsPerPage(val);
+            setCurrentPage(1);
+          }}
         >
-          <Funnel size={16} />
-          Filters
-        </Button>
+          <SelectTrigger className="w-[130px] rounded-lg border-slate-200 bg-white hover:bg-slate-50 h-[42px]">
+            <div className="flex items-center gap-2">
+              <Funnel size={16} />
+              <SelectValue placeholder="Show 5" />
+            </div>
+          </SelectTrigger>
+          <SelectContent position="popper" align="end" className="z-[100]">
+            <SelectItem value="5">Show 5</SelectItem>
+            <SelectItem value="10">Show 10</SelectItem>
+            <SelectItem value="25">Show 25</SelectItem>
+            <SelectItem value="50">Show 50</SelectItem>
+            <SelectItem value="all">Show All</SelectItem>
+          </SelectContent>
+        </Select>
         <Button
           variant="outline"
           onClick={handleExport}
@@ -1051,14 +1077,11 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
         <p className="text-sm text-slate-500">
           Showing{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min(
-              (currentPage - 1) * ITEMS_PER_PAGE + 1,
-              filteredDrivers.length,
-            )}
+            {Math.min((currentPage - 1) * limit + 1, filteredDrivers.length)}
           </span>{" "}
           -{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min(currentPage * ITEMS_PER_PAGE, filteredDrivers.length)}
+            {Math.min(currentPage * limit, filteredDrivers.length)}
           </span>{" "}
           of{" "}
           <span className="font-semibold text-slate-900">

@@ -110,6 +110,7 @@ function AppContent() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [fromPage, setFromPage] = useQueryState("from");
   const [_, setSection] = useQueryState("section");
+  const [__, setDate] = useQueryState("date");
 
   // Centralized Access Control and Redirection
   useEffect(() => {
@@ -284,11 +285,15 @@ function AppContent() {
             <PatientDetailsPage
               id={patientId || ""}
               onBack={() => {
-                setCurrentPage((fromPage as Page) || "patients");
+                const target = (fromPage as Page) || "patients";
+                setCurrentPage(target);
                 setPatientId(null);
                 setFromPage(null);
+                setSection(null);
+                setDate(null);
               }}
               onTripClick={(id) => {
+                setFromPage("patient-details");
                 setTripId(id);
                 setCurrentPage("trip-details");
               }}
@@ -313,11 +318,15 @@ function AppContent() {
             <DriverDetailsPage
               id={driverId || ""}
               onBack={() => {
-                setCurrentPage((fromPage as Page) || "drivers");
+                const target = (fromPage as Page) || "drivers";
+                setCurrentPage(target);
                 setDriverId(null);
                 setFromPage(null);
+                setSection(null);
+                setDate(null);
               }}
               onTripClick={(id) => {
+                setFromPage("driver-details");
                 setTripId(id);
                 setCurrentPage("trip-details");
               }}
@@ -342,9 +351,12 @@ function AppContent() {
             <EmployeeDetailsPage
               id={employeeId || ""}
               onBack={() => {
-                setCurrentPage((fromPage as Page) || "employees");
+                const target = (fromPage as Page) || "employees";
+                setCurrentPage(target);
                 setEmployeeId(null);
                 setFromPage(null);
+                setSection(null);
+                setDate(null);
               }}
             />
           </DashboardPage>

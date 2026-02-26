@@ -37,6 +37,14 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useQueryState } from "nuqs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Patient {
   id: string;
@@ -124,8 +132,6 @@ const demoPatients: Patient[] = [
   },
 ];
 
-const ITEMS_PER_PAGE = 5;
-
 // Inline stat component matching reference design
 function InlineStat({
   label,
@@ -212,7 +218,13 @@ export function PatientsPage({
   // View and pagination state
   const [viewMode, setViewMode] = useState<"bento" | "list">("bento");
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useQueryState("limit", {
+    defaultValue: "5",
+    parse: (v) => v || "5",
+  });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const limit = itemsPerPage === "all" ? 9999 : parseInt(itemsPerPage, 10);
 
   // Use permission flag for patient management (admin+ only)
   const canManagePatients = canEditPatients;
@@ -339,11 +351,11 @@ export function PatientsPage({
   }, [patients, searchQuery]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredPatients.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredPatients.length / limit);
   const paginatedPatients = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredPatients.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredPatients, currentPage]);
+    const start = (currentPage - 1) * limit;
+    return filteredPatients.slice(start, start + limit);
+  }, [filteredPatients, currentPage, limit]);
 
   // Reset to page 1 when search changes
   useMemo(() => {
@@ -606,13 +618,27 @@ export function PatientsPage({
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
           />
         </div>
-        <Button
-          variant="outline"
-          className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
+        <Select
+          value={itemsPerPage}
+          onValueChange={(val) => {
+            setItemsPerPage(val);
+            setCurrentPage(1);
+          }}
         >
-          <Funnel size={16} />
-          Filters
-        </Button>
+          <SelectTrigger className="w-[130px] rounded-lg border-slate-200 bg-white hover:bg-slate-50 h-[42px]">
+            <div className="flex items-center gap-2">
+              <Funnel size={16} />
+              <SelectValue placeholder="Show 5" />
+            </div>
+          </SelectTrigger>
+          <SelectContent position="popper" align="end" className="z-[100]">
+            <SelectItem value="5">Show 5</SelectItem>
+            <SelectItem value="10">Show 10</SelectItem>
+            <SelectItem value="25">Show 25</SelectItem>
+            <SelectItem value="50">Show 50</SelectItem>
+            <SelectItem value="all">Show All</SelectItem>
+          </SelectContent>
+        </Select>
         <Button
           variant="outline"
           onClick={handleExport}
@@ -1071,14 +1097,11 @@ export function PatientsPage({
         <p className="text-sm text-slate-500">
           Showing{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min(
-              (currentPage - 1) * ITEMS_PER_PAGE + 1,
-              filteredPatients.length,
-            )}
+            {Math.min((currentPage - 1) * limit + 1, filteredPatients.length)}
           </span>{" "}
           -{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min(currentPage * ITEMS_PER_PAGE, filteredPatients.length)}
+            {Math.min(currentPage * limit, filteredPatients.length)}
           </span>{" "}
           of{" "}
           <span className="font-semibold text-slate-900">

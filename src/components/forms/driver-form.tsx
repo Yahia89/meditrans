@@ -60,6 +60,7 @@ const driverSchema = z.object({
 
   vehicle_make: z.string().optional(),
   vehicle_model: z.string().optional(),
+  vehicle_type: z.string().optional(),
   vehicle_color: z.string().optional(),
   license_plate: z.string().optional(),
   // Compliance
@@ -162,6 +163,7 @@ export function DriverForm({
 
           vehicle_make: initialData.vehicle_make || "",
           vehicle_model: initialData.vehicle_model || "",
+          vehicle_type: initialData.vehicle_type || "",
           vehicle_color: initialData.vehicle_color || "",
           license_plate: initialData.license_plate || "",
           dot_medical_number: initialData.dot_medical_number || "",
@@ -177,6 +179,8 @@ export function DriverForm({
           license_number: initialData.license_number || "",
           vehicle_info: initialData.vehicle_info || "",
           notes: initialData.notes || "",
+          umpi: initialData.umpi || "",
+          npi: initialData.npi || "",
         }
       : {
           full_name: "",
@@ -188,6 +192,7 @@ export function DriverForm({
 
           vehicle_make: "",
           vehicle_model: "",
+          vehicle_type: "",
           vehicle_color: "",
           license_plate: "",
           dot_medical_number: "",
@@ -202,6 +207,8 @@ export function DriverForm({
           license_number: "",
           vehicle_info: "",
           notes: "",
+          umpi: "",
+          npi: "",
           send_invite: true,
         },
   });
@@ -279,6 +286,7 @@ export function DriverForm({
 
         vehicle_make: data.vehicle_make || null,
         vehicle_model: data.vehicle_model || null,
+        vehicle_type: data.vehicle_type || null,
         vehicle_color: data.vehicle_color || null,
         license_plate: data.license_plate || null,
         dot_medical_number: data.dot_medical_number || null,
@@ -293,6 +301,8 @@ export function DriverForm({
         license_number: data.license_number || null,
         vehicle_info: data.vehicle_info || null,
         notes: data.notes || null,
+        umpi: data.umpi || null,
+        npi: data.npi || null,
         custom_fields: Object.keys(fieldsObj).length > 0 ? fieldsObj : null,
       };
 
@@ -366,6 +376,7 @@ export function DriverForm({
         fieldsToValidate = [
           "vehicle_make",
           "vehicle_model",
+          "vehicle_type",
           "vehicle_color",
           "license_plate",
         ];
@@ -689,6 +700,23 @@ export function DriverForm({
                         placeholder="ABC-1234"
                         className="h-9"
                       />
+                    </div>
+                    <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                      <label className="text-sm font-medium text-slate-700">
+                        Vehicle Type
+                      </label>
+                      <select
+                        {...register("vehicle_type")}
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">Select type...</option>
+                        <option value="Sedan">Sedan</option>
+                        <option value="SUV">SUV</option>
+                        <option value="Van">Van</option>
+                        <option value="WAV">WAV (Wheelchair)</option>
+                        <option value="Ambulance">Ambulance</option>
+                        <option value="Other">Other</option>
+                      </select>
                     </div>
                   </div>
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryState } from "nuqs";
 import {
   ArrowLeft,
   Phone,
@@ -67,6 +68,8 @@ interface Driver {
   created_at: string;
   custom_fields: Record<string, any> | null;
   user_id: string | null;
+  umpi: string | null;
+  npi: string | null;
 }
 
 function formatDate(dateStr: string | null, timezone: string) {
@@ -96,9 +99,13 @@ export function DriverDetailsPage({
   onBack,
   onTripClick,
 }: DriverDetailsPageProps) {
-  const [activeTab, setActiveTab] = useState<
+  const [activeTab, setActiveTab] = useQueryState<
     "overview" | "documents" | "trips"
-  >("overview");
+  >("section", {
+    defaultValue: "overview",
+    parse: (value) =>
+      (value as "overview" | "documents" | "trips") || "overview",
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -856,6 +863,8 @@ export function DriverDetailsPage({
           driver_record_issue_date: driver.driver_record_issue_date || "",
           driver_record_expiration: driver.driver_record_expiration || "",
           notes: driver.notes || "",
+          umpi: driver.umpi || "",
+          npi: driver.npi || "",
           custom_fields: driver.custom_fields,
         }}
       />

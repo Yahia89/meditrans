@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useQueryState } from "nuqs";
 import {
   ArrowLeft,
   Calendar,
@@ -106,9 +107,13 @@ export function PatientDetailsPage({
   onBack,
   onTripClick,
 }: PatientDetailsPageProps) {
-  const [activeTab, setActiveTab] = useState<
+  const [activeTab, setActiveTab] = useQueryState<
     "overview" | "documents" | "trips" | "credits"
-  >("overview");
+  >("section", {
+    defaultValue: "overview",
+    parse: (value) =>
+      (value as "overview" | "documents" | "trips" | "credits") || "overview",
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -132,7 +137,10 @@ export function PatientDetailsPage({
   const [tripStatusFilter, setTripStatusFilter] = useState<TripStatus | "all">(
     "all",
   );
-  const [selectedTripDate, setSelectedTripDate] = useState<Date | null>(null);
+  const [selectedTripDate, setSelectedTripDate] = useQueryState("date", {
+    parse: (v) => (v ? new Date(v) : null),
+    serialize: (v) => v?.toISOString() ?? "",
+  });
 
   const canManagePatients = canEditPatients;
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryState } from "nuqs";
 import {
   ArrowLeft,
   Phone,
@@ -106,9 +107,13 @@ function RoleBadge({ rbacRole }: { rbacRole: string | null }) {
 }
 
 export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
-  const [activeTab, setActiveTab] = useState<
+  const [activeTab, setActiveTab] = useQueryState<
     "overview" | "documents" | "trips"
-  >("overview");
+  >("section", {
+    defaultValue: "overview",
+    parse: (value) =>
+      (value as "overview" | "documents" | "trips") || "overview",
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);

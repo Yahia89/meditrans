@@ -45,6 +45,14 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useQueryState } from "nuqs";
+import {
+  Select as CustomSelect,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Employee {
   id: string;
@@ -61,8 +69,6 @@ interface Employee {
   system_role?: string | null; // Synced from organization_memberships via trigger
   user_id?: string | null;
 }
-
-const ITEMS_PER_PAGE = 5;
 
 // Demo data for preview mode
 
@@ -267,6 +273,12 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   // View and pagination state
   const [viewMode, setViewMode] = useState<"bento" | "list">("bento");
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useQueryState("limit", {
+    defaultValue: "5",
+    parse: (v) => v || "5",
+  });
+
+  const limit = itemsPerPage === "all" ? 9999 : parseInt(itemsPerPage, 10);
 
   // Multi-select state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -445,11 +457,11 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   }, [employees, memberPresenceMap]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredEmployees.length / limit);
   const paginatedEmployees = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredEmployees.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredEmployees, currentPage]);
+    const start = (currentPage - 1) * limit;
+    return filteredEmployees.slice(start, start + limit);
+  }, [filteredEmployees, currentPage, limit]);
 
   // Reset to page 1 when search or filter changes
   useMemo(() => {
@@ -696,26 +708,48 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
         </div>
 
         {/* Status Filter */}
-        <div className="relative min-w-[160px]">
-          <select
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(
-                e.target.value as "all" | "online" | "away" | "offline",
-              )
-            }
-            className="h-10 w-full appearance-none pl-4 pr-10 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D] cursor-pointer"
-          >
-            <option value="all">All Status</option>
-            <option value="online">Online Only</option>
-            <option value="away">Away Only</option>
-            <option value="offline">Offline Only</option>
-          </select>
-          <Funnel
-            size={16}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-          />
-        </div>
+        <CustomSelect
+          value={statusFilter}
+          onValueChange={(val) =>
+            setStatusFilter(val as "all" | "online" | "away" | "offline")
+          }
+        >
+          <SelectTrigger className="w-[160px] rounded-lg border-slate-200 bg-white hover:bg-slate-50 h-10">
+            <div className="flex items-center gap-2 text-sm text-slate-900">
+              <Funnel size={16} />
+              <SelectValue placeholder="All Status" />
+            </div>
+          </SelectTrigger>
+          <SelectContent position="popper" align="end" className="z-[100]">
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="online">Online Only</SelectItem>
+            <SelectItem value="away">Away Only</SelectItem>
+            <SelectItem value="offline">Offline Only</SelectItem>
+          </SelectContent>
+        </CustomSelect>
+
+        {/* Rows per page selector */}
+        <CustomSelect
+          value={itemsPerPage}
+          onValueChange={(val) => {
+            setItemsPerPage(val);
+            setCurrentPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[120px] rounded-lg border-slate-200 bg-white hover:bg-slate-50 h-10">
+            <div className="flex items-center gap-2 text-sm text-slate-900">
+              <List size={16} />
+              <SelectValue placeholder="Show 5" />
+            </div>
+          </SelectTrigger>
+          <SelectContent position="popper" align="end" className="z-[100]">
+            <SelectItem value="5">Show 5</SelectItem>
+            <SelectItem value="10">Show 10</SelectItem>
+            <SelectItem value="25">Show 25</SelectItem>
+            <SelectItem value="50">Show 50</SelectItem>
+            <SelectItem value="all">Show All</SelectItem>
+          </SelectContent>
+        </CustomSelect>
 
         <Button
           variant="outline"
@@ -1163,14 +1197,11 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
         <p className="text-sm text-slate-500">
           Showing{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min(
-              (currentPage - 1) * ITEMS_PER_PAGE + 1,
-              filteredEmployees.length,
-            )}
+            {Math.min((currentPage - 1) * limit + 1, filteredEmployees.length)}
           </span>{" "}
           -{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min(currentPage * ITEMS_PER_PAGE, filteredEmployees.length)}
+            {Math.min(currentPage * limit, filteredEmployees.length)}
           </span>{" "}
           of{" "}
           <span className="font-semibold text-slate-900">
