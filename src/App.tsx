@@ -55,6 +55,7 @@ export const pages = [
   "companies",
   "reset-password",
   "fees",
+  "summary",
 ] as const;
 
 export type Page = (typeof pages)[number];
@@ -77,6 +78,7 @@ import { LiveTrackingPage } from "./components/live/LiveTrackingPage";
 import { CompaniesPage } from "./components/admin/companies-page";
 import { ResetPasswordPage } from "./components/reset-password-page";
 import { FeeSettingsPage } from "./components/admin/FeeSettingsPage";
+import { SummaryPage } from "./components/summary-page";
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
@@ -137,8 +139,15 @@ function AppContent() {
         "client-credits",
         "medicaid-billing",
         "live-tracking",
+        "summary",
       ],
-      employee: ["founder", "billing", "medicaid-billing", "live-tracking"],
+      employee: [
+        "founder",
+        "billing",
+        "medicaid-billing",
+        "live-tracking",
+        "summary",
+      ],
       // Dispatch: No employees, no upload, no billing, no notifications, no medicaid
       dispatch: [
         "founder",
@@ -501,6 +510,12 @@ function AppContent() {
         return (
           <DashboardPage title="Fee Schedule">
             <FeeSettingsPage />
+          </DashboardPage>
+        );
+      case "summary":
+        return (
+          <DashboardPage title="Trips Summary">
+            <SummaryPage />
           </DashboardPage>
         );
       default:

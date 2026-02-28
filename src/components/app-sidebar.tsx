@@ -14,6 +14,7 @@ import {
   FileText,
   Broadcast,
   Buildings,
+  FilePdf,
 } from "@phosphor-icons/react";
 
 import { NavUser } from "@/components/nav-user";
@@ -72,6 +73,11 @@ const data = {
       url: "upload" as Page,
       icon: UploadSimple,
     },
+    {
+      title: "Summary",
+      url: "summary" as Page,
+      icon: FilePdf,
+    },
   ],
 };
 
@@ -104,6 +110,9 @@ export function AppSidebar({
 
     // Live: only visible to dispatch+ (owner, admin, dispatch)
     if (item.url === "live-tracking" && !isDispatch) return false;
+
+    // Summary: only visible to dispatch+ (owner, admin, dispatch)
+    if (item.url === "summary" && !isDispatch) return false;
 
     return true;
   });
