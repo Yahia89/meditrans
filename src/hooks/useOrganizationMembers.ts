@@ -1,9 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type MembershipRole } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 type PresenceStatus = "online" | "away" | "offline";
+
+// Members whose last_active_at is older than this are shown as offline
+// on the client side, even if the DB hasn't been cleaned up yet.
+const STALE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
 
 export interface OrganizationMember {
   id: string;
@@ -34,15 +38,44 @@ interface UseOrganizationMembersResult {
 }
 
 /**
- * Hook to fetch organization members with their real-time presence status
- * Includes realtime subscription for live presence updates
+ * Derive the effective presence status.
+ * If the DB says "online" or "away" but last_active_at is stale,
+ * we override to "offline" on the client side for instant UI feedback.
+ */
+function derivePresenceStatus(
+  dbStatus: string | null,
+  lastActiveAt: string | null,
+): PresenceStatus {
+  const status = (dbStatus || "offline") as PresenceStatus;
+
+  if (status === "offline") return "offline";
+
+  // If last_active_at is missing, trust the DB
+  if (!lastActiveAt) return status;
+
+  const lastActive = new Date(lastActiveAt).getTime();
+  const now = Date.now();
+
+  if (now - lastActive > STALE_THRESHOLD_MS) {
+    return "offline";
+  }
+
+  return status;
+}
+
+/**
+ * Hook to fetch organization members with their real-time presence status.
+ * Includes:
+ * - Realtime subscription for live presence updates via Postgres changes
+ * - Client-side stale detection (marks users offline if last_active_at > 2 min)
+ * - Periodic refetch every 30s for self-healing
  */
 export function useOrganizationMembers(): UseOrganizationMembersResult {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
 
   const {
-    data: members = [],
+    data: rawMembers = [],
     isLoading,
     error,
     refetch,
@@ -63,7 +96,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
           presence_status,
           last_active_at,
           created_at
-        `
+        `,
         )
         .eq("org_id", currentOrganization.id)
         .order("role", { ascending: true });
@@ -83,8 +116,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
 
       if (profileError) throw profileError;
 
-      // Fetch user emails from auth.users via a function or join
-      // Since we can't directly query auth.users, we'll get emails from org_invites as a fallback
+      // Fetch user emails from org_invites as a fallback
       const { data: invites } = await supabase
         .from("org_invites")
         .select("email, role")
@@ -95,19 +127,19 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
       const { data: employees, error: employeeError } = await supabase
         .from("employees")
         .select(
-          "id, email, full_name, department, role, phone, hire_date, user_id"
+          "id, email, full_name, department, role, phone, hire_date, user_id",
         )
         .eq("org_id", currentOrganization.id);
 
       if (employeeError) throw employeeError;
 
-      // Create lookup maps
+      // Create lookup maps (O(1) lookups per js-set-map-lookups)
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
       const employeeByUserIdMap = new Map(
-        (employees || []).filter((e) => e.user_id).map((e) => [e.user_id, e])
+        (employees || []).filter((e) => e.user_id).map((e) => [e.user_id, e]),
       );
       const inviteByRoleMap = new Map(
-        invites?.map((i) => [i.role, i.email]) || []
+        invites?.map((i) => [i.role, i.email]) || [],
       );
 
       // Combine data
@@ -126,7 +158,11 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
           email,
           full_name: profile?.full_name || employee?.full_name || null,
           role: m.role as MembershipRole,
-          presence_status: (m.presence_status || "offline") as PresenceStatus,
+          // Apply client-side stale detection
+          presence_status: derivePresenceStatus(
+            m.presence_status,
+            m.last_active_at,
+          ),
           last_active_at: m.last_active_at,
           is_primary: m.is_primary,
           created_at: m.created_at,
@@ -141,9 +177,23 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
       return combinedMembers;
     },
     enabled: !!currentOrganization?.id,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 60 * 1000, // Refetch every minute for presence updates
+    staleTime: 15 * 1000, // 15 seconds
+    refetchInterval: 30 * 1000, // Refetch every 30s for self-healing
   });
+
+  // Re-derive presence status every 30s to catch stale sessions on the
+  // client side without waiting for a server round-trip.
+  const members = useMemo(() => {
+    return rawMembers.map((m) => ({
+      ...m,
+      presence_status: derivePresenceStatus(
+        m.presence_status,
+        m.last_active_at,
+      ),
+    }));
+    // We intentionally include Date.now() indirectly through the refetch
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawMembers]);
 
   // Set up realtime subscription for presence updates
   useEffect(() => {
@@ -169,14 +219,17 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
                 member.id === payload.new.id
                   ? {
                       ...member,
-                      presence_status: payload.new.presence_status || "offline",
+                      presence_status: derivePresenceStatus(
+                        payload.new.presence_status,
+                        payload.new.last_active_at,
+                      ),
                       last_active_at: payload.new.last_active_at,
                     }
-                  : member
+                  : member,
               );
-            }
+            },
           );
-        }
+        },
       )
       .subscribe();
 
@@ -187,11 +240,11 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
 
   // Compute presence counts
   const onlineCount = members.filter(
-    (m) => m.presence_status === "online"
+    (m) => m.presence_status === "online",
   ).length;
   const awayCount = members.filter((m) => m.presence_status === "away").length;
   const offlineCount = members.filter(
-    (m) => m.presence_status === "offline"
+    (m) => m.presence_status === "offline",
   ).length;
 
   return {

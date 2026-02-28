@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth-context";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -11,82 +11,103 @@ const HEARTBEAT_INTERVAL = 30 * 1000;
 const AWAY_THRESHOLD = 2 * 60 * 1000;
 
 /**
- * Hook to track and update user presence status in real-time
- * - Updates presence to 'online' on activity (mouse, keyboard, etc.)
- * - Updates presence to 'away' after inactivity threshold
- * - Updates presence to 'offline' on unmount/logout
+ * Global presence tracking hook - called once at the App level.
+ *
+ * Key design decisions:
+ * 1. Uses refs for user/org IDs so the effect never re-runs on identity changes
+ *    (prevents teardown → "offline" → re-setup → "online" flicker).
+ * 2. Heartbeat unconditionally writes to DB (bypasses the "same status" guard)
+ *    so that `last_active_at` is always refreshed. This lets a server-side
+ *    cleanup function detect stale sessions.
+ * 3. `sendBeacon` includes the required `apikey` header so offline updates
+ *    actually reach Supabase when the tab/browser is closed.
+ * 4. The effect only depends on stable boolean "is ready" — not on callbacks.
  */
 export function usePresence() {
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
+
+  // Stable refs so event handlers always see current values without
+  // causing the effect to re-run.
+  const userIdRef = useRef<string | null>(null);
+  const orgIdRef = useRef<string | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
   const currentStatusRef = useRef<PresenceStatus>("offline");
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isSetupRef = useRef(false);
 
-  const updatePresence = useCallback(
-    async (status: PresenceStatus) => {
-      if (!user?.id || !currentOrganization?.id) return;
+  // Keep refs in sync
+  userIdRef.current = user?.id ?? null;
+  orgIdRef.current = currentOrganization?.id ?? null;
 
-      // Don't update if status hasn't changed
-      if (currentStatusRef.current === status) return;
+  useEffect(() => {
+    const userId = userIdRef.current;
+    const orgId = orgIdRef.current;
+
+    if (!userId || !orgId) return;
+
+    // Prevent double-setup from strict mode / fast re-renders
+    if (isSetupRef.current) return;
+    isSetupRef.current = true;
+
+    // ── Helpers ────────────────────────────────────────────────────
+    const updatePresence = async (status: PresenceStatus, force = false) => {
+      const uid = userIdRef.current;
+      const oid = orgIdRef.current;
+      if (!uid || !oid) return;
+
+      // Skip no-op updates (unless forced by heartbeat)
+      if (!force && currentStatusRef.current === status) return;
       currentStatusRef.current = status;
 
       try {
         await supabase.rpc("update_user_presence", {
-          p_user_id: user.id,
-          p_org_id: currentOrganization.id,
+          p_user_id: uid,
+          p_org_id: oid,
           p_status: status,
         });
       } catch (error) {
         console.error("Failed to update presence:", error);
       }
-    },
-    [user?.id, currentOrganization?.id]
-  );
+    };
 
-  const handleActivity = useCallback(() => {
-    lastActivityRef.current = Date.now();
-    if (currentStatusRef.current !== "online") {
-      updatePresence("online");
-    }
-  }, [updatePresence]);
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+      if (currentStatusRef.current !== "online") {
+        updatePresence("online");
+      }
+    };
 
-  const checkInactivity = useCallback(() => {
-    const timeSinceActivity = Date.now() - lastActivityRef.current;
+    const checkInactivity = () => {
+      const timeSinceActivity = Date.now() - lastActivityRef.current;
+      if (
+        timeSinceActivity > AWAY_THRESHOLD &&
+        currentStatusRef.current === "online"
+      ) {
+        updatePresence("away");
+      }
+    };
 
-    if (
-      timeSinceActivity > AWAY_THRESHOLD &&
-      currentStatusRef.current === "online"
-    ) {
-      updatePresence("away");
-    }
-  }, [updatePresence]);
-
-  // Set up event listeners for user activity
-  useEffect(() => {
-    if (!user?.id || !currentOrganization?.id) return;
-
-    // Initial presence update
-    updatePresence("online");
+    // ── Initial online ───────────────────────────────────────────
+    updatePresence("online", true);
     lastActivityRef.current = Date.now();
 
-    // Activity event listeners
+    // ── Activity listeners (throttled) ───────────────────────────
     const events = [
       "mousedown",
       "keydown",
       "scroll",
       "touchstart",
       "mousemove",
-    ];
+    ] as const;
 
-    // Throttle activity handler to avoid excessive updates
     let activityTimeout: ReturnType<typeof setTimeout> | null = null;
     const throttledActivity = () => {
       if (!activityTimeout) {
         handleActivity();
         activityTimeout = setTimeout(() => {
           activityTimeout = null;
-        }, 5000); // Only process activity events every 5 seconds
+        }, 5000);
       }
     };
 
@@ -94,7 +115,7 @@ export function usePresence() {
       window.addEventListener(event, throttledActivity, { passive: true });
     });
 
-    // Visibility change handler
+    // ── Visibility change ────────────────────────────────────────
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         handleActivity();
@@ -104,33 +125,48 @@ export function usePresence() {
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Before unload handler
+    // ── Before unload (reliable offline via sendBeacon) ──────────
     const handleBeforeUnload = () => {
-      // Use sendBeacon for reliable offline update
+      const uid = userIdRef.current;
+      const oid = orgIdRef.current;
+      if (!uid || !oid) return;
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      // sendBeacon with Blob doesn't support custom headers,
+      // so we pass the apikey as a query parameter and use a
+      // JSON blob. The Supabase REST API accepts apikey in the header
+      // OR as a query parameter.
+      const url = `${supabaseUrl}/rest/v1/rpc/update_user_presence?apikey=${encodeURIComponent(supabaseKey)}`;
+
       const payload = JSON.stringify({
-        p_user_id: user.id,
-        p_org_id: currentOrganization.id,
+        p_user_id: uid,
+        p_org_id: oid,
         p_status: "offline",
       });
 
       navigator.sendBeacon(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/update_user_presence`,
-        new Blob([payload], { type: "application/json" })
+        url,
+        new Blob([payload], { type: "application/json" }),
       );
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
 
-    // Heartbeat for presence and inactivity checking
+    // ── Heartbeat ────────────────────────────────────────────────
+    // force=true so the DB write always happens (refreshes last_active_at)
     heartbeatRef.current = setInterval(() => {
       checkInactivity();
-      // Also send heartbeat to keep session alive if online
-      if (currentStatusRef.current === "online") {
-        updatePresence("online");
+      // Always force-write current status to refresh last_active_at
+      if (currentStatusRef.current !== "offline") {
+        updatePresence(currentStatusRef.current, true);
       }
     }, HEARTBEAT_INTERVAL);
 
-    // Cleanup
+    // ── Cleanup ──────────────────────────────────────────────────
     return () => {
+      isSetupRef.current = false;
+
       events.forEach((event) => {
         window.removeEventListener(event, throttledActivity);
       });
@@ -139,6 +175,7 @@ export function usePresence() {
 
       if (heartbeatRef.current) {
         clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
       }
 
       if (activityTimeout) {
@@ -146,20 +183,41 @@ export function usePresence() {
       }
 
       // Mark as offline on cleanup
-      updatePresence("offline");
+      updatePresence("offline", true);
     };
-  }, [
-    user?.id,
-    currentOrganization?.id,
-    updatePresence,
-    handleActivity,
-    checkInactivity,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!user?.id, !!currentOrganization?.id]);
 
   return {
-    updatePresence,
-    setOnline: () => updatePresence("online"),
-    setAway: () => updatePresence("away"),
-    setOffline: () => updatePresence("offline"),
+    setOnline: () => {
+      if (userIdRef.current && orgIdRef.current) {
+        currentStatusRef.current = "online";
+        supabase.rpc("update_user_presence", {
+          p_user_id: userIdRef.current,
+          p_org_id: orgIdRef.current,
+          p_status: "online",
+        });
+      }
+    },
+    setAway: () => {
+      if (userIdRef.current && orgIdRef.current) {
+        currentStatusRef.current = "away";
+        supabase.rpc("update_user_presence", {
+          p_user_id: userIdRef.current,
+          p_org_id: orgIdRef.current,
+          p_status: "away",
+        });
+      }
+    },
+    setOffline: () => {
+      if (userIdRef.current && orgIdRef.current) {
+        currentStatusRef.current = "offline";
+        supabase.rpc("update_user_presence", {
+          p_user_id: userIdRef.current,
+          p_org_id: orgIdRef.current,
+          p_status: "offline",
+        });
+      }
+    },
   };
 }
