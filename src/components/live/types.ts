@@ -36,8 +36,8 @@ export interface LiveTrip {
 }
 
 /**
- * State for route-aware animation and deviation detection
- * Used internally by useLiveTracking
+ * State for route-following and trip summary tracking.
+ * Tracks actual driven path for billing/summary purposes.
  */
 export interface DriverRouteFollowingState {
   /** Current distance along route (meters from start) */
@@ -46,16 +46,6 @@ export interface DriverRouteFollowingState {
   totalDistance?: number;
   /** Segment index on the polyline */
   segmentIndex: number;
-  /** Is driver off the designated route? */
-  isOffRoute: boolean;
-  /** When driver first went off-route (ms timestamp) */
-  offRouteStartTime: number | null;
-  /** Has a reroute been requested/flagged? */
-  rerouteRequested: boolean;
-  /** Current GPS trail when actively off-route (orange live) */
-  deviationTrail?: { lat: number; lng: number }[];
-  /** Completed deviation segments from past off-route periods (orange history) */
-  completedDeviations?: { lat: number; lng: number }[][];
-  /** Full actual GPS path history for the trip (for gray driven path) */
+  /** Full actual GPS path history for the trip (for driven path display & billing) */
   actualPathHistory?: { lat: number; lng: number }[];
 }

@@ -11,7 +11,6 @@ import useSupercluster from "use-supercluster";
 import type { LiveDriver, LiveTrip, DriverRouteFollowingState } from "./types";
 import type { PolylinePoint } from "@/lib/geo";
 import {
-  Warning,
   CornersOut,
   CarProfile,
   NavigationArrow,
@@ -115,7 +114,7 @@ const libraries: ("places" | "geometry")[] = ["places", "geometry"];
 
 // Polyline styles
 const POLYLINE_STYLES = {
-  /** Already driven portion (gray/faded) */
+  /** Already driven portion (gray/faded) - actual GPS path */
   driven: {
     strokeColor: "#9ca3af", // slate-400
     strokeWeight: 5,
@@ -126,12 +125,6 @@ const POLYLINE_STYLES = {
     strokeColor: "#3b82f6", // blue-500
     strokeWeight: 5,
     strokeOpacity: 0.8,
-  },
-  /** Deviation trail (orange) - actual path when off-route */
-  deviation: {
-    strokeColor: "#f97316", // orange-500
-    strokeWeight: 4,
-    strokeOpacity: 0.9,
   },
 };
 
@@ -151,10 +144,8 @@ interface LiveMapProps {
     origin: string,
     destination: string,
   ) => void;
-  /** Get driver's route state (for deviation display) */
+  /** Get driver's route state (for path display) */
   getDriverRouteState?: (driverId: string) => DriverRouteFollowingState | null;
-  /** Clear reroute flag after handling */
-  clearRerouteFlag?: (driverId: string) => void;
   /** Get cached route polyline for visualization */
   getRoutePolyline?: (tripId: string) => PolylinePoint[] | null;
   /** Reactive route following states - triggers re-renders when updated */
@@ -204,10 +195,6 @@ function MapLegend() {
                 <div className="w-6 h-1 rounded-full bg-blue-500" />
                 <span className="text-xs text-slate-600">Remaining route</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-1 rounded-full bg-orange-500" />
-                <span className="text-xs text-slate-600">Off-route path</span>
-              </div>
             </div>
 
             {/* Driver Status */}
@@ -223,12 +210,6 @@ function MapLegend() {
                   />
                 </div>
                 <span className="text-xs text-slate-600">En Route</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center">
-                  <Warning weight="fill" className="w-2.5 h-2.5 text-white" />
-                </div>
-                <span className="text-xs text-slate-600">Off Route</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
@@ -286,7 +267,6 @@ export function LiveMap({
   onDriverSelect,
   onRouteLoad,
   getDriverRouteState,
-  clearRerouteFlag,
   getRoutePolyline,
   routeFollowingStates,
 }: LiveMapProps) {
@@ -299,7 +279,6 @@ export function LiveMap({
   const [activeDriverId, setActiveDriverId] = useState<string | null>(null);
   const [directionsResponse, setDirectionsResponse] =
     useState<google.maps.DirectionsResult | null>(null);
-  const [isRerouting, setIsRerouting] = useState(false);
   const [activeMarker, setActiveMarker] = useState<"pickup" | "dropoff" | null>(
     null,
   );
@@ -307,19 +286,12 @@ export function LiveMap({
   // Route polyline segments for visualization
   const [drivenPath, setDrivenPath] = useState<PolylinePoint[]>([]);
   const [remainingPath, setRemainingPath] = useState<PolylinePoint[]>([]);
-  /** Historical + active deviation segments for orange polylines */
-  const [allDeviationPaths, setAllDeviationPaths] = useState<PolylinePoint[][]>(
-    [],
-  );
 
   // Directions cache to prevent redundant API requests
   // Key format: "tripId|origin|destination"
   const directionsCacheRef = useRef<Map<string, google.maps.DirectionsResult>>(
     new Map(),
   );
-
-  // Track last reroute time to prevent spam
-  const lastRerouteTimeRef = useRef<Map<string, number>>(new Map());
 
   // Use a ref for drivers to keep callbacks stable
   const driversRef = useRef(drivers);
@@ -354,7 +326,7 @@ export function LiveMap({
     }
   };
 
-  // Prepare points for supercluster - filter out invalid coordinates
+  // Prepare points for supercluster - only show drivers with valid coordinates
   const points = useMemo(() => {
     return drivers
       .filter(
@@ -391,8 +363,10 @@ export function LiveMap({
       const bounds = new google.maps.LatLngBounds();
       let hasValidLoc = false;
       currentDrivers.forEach((d: LiveDriver) => {
-        bounds.extend({ lat: d.lat, lng: d.lng });
-        hasValidLoc = true;
+        if (d.lat !== 0 || d.lng !== 0) {
+          bounds.extend({ lat: d.lat, lng: d.lng });
+          hasValidLoc = true;
+        }
       });
       if (hasValidLoc) {
         map.fitBounds(bounds);
@@ -457,7 +431,6 @@ export function LiveMap({
         const cached = directionsCacheRef.current.get(cacheKey);
         if (cached) {
           setDirectionsResponse(cached);
-          // Notify parent about cached route
           if (onRouteLoad) {
             onRouteLoad(tripId, cached, origin, destination);
           }
@@ -474,11 +447,9 @@ export function LiveMap({
         });
 
         if (result) {
-          // Update cache (with new key if this is a reroute)
           directionsCacheRef.current.set(cacheKey, result);
           setDirectionsResponse(result);
 
-          // Notify parent to cache polyline for animation
           if (onRouteLoad) {
             onRouteLoad(tripId, result, origin, destination);
           }
@@ -506,7 +477,6 @@ export function LiveMap({
       setDirectionsResponse(null);
       setDrivenPath([]);
       setRemainingPath([]);
-      setAllDeviationPaths([]);
     }
   }, [routeParams, fetchDirections]);
 
@@ -515,7 +485,6 @@ export function LiveMap({
     if (!selectedDriverId || !routeParams) {
       setDrivenPath([]);
       setRemainingPath([]);
-      setAllDeviationPaths([]);
       return;
     }
 
@@ -525,8 +494,8 @@ export function LiveMap({
     if (polyline && polyline.length > 0 && routeState) {
       const segmentIndex = routeState.segmentIndex;
 
-      // Use actual GPS path history for the driven portion (gray) if available
-      // This shows the ACTUAL path taken, not just the planned route segment
+      // Use actual GPS path history for the driven portion (gray)
+      // This shows the ACTUAL path taken for billing accuracy
       if (
         routeState.actualPathHistory &&
         routeState.actualPathHistory.length > 1
@@ -542,31 +511,9 @@ export function LiveMap({
         setDrivenPath(driven);
       }
 
-      // Remaining route is always from current segment to end (blue)
+      // Remaining route from current segment to end (blue)
       const remaining = polyline.slice(segmentIndex);
       setRemainingPath(remaining);
-
-      // Collect all deviation paths for orange visualization
-      const allDeviations: PolylinePoint[][] = [];
-
-      // Add historical (completed) deviation segments
-      if (
-        routeState.completedDeviations &&
-        routeState.completedDeviations.length > 0
-      ) {
-        allDeviations.push(...routeState.completedDeviations);
-      }
-
-      // Add current active deviation trail if off-route
-      if (
-        routeState.isOffRoute &&
-        routeState.deviationTrail &&
-        routeState.deviationTrail.length > 1
-      ) {
-        allDeviations.push(routeState.deviationTrail);
-      }
-
-      setAllDeviationPaths(allDeviations);
     } else if (directionsResponse) {
       // Fallback: just show the full route as remaining (blue)
       setDrivenPath([]);
@@ -576,7 +523,6 @@ export function LiveMap({
           lng: p.lng(),
         })) || [];
       setRemainingPath(fullPath);
-      setAllDeviationPaths([]);
     }
   }, [
     selectedDriverId,
@@ -585,56 +531,7 @@ export function LiveMap({
     getRoutePolyline,
     drivers,
     directionsResponse,
-    routeFollowingStates, // This triggers re-renders when route state updates
-  ]);
-
-  // 6. Handle rerouting when driver deviates
-  useEffect(() => {
-    if (!selectedDriverId || !getDriverRouteState || !routeParams) return;
-
-    const routeState = getDriverRouteState(selectedDriverId);
-    if (!routeState?.rerouteRequested) return;
-
-    // Prevent reroute spam (min 30 seconds between reroutes)
-    const lastReroute = lastRerouteTimeRef.current.get(selectedDriverId) || 0;
-    const now = Date.now();
-    if (now - lastReroute < 30000) {
-      return;
-    }
-
-    // Get driver's current position for reroute origin
-    const driver = drivers.find((d) => d.id === selectedDriverId);
-    if (!driver) return;
-
-    setIsRerouting(true);
-    lastRerouteTimeRef.current.set(selectedDriverId, now);
-
-    // Reroute from driver's current position
-    const newOrigin = `${driver.lat},${driver.lng}`;
-
-    console.log(
-      `[LiveMap] Rerouting driver ${selectedDriverId} from ${newOrigin} to ${routeParams.destination}`,
-    );
-
-    fetchDirections(
-      newOrigin,
-      routeParams.destination,
-      routeParams.tripId,
-      true, // Force refresh, don't use cache
-    ).finally(() => {
-      setIsRerouting(false);
-      // Clear the reroute flag
-      if (clearRerouteFlag) {
-        clearRerouteFlag(selectedDriverId);
-      }
-    });
-  }, [
-    selectedDriverId,
-    getDriverRouteState,
-    routeParams,
-    drivers,
-    fetchDirections,
-    clearRerouteFlag,
+    routeFollowingStates,
   ]);
 
   // Trigger initial fit bounds
@@ -644,7 +541,7 @@ export function LiveMap({
     }
   }, [map, drivers.length, selectedDriverId, bounds, fitAllDrivers]);
 
-  // Get active trip and stats for panel
+  // Get active trip for info windows
   const activeTrip = useMemo(() => {
     if (!selectedDriverId) return null;
     return trips.find(
@@ -669,29 +566,17 @@ export function LiveMap({
         onIdle={onMapIdle}
         options={mapOptions}
       >
-        {/* Custom Route Polylines - driven portion (gray) */}
+        {/* Driven portion (gray) - actual GPS path for billing */}
         {drivenPath.length > 1 && (
           <Polyline path={drivenPath} options={POLYLINE_STYLES.driven} />
         )}
 
-        {/* Custom Route Polylines - remaining portion (blue) */}
+        {/* Remaining route (blue) */}
         {remainingPath.length > 1 && (
           <Polyline path={remainingPath} options={POLYLINE_STYLES.remaining} />
         )}
 
-        {/* All Deviation Trails - historical + active off-route paths (orange) */}
-        {allDeviationPaths.map(
-          (path, index) =>
-            path.length > 1 && (
-              <Polyline
-                key={`deviation-${index}`}
-                path={path}
-                options={POLYLINE_STYLES.deviation}
-              />
-            ),
-        )}
-
-        {/* Fallback: Show directions if no custom polylines */}
+        {/* Fallback: Show full route if no split polylines yet */}
         {drivenPath.length <= 1 &&
           remainingPath.length <= 1 &&
           directionsResponse && (
@@ -806,10 +691,6 @@ export function LiveMap({
           const isBusy = driver.status === "en_route";
           const isSelected = activeDriverId === driver.id;
 
-          // Check if driver is off-route
-          const routeState = getDriverRouteState?.(driver.id);
-          const isOffRoute = routeState?.isOffRoute ?? false;
-
           const lastUpdate = driver.last_location_update
             ? new Date(driver.last_location_update).getTime()
             : 0;
@@ -828,12 +709,7 @@ export function LiveMap({
               >
                 {/* Visual Pulse for Busy Driver */}
                 {isBusy && !isStale && (
-                  <span
-                    className={cn(
-                      "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
-                      isOffRoute ? "bg-amber-400" : "bg-blue-400",
-                    )}
-                  />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
                 )}
 
                 <div
@@ -843,11 +719,9 @@ export function LiveMap({
                     isSelected ? "z-50 scale-125" : "z-10",
                     isOffline || isStale
                       ? "bg-slate-200 border-slate-300 text-slate-400"
-                      : isOffRoute
-                        ? "bg-amber-500 border-white text-white"
-                        : isBusy
-                          ? "bg-blue-600 border-white text-white"
-                          : "bg-emerald-500 border-white text-white",
+                      : isBusy
+                        ? "bg-blue-600 border-white text-white"
+                        : "bg-emerald-500 border-white text-white",
                   )}
                 >
                   <div
@@ -859,11 +733,7 @@ export function LiveMap({
                     }}
                   >
                     {isBusy ? (
-                      isOffRoute ? (
-                        <Warning weight="fill" className="w-5 h-5" />
-                      ) : (
-                        <NavigationArrow weight="fill" className="w-5 h-5" />
-                      )
+                      <NavigationArrow weight="fill" className="w-5 h-5" />
                     ) : (
                       <CarProfile weight="fill" className="w-5 h-5" />
                     )}
@@ -878,11 +748,6 @@ export function LiveMap({
                   )}
                 >
                   {driver.full_name}
-                  {isOffRoute && (
-                    <span className="ml-1 text-amber-300 font-normal">
-                      (Off Route)
-                    </span>
-                  )}
                   {isStale && (
                     <span className="ml-1 text-slate-400 font-normal">
                       (Stale)
@@ -897,16 +762,6 @@ export function LiveMap({
 
       {/* Map Legend */}
       <MapLegend />
-
-      {/* Rerouting Indicator */}
-      {isRerouting && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20">
-          <div className="bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm font-medium">Recalculating route...</span>
-          </div>
-        </div>
-      )}
 
       {/* Fit All Button */}
       <div className="absolute top-4 right-14 z-10">

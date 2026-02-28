@@ -1,15 +1,15 @@
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   calculateBearing,
-  interpolateLatLng,
   approxSqDist,
   findNearestPointOnPolyline,
   getPositionAtDistance,
   getDistanceAtSegment,
   decodePolyline,
   calculateCumulativeDistances,
-  isOnRoute,
   lerpBearing,
+  haversineDistance,
+  interpolateLatLng,
   type PolylinePoint,
 } from "@/lib/geo";
 import { supabase } from "@/lib/supabase";
@@ -21,14 +21,11 @@ import type { LiveDriver, LiveTrip, DriverRouteFollowingState } from "./types";
 // CONFIGURATION
 // ============================================================================
 
-// Animation settings (60 FPS, Uber-tier smoothness)
-const LERP_FACTOR = 0.08; // Adjust for smoothness (0.05 = slow glide, 0.2 = snappy)
+// Route-constrained animation: glide along polyline segments (turn-by-turn)
+const ROUTE_ADVANCE_SPEED = 0.06; // % of remaining distance to close per frame (0.03=slow, 0.10=snappy)
+const FALLBACK_LERP_FACTOR = 0.08; // For drivers without a route
 const STOP_THRESHOLD_SQ = 0.000000001; // Stop interpolating when very close
-const BEARING_UPDATE_THRESHOLD_SQ = 0.0000005; // Only update bearing if moved ~2-3 meters
-
-// Route deviation detection
-const ROUTE_TOLERANCE_METERS = 50; // How far off-route before we care
-const DEVIATION_THRESHOLD_MS = 20000; // 20 seconds off-route = needs reroute
+const BEARING_UPDATE_THRESHOLD_SQ = 0.0000005; // Only update bearing if moved
 
 // Broadcast channel
 const BROADCAST_CHANNEL = "drivers-live";
@@ -41,9 +38,14 @@ const BROADCAST_CHANNEL = "drivers-live";
 interface PositionState {
   lat: number;
   lng: number;
+  /** Target position along the route (where the driver should animate to) */
   target: { lat: number; lng: number };
   bearing: number;
   lastUpdated: number;
+  /** Distance along route that we are currently animating towards (meters) */
+  targetDistanceAlongRoute: number;
+  /** Distance along route we have currently animated to (meters) */
+  currentDistanceAlongRoute: number;
 }
 
 /** Cached route data for a trip */
@@ -80,7 +82,6 @@ export function useLiveTracking() {
   );
 
   // Reactive copy of route following states - triggers re-renders in consumers
-  // We sync this with the ref when meaningful changes occur (segment, offRoute, path updates)
   const [routeFollowingStates, setRouteFollowingStates] = useState<
     Map<string, DriverRouteFollowingState>
   >(new Map());
@@ -248,6 +249,8 @@ export function useLiveTracking() {
             target: { lat, lng },
             bearing: 0,
             lastUpdated: Date.now(),
+            targetDistanceAlongRoute: 0,
+            currentDistanceAlongRoute: 0,
           });
         }
 
@@ -304,7 +307,7 @@ export function useLiveTracking() {
     });
   }, []);
 
-  // Handle Incoming Position Updates with Route-Aware Projection
+  // Handle Incoming Position Updates - project onto route for turn-by-turn animation
   const handlePositionUpdate = useCallback(
     (driverId: string, newLat: number, newLng: number, newHeading?: number) => {
       const positions = positionsRef.current;
@@ -320,12 +323,31 @@ export function useLiveTracking() {
       // Raw GPS point
       const rawPosition: PolylinePoint = { lat: newLat, lng: newLng };
 
-      // Calculate projected position if we have a route
-      let targetPosition = rawPosition;
-      let projectedBearing = newHeading ?? existing?.bearing ?? 0;
+      // Route-following state for trip summary/billing
+      const prevFollowingState = routeFollowingRef.current.get(driverId);
+      const followingState: DriverRouteFollowingState = prevFollowingState || {
+        distanceAlongRoute: 0,
+        totalDistance: route?.totalDistance,
+        segmentIndex: 0,
+        actualPathHistory: [],
+      };
+
+      // Always track actual GPS path for trip summary & billing
+      const pathHistory = followingState.actualPathHistory || [];
+      const lastPoint = pathHistory[pathHistory.length - 1];
+      if (
+        !lastPoint ||
+        Math.abs(lastPoint.lat - rawPosition.lat) > 0.00001 ||
+        Math.abs(lastPoint.lng - rawPosition.lng) > 0.00001
+      ) {
+        if (pathHistory.length < 2000) {
+          pathHistory.push({ ...rawPosition });
+          followingState.actualPathHistory = pathHistory;
+        }
+      }
 
       if (route && route.polyline.length >= 2) {
-        // Project GPS onto polyline (road-accurate position)
+        // Project GPS onto polyline to find where the driver is along the route
         const projection = findNearestPointOnPolyline(
           rawPosition,
           route.polyline,
@@ -339,164 +361,108 @@ export function useLiveTracking() {
           projection.t,
         );
 
-        // Get position and bearing from route
+        // Get the on-route target position for the animation
         const routePosition = getPositionAtDistance(
           route.polyline,
           route.cumulativeDistances,
           distanceAlongRoute,
         );
 
-        // Use projected position if driver is on route
-        const onRoute = isOnRoute(
+        // Check if driver is close enough to snap to route (within ~80m)
+        const distFromRoute = haversineDistance(
           rawPosition,
-          route.polyline,
-          ROUTE_TOLERANCE_METERS,
+          routePosition.position,
         );
 
-        if (onRoute) {
-          // Snap to route
+        let targetPosition: PolylinePoint;
+        let projectedBearing: number;
+
+        if (distFromRoute < 80) {
+          // Snap to route for smooth turn-by-turn animation
           targetPosition = routePosition.position;
           projectedBearing = routePosition.bearing;
         } else {
-          // Off-route: use raw GPS but with route bearing hint
+          // Driver is far from planned route - animate to actual GPS position
+          // This handles the case where the driver takes a different route
           targetPosition = rawPosition;
-          // Keep last bearing to prevent jitter
+          projectedBearing = newHeading ?? existing?.bearing ?? 0;
         }
 
-        // Update route-following state
-        const prevFollowingState = routeFollowingRef.current.get(driverId);
-        const followingState = prevFollowingState || {
-          distanceAlongRoute: 0,
-          totalDistance: route.totalDistance,
-          segmentIndex: 0,
-          isOffRoute: false,
-          offRouteStartTime: null,
-          rerouteRequested: false,
-          deviationTrail: [],
-          completedDeviations: [],
-          actualPathHistory: [],
-        };
-
-        // Track if meaningful changes occurred that require UI update
+        // Track previous state for determining re-render triggers
         const prevSegmentIndex = prevFollowingState?.segmentIndex ?? -1;
-        const prevIsOffRoute = prevFollowingState?.isOffRoute ?? false;
         const prevPathLength =
           prevFollowingState?.actualPathHistory?.length ?? 0;
 
-        // Always update total distance from cached route
         followingState.totalDistance = route.totalDistance;
-
-        // Track complete GPS path for the driven portion (gray line)
-        const pathHistory = followingState.actualPathHistory || [];
-        // Only add point if it's different from the last point (avoid duplicates)
-        const lastPoint = pathHistory[pathHistory.length - 1];
-        if (
-          !lastPoint ||
-          Math.abs(lastPoint.lat - rawPosition.lat) > 0.00001 ||
-          Math.abs(lastPoint.lng - rawPosition.lng) > 0.00001
-        ) {
-          // Limit to 2000 points to prevent memory issues
-          if (pathHistory.length < 2000) {
-            pathHistory.push({ ...rawPosition });
-            followingState.actualPathHistory = pathHistory;
-          }
-        }
-
-        if (!onRoute) {
-          if (!followingState.offRouteStartTime) {
-            followingState.offRouteStartTime = now;
-            // Start new deviation trail
-            followingState.deviationTrail = [rawPosition];
-          } else {
-            // Add to active deviation trail (limit to 500 points)
-            const trail = followingState.deviationTrail || [];
-            if (trail.length < 500) {
-              trail.push(rawPosition);
-              followingState.deviationTrail = trail;
-            }
-
-            if (
-              now - followingState.offRouteStartTime > DEVIATION_THRESHOLD_MS &&
-              !followingState.rerouteRequested
-            ) {
-              // Been off-route long enough - flag for reroute
-              followingState.rerouteRequested = true;
-              console.log(
-                `[LiveTracking] Driver ${driverId} needs reroute (off-route ${Math.round((now - followingState.offRouteStartTime) / 1000)}s)`,
-              );
-              // The actual reroute is triggered by LiveMap when it sees needsReroute
-            }
-          }
-        } else {
-          // Back on route - archive current deviation if exists
-          if (
-            followingState.deviationTrail &&
-            followingState.deviationTrail.length > 1
-          ) {
-            // Archive this completed deviation segment
-            const completedDeviations =
-              followingState.completedDeviations || [];
-            completedDeviations.push([...followingState.deviationTrail]);
-            followingState.completedDeviations = completedDeviations;
-            console.log(
-              `[LiveTracking] Driver ${driverId} returned to route, archived deviation (${followingState.deviationTrail.length} points)`,
-            );
-          }
-          // Clear active deviation state
-          followingState.offRouteStartTime = null;
-          followingState.rerouteRequested = false;
-          followingState.deviationTrail = [];
-        }
-
         followingState.distanceAlongRoute = distanceAlongRoute;
         followingState.segmentIndex = projection.segmentIndex;
-        followingState.isOffRoute = !onRoute;
 
         routeFollowingRef.current.set(driverId, followingState);
 
-        // Sync to reactive state if there are meaningful changes
-        // This triggers re-renders in LiveMap for polyline updates
+        // Sync to reactive state for UI updates (polyline segments etc.)
         const hasSegmentChange = projection.segmentIndex !== prevSegmentIndex;
-        const hasOffRouteChange = !onRoute !== prevIsOffRoute;
         const hasPathGrowth =
           (followingState.actualPathHistory?.length ?? 0) > prevPathLength + 5;
 
-        if (hasSegmentChange || hasOffRouteChange || hasPathGrowth) {
+        if (hasSegmentChange || hasPathGrowth) {
           setRouteFollowingStates((prev) => {
             const newMap = new Map(prev);
-            // Deep copy to ensure React detects the change
             newMap.set(driverId, { ...followingState });
             return newMap;
           });
         }
-      }
 
-      // Update position target
-      if (existing) {
-        const dist = approxSqDist(existing.target, targetPosition);
-        if (dist > STOP_THRESHOLD_SQ) {
+        // Update position target for route-constrained animation
+        if (existing) {
           positions.set(driverId, {
             ...existing,
             target: targetPosition,
+            bearing: projectedBearing,
             lastUpdated: now,
+            targetDistanceAlongRoute: distanceAlongRoute,
+          });
+        } else {
+          positions.set(driverId, {
+            lat: targetPosition.lat,
+            lng: targetPosition.lng,
+            target: targetPosition,
+            bearing: projectedBearing,
+            lastUpdated: now,
+            targetDistanceAlongRoute: distanceAlongRoute,
+            currentDistanceAlongRoute: distanceAlongRoute,
           });
         }
       } else {
-        // New Driver
-        positions.set(driverId, {
-          lat: targetPosition.lat,
-          lng: targetPosition.lng,
-          target: targetPosition,
-          bearing: projectedBearing,
-          lastUpdated: now,
-        });
+        // No route available - use raw GPS position
+        routeFollowingRef.current.set(driverId, followingState);
+
+        if (existing) {
+          const dist = approxSqDist(existing.target, rawPosition);
+          if (dist > STOP_THRESHOLD_SQ) {
+            positions.set(driverId, {
+              ...existing,
+              target: rawPosition,
+              lastUpdated: now,
+            });
+          }
+        } else {
+          positions.set(driverId, {
+            lat: rawPosition.lat,
+            lng: rawPosition.lng,
+            target: rawPosition,
+            bearing: newHeading ?? 0,
+            lastUpdated: now,
+            targetDistanceAlongRoute: 0,
+            currentDistanceAlongRoute: 0,
+          });
+        }
       }
     },
     [tripsData],
   );
 
   // ============================================================================
-  // ANIMATION LOOP
+  // ANIMATION LOOP — Route-Constrained Turn-by-Turn Glide
   // ============================================================================
 
   useEffect(() => {
@@ -505,22 +471,7 @@ export function useLiveTracking() {
       let needsFlush = false;
 
       positions.forEach((pos, id) => {
-        const distSq = approxSqDist(pos, pos.target);
-
-        // If very close to target, snap to it
-        if (distSq < STOP_THRESHOLD_SQ) {
-          if (pos.lat !== pos.target.lat || pos.lng !== pos.target.lng) {
-            pos.lat = pos.target.lat;
-            pos.lng = pos.target.lng;
-            needsFlush = true;
-          }
-          return;
-        }
-
-        // Interpolate position (Lerp)
-        const next = interpolateLatLng(pos, pos.target, LERP_FACTOR);
-
-        // Try to get route for bearing
+        // Find the driver and their active trip's route
         const driver = drivers.find((d) => d.id === id);
         const activeTrip = driver?.active_trip_id
           ? tripsData?.find((t) => t.id === driver.active_trip_id)
@@ -529,35 +480,81 @@ export function useLiveTracking() {
           ? routeCacheRef.current.get(activeTrip.id)
           : null;
 
-        // Calculate bearing
-        let newBearing = pos.bearing;
         if (route && route.polyline.length >= 2) {
-          // Get bearing from route direction
-          const projection = findNearestPointOnPolyline(
-            pos.target,
-            route.polyline,
-          );
-          if (projection.segmentIndex < route.polyline.length - 1) {
-            const segStart = route.polyline[projection.segmentIndex];
-            const segEnd = route.polyline[projection.segmentIndex + 1];
-            const routeBearing = calculateBearing(segStart, segEnd);
-            // Smooth bearing transition
-            newBearing = lerpBearing(pos.bearing, routeBearing, LERP_FACTOR);
+          // ─── Route-constrained animation ───
+          // Advance currentDistanceAlongRoute toward targetDistanceAlongRoute
+          // This makes the marker glide along polyline segments through turns
+
+          const remaining =
+            pos.targetDistanceAlongRoute - pos.currentDistanceAlongRoute;
+
+          if (Math.abs(remaining) < 0.1) {
+            // Close enough – snap
+            if (
+              pos.currentDistanceAlongRoute !== pos.targetDistanceAlongRoute
+            ) {
+              pos.currentDistanceAlongRoute = pos.targetDistanceAlongRoute;
+              const snap = getPositionAtDistance(
+                route.polyline,
+                route.cumulativeDistances,
+                pos.currentDistanceAlongRoute,
+              );
+              pos.lat = snap.position.lat;
+              pos.lng = snap.position.lng;
+              pos.bearing = snap.bearing;
+              needsFlush = true;
+            }
+            return;
           }
-        } else if (distSq > BEARING_UPDATE_THRESHOLD_SQ) {
-          // Fall back to GPS-based bearing if no route
-          newBearing = calculateBearing(pos, pos.target);
+
+          // Advance the distance by a fraction of the remaining gap each frame
+          const advance = remaining * ROUTE_ADVANCE_SPEED;
+          pos.currentDistanceAlongRoute += advance;
+
+          // Get new position along the polyline at this distance
+          const newPos = getPositionAtDistance(
+            route.polyline,
+            route.cumulativeDistances,
+            pos.currentDistanceAlongRoute,
+          );
+
+          // Smooth bearing transition
+          const newBearing = lerpBearing(
+            pos.bearing,
+            newPos.bearing,
+            ROUTE_ADVANCE_SPEED * 1.5,
+          );
+
+          pos.lat = newPos.position.lat;
+          pos.lng = newPos.position.lng;
+          pos.bearing = newBearing;
+          needsFlush = true;
+        } else {
+          // ─── Fallback: simple lerp for drivers without a route ───
+          const distSq = approxSqDist(pos, pos.target);
+
+          if (distSq < STOP_THRESHOLD_SQ) {
+            if (pos.lat !== pos.target.lat || pos.lng !== pos.target.lng) {
+              pos.lat = pos.target.lat;
+              pos.lng = pos.target.lng;
+              needsFlush = true;
+            }
+            return;
+          }
+
+          const next = interpolateLatLng(pos, pos.target, FALLBACK_LERP_FACTOR);
+
+          // Calculate bearing
+          let newBearing = pos.bearing;
+          if (distSq > BEARING_UPDATE_THRESHOLD_SQ) {
+            newBearing = calculateBearing(pos, pos.target);
+          }
+
+          pos.lat = next.lat;
+          pos.lng = next.lng;
+          pos.bearing = newBearing;
+          needsFlush = true;
         }
-
-        // Update mutable ref
-        positions.set(id, {
-          ...pos,
-          lat: next.lat,
-          lng: next.lng,
-          bearing: newBearing,
-        });
-
-        needsFlush = true;
       });
 
       if (needsFlush) {
@@ -666,7 +663,7 @@ export function useLiveTracking() {
   // ============================================================================
 
   /**
-   * Check if a driver needs a reroute
+   * Get driver's route following state (for trip summary / billing)
    */
   const getDriverRouteState = useCallback(
     (driverId: string): DriverRouteFollowingState | null => {
@@ -674,18 +671,6 @@ export function useLiveTracking() {
     },
     [],
   );
-
-  /**
-   * Clear reroute flag after handling
-   */
-  const clearRerouteFlag = useCallback((driverId: string) => {
-    const state = routeFollowingRef.current.get(driverId);
-    if (state) {
-      state.rerouteRequested = false;
-      state.offRouteStartTime = null;
-      state.deviationTrail = [];
-    }
-  }, []);
 
   return {
     drivers,
@@ -696,7 +681,6 @@ export function useLiveTracking() {
     clearRouteForTrip,
     getRouteForTrip,
     getDriverRouteState,
-    clearRerouteFlag,
     // Reactive route following states (for triggering UI updates)
     routeFollowingStates,
   };
