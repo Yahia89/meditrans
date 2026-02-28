@@ -114,9 +114,12 @@ export function SummaryPage() {
         infoY,
         { align: "right" },
       );
+      doc.text(`Total Trips: ${trips.length}`, 280, infoY + 5, {
+        align: "right",
+      });
 
       // Table Data
-      const tableData = trips.map((trip) => {
+      const tableData = trips.map((trip, index) => {
         const pickupTime = formatInUserTimezone(
           trip.pickup_time,
           timezone,
@@ -126,6 +129,7 @@ export function SummaryPage() {
           trip.actual_duration_minutes || trip.duration_minutes || "";
 
         return [
+          (index + 1).toString(),
           trip.id.slice(0, 8),
           trip.trip_type || "N/A",
           pickupTime,
@@ -147,6 +151,7 @@ export function SummaryPage() {
         startY: 55,
         head: [
           [
+            "#",
             "ID",
             "Type",
             "Date/Time",
@@ -174,24 +179,25 @@ export function SummaryPage() {
           cellPadding: 2,
         },
         columnStyles: {
-          0: { cellWidth: 15 }, // ID
-          1: { cellWidth: 15 }, // Type
-          2: { cellWidth: 25 }, // Date
-          3: { cellWidth: 40 }, // Pickup
-          4: { cellWidth: 40 }, // Dropoff
-          5: { cellWidth: 15 }, // Duration
-          6: { cellWidth: 12 }, // Dist
-          7: { cellWidth: 15 }, // Cost
-          8: { cellWidth: 18 }, // Status
-          9: { cellWidth: 25 }, // Driver
-          10: { cellWidth: 20 }, // Vehicle
-          11: { cellWidth: 25 }, // Patient
+          0: { cellWidth: 10 }, // #
+          1: { cellWidth: 15 }, // ID
+          2: { cellWidth: 15 }, // Type
+          3: { cellWidth: 25 }, // Date
+          4: { cellWidth: 35 }, // Pickup
+          5: { cellWidth: 35 }, // Dropoff
+          6: { cellWidth: 15 }, // Duration
+          7: { cellWidth: 12 }, // Dist
+          8: { cellWidth: 15 }, // Cost
+          9: { cellWidth: 18 }, // Status
+          10: { cellWidth: 25 }, // Driver
+          11: { cellWidth: 20 }, // Vehicle
+          12: { cellWidth: 25 }, // Patient
         },
         didParseCell: (data) => {
-          // Color based on status
-          if (data.section === "body" && data.column.index === 8) {
+          // Color based on status (now column 9 because of the # column)
+          if (data.section === "body" && data.column.index === 9) {
             const row = data.row.raw as any;
-            const status = row[8] as string;
+            const status = row[9] as string;
             if (status.includes("completed")) {
               data.cell.styles.textColor = [16, 185, 129] as [
                 number,
@@ -335,6 +341,7 @@ export function SummaryPage() {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
                     <tr>
+                      <th className="px-4 py-3 w-10">#</th>
                       <th className="px-4 py-3">Patient</th>
                       <th className="px-4 py-3">Pickup Time</th>
                       <th className="px-4 py-3">Type</th>
@@ -342,11 +349,14 @@ export function SummaryPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {trips.slice(0, 10).map((trip) => (
+                    {trips.slice(0, 10).map((trip, index) => (
                       <tr
                         key={trip.id}
                         className="hover:bg-slate-50/50 transition-colors"
                       >
+                        <td className="px-4 py-3 text-slate-400 font-mono text-xs">
+                          {index + 1}
+                        </td>
                         <td className="px-4 py-3 font-medium text-slate-900">
                           {trip.patient?.full_name || "Unknown"}
                         </td>
