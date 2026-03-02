@@ -493,27 +493,35 @@ export function LiveMap({
 
     if (polyline && polyline.length > 0 && routeState) {
       const segmentIndex = routeState.segmentIndex;
+      const isEnRoute =
+        trips.find((t) => t.id === routeParams.tripId)?.status === "en_route";
 
-      // Use actual GPS path history for the driven portion (gray)
-      // This shows the ACTUAL path taken for billing accuracy
-      if (
-        routeState.actualPathHistory &&
-        routeState.actualPathHistory.length > 1
-      ) {
-        setDrivenPath(routeState.actualPathHistory);
+      if (isEnRoute) {
+        // When en route to pickup, don't show the driven path since they are not on the pickup->dropoff route yet
+        setDrivenPath([]);
+        setRemainingPath(polyline);
       } else {
-        // Fallback: use planned route up to current segment
-        const driven = polyline.slice(0, segmentIndex + 1);
-        const driver = drivers.find((d) => d.id === selectedDriverId);
-        if (driver) {
-          driven.push({ lat: driver.lat, lng: driver.lng });
+        // Use actual GPS path history for the driven portion (gray)
+        // This shows the ACTUAL path taken for billing accuracy
+        if (
+          routeState.actualPathHistory &&
+          routeState.actualPathHistory.length > 1
+        ) {
+          setDrivenPath(routeState.actualPathHistory);
+        } else {
+          // Fallback: use planned route up to current segment
+          const driven = polyline.slice(0, segmentIndex + 1);
+          const driver = drivers.find((d) => d.id === selectedDriverId);
+          if (driver) {
+            driven.push({ lat: driver.lat, lng: driver.lng });
+          }
+          setDrivenPath(driven);
         }
-        setDrivenPath(driven);
-      }
 
-      // Remaining route from current segment to end (blue)
-      const remaining = polyline.slice(segmentIndex);
-      setRemainingPath(remaining);
+        // Remaining route from current segment to end (blue)
+        const remaining = polyline.slice(segmentIndex);
+        setRemainingPath(remaining);
+      }
     } else if (directionsResponse) {
       // Fallback: just show the full route as remaining (blue)
       setDrivenPath([]);

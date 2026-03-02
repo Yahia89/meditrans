@@ -46,6 +46,8 @@ interface PositionState {
   targetDistanceAlongRoute: number;
   /** Distance along route we have currently animated to (meters) */
   currentDistanceAlongRoute: number;
+  /** Whether the driver is snapped to the expected route */
+  isSnappedToRoute?: boolean;
 }
 
 /** Cached route data for a trip */
@@ -316,6 +318,7 @@ export function useLiveTracking() {
 
       // Find active trip for this driver
       const activeTrip = tripsData?.find((t) => t.driver_id === driverId);
+      const isEnRoute = activeTrip?.status === "en_route";
       const route = activeTrip
         ? routeCacheRef.current.get(activeTrip.id)
         : null;
@@ -332,18 +335,23 @@ export function useLiveTracking() {
         actualPathHistory: [],
       };
 
-      // Always track actual GPS path for trip summary & billing
+      // Always track actual GPS path for trip summary & billing, but NOT during en_route
       const pathHistory = followingState.actualPathHistory || [];
       const lastPoint = pathHistory[pathHistory.length - 1];
-      if (
-        !lastPoint ||
-        Math.abs(lastPoint.lat - rawPosition.lat) > 0.00001 ||
-        Math.abs(lastPoint.lng - rawPosition.lng) > 0.00001
-      ) {
-        if (pathHistory.length < 2000) {
-          pathHistory.push({ ...rawPosition });
-          followingState.actualPathHistory = pathHistory;
+      if (!isEnRoute) {
+        if (
+          !lastPoint ||
+          Math.abs(lastPoint.lat - rawPosition.lat) > 0.00001 ||
+          Math.abs(lastPoint.lng - rawPosition.lng) > 0.00001
+        ) {
+          if (pathHistory.length < 2000) {
+            pathHistory.push({ ...rawPosition });
+            followingState.actualPathHistory = pathHistory;
+          }
         }
+      } else if (pathHistory.length > 0) {
+        // Clear history during en_route so we don't draw a line from their start position
+        followingState.actualPathHistory = [];
       }
 
       if (route && route.polyline.length >= 2) {
@@ -376,16 +384,19 @@ export function useLiveTracking() {
 
         let targetPosition: PolylinePoint;
         let projectedBearing: number;
+        let isSnapped = false;
 
         if (distFromRoute < 80) {
           // Snap to route for smooth turn-by-turn animation
           targetPosition = routePosition.position;
           projectedBearing = routePosition.bearing;
+          isSnapped = true;
         } else {
           // Driver is far from planned route - animate to actual GPS position
           // This handles the case where the driver takes a different route
           targetPosition = rawPosition;
           projectedBearing = newHeading ?? existing?.bearing ?? 0;
+          isSnapped = false;
         }
 
         // Track previous state for determining re-render triggers
@@ -420,6 +431,7 @@ export function useLiveTracking() {
             bearing: projectedBearing,
             lastUpdated: now,
             targetDistanceAlongRoute: distanceAlongRoute,
+            isSnappedToRoute: isSnapped,
           });
         } else {
           positions.set(driverId, {
@@ -430,6 +442,7 @@ export function useLiveTracking() {
             lastUpdated: now,
             targetDistanceAlongRoute: distanceAlongRoute,
             currentDistanceAlongRoute: distanceAlongRoute,
+            isSnappedToRoute: isSnapped,
           });
         }
       } else {
@@ -443,6 +456,7 @@ export function useLiveTracking() {
               ...existing,
               target: rawPosition,
               lastUpdated: now,
+              isSnappedToRoute: false,
             });
           }
         } else {
@@ -454,6 +468,7 @@ export function useLiveTracking() {
             lastUpdated: now,
             targetDistanceAlongRoute: 0,
             currentDistanceAlongRoute: 0,
+            isSnappedToRoute: false,
           });
         }
       }
@@ -480,7 +495,7 @@ export function useLiveTracking() {
           ? routeCacheRef.current.get(activeTrip.id)
           : null;
 
-        if (route && route.polyline.length >= 2) {
+        if (route && route.polyline.length >= 2 && pos.isSnappedToRoute) {
           // ─── Route-constrained animation ───
           // Advance currentDistanceAlongRoute toward targetDistanceAlongRoute
           // This makes the marker glide along polyline segments through turns
