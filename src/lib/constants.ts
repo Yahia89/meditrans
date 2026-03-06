@@ -32,6 +32,7 @@ export const WAIVER_TYPES = [
   "CADI",
   "BI Waiver",
   "CAC Waiver",
+  "DD",
   "Other",
 ] as const;
 
