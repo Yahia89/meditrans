@@ -74,6 +74,8 @@ interface Driver {
   driver_record_issue_date?: string;
   driver_record_expiration?: string;
   notes?: string;
+  umpi?: string;
+  npi?: string;
 }
 
 // Demo data for preview mode
@@ -293,6 +295,8 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             driver_record_issue_date: d.driver_record_issue_date || "",
             driver_record_expiration: d.driver_record_expiration || "",
             notes: d.notes || "",
+            umpi: d.umpi || "",
+            npi: d.npi || "",
           }) as Driver,
       );
     },
@@ -539,6 +543,8 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                 driver_record_expiration:
                   editingDriver.driver_record_expiration || "",
                 notes: editingDriver.notes || "",
+                umpi: editingDriver.umpi || "",
+                npi: editingDriver.npi || "",
                 custom_fields: editingDriver.custom_fields,
               }
             : undefined

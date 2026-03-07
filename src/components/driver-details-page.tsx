@@ -530,6 +530,47 @@ export function DriverDetailsPage({
                 </div>
               </div>
 
+              {/* Professional IDs (Medicaid Billing) */}
+              {(driver.npi || driver.umpi) && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-6">
+                    Professional IDs
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {driver.npi && (
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-emerald-50 rounded-lg">
+                          <FileText className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                            NPI (National Provider ID)
+                          </p>
+                          <p className="text-slate-900 mt-0.5 font-mono font-medium">
+                            {driver.npi}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {driver.umpi && (
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-emerald-50 rounded-lg">
+                          <FileText className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                            UMPI (Minnesota ID)
+                          </p>
+                          <p className="text-slate-900 mt-0.5 font-mono font-medium">
+                            {driver.umpi}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Fleet Information */}
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                 <h3 className="text-lg font-semibold text-slate-900 mb-6">

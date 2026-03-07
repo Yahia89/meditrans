@@ -710,12 +710,17 @@ export function DriverForm({
                         className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <option value="">Select type...</option>
-                        <option value="Sedan">Sedan</option>
-                        <option value="SUV">SUV</option>
-                        <option value="Van">Van</option>
-                        <option value="WAV">WAV (Wheelchair)</option>
-                        <option value="Ambulance">Ambulance</option>
-                        <option value="Other">Other</option>
+                        <option value="sedan">Sedan</option>
+                        <option value="suv">SUV</option>
+                        <option value="van">Van</option>
+                        <option value="wheelchair">Wheelchair (WAV)</option>
+                        <option value="ambulance">Ambulance</option>
+                        <option value="stretcher">Stretcher</option>
+                        <option value="common_carrier">Common Carrier</option>
+                        <option value="folded_wheelchair">
+                          Foldable Wheelchair
+                        </option>
+                        <option value="other">Other</option>
                       </select>
                     </div>
                   </div>
