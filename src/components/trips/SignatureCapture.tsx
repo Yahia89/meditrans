@@ -114,9 +114,9 @@ export function SignatureCaptureDialog({
         onOpenChange(val);
       }}
     >
-      <DialogContent className="max-w-lg rounded-2xl p-0 overflow-hidden">
-        {/* Header with trip summary */}
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6">
+      <DialogContent className="sm:max-w-2xl rounded-2xl p-0 overflow-hidden border-none shadow-2xl flex flex-col max-h-[96dvh] sm:max-h-[90vh]">
+        {/* Header with trip summary - Fixed at top */}
+        <div className="shrink-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-6 shadow-md z-10">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center">
               <Signature weight="duotone" className="w-6 h-6 text-white" />
@@ -132,53 +132,97 @@ export function SignatureCaptureDialog({
           </div>
 
           {/* Trip Summary */}
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
-            <div className="flex items-center gap-2 text-sm">
-              <User weight="duotone" className="w-4 h-4 text-slate-400" />
-              <span className="text-slate-300">Patient:</span>
-              <span className="font-semibold text-white">
-                {trip.patient?.full_name || "Unknown"}
-              </span>
-            </div>
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin
-                weight="duotone"
-                className="w-4 h-4 text-rose-400 shrink-0 mt-0.5"
-              />
-              <span className="text-slate-300 line-clamp-1">
-                {trip.pickup_location}
-              </span>
-            </div>
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin
-                weight="duotone"
-                className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"
-              />
-              <span className="text-slate-300 line-clamp-1">
-                {trip.dropoff_location}
-              </span>
-            </div>
-            <div className="flex items-center gap-4 text-xs text-slate-400 pt-2 border-t border-white/10">
-              <div className="flex items-center gap-1.5">
-                <Calendar weight="duotone" className="w-3.5 h-3.5" />
-                {formatInUserTimezone(trip.pickup_time, timezone, "MM/dd/yyyy")}
+          <div className="bg-white/5 rounded-xl p-5 border border-white/10 mt-6 backdrop-blur-sm">
+            <div className="flex flex-col sm:grid sm:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                    <User weight="duotone" className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
+                      Patient
+                    </span>
+                    <span className="font-semibold text-white">
+                      {trip.patient?.full_name || "Unknown"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 text-sm border-l-2 border-rose-500/20 pl-4">
+                  <MapPin
+                    weight="duotone"
+                    className="w-4 h-4 text-rose-400 shrink-0 mt-0.5"
+                  />
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
+                      Pickup
+                    </span>
+                    <span className="text-slate-300 line-clamp-2">
+                      {trip.pickup_location}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Clock weight="duotone" className="w-3.5 h-3.5" />
-                {formatInUserTimezone(trip.pickup_time, timezone, "h:mm a")}
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                    <Clock
+                      weight="duotone"
+                      className="w-4 h-4 text-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
+                      Scheduled
+                    </span>
+                    <span className="font-semibold text-white">
+                      {formatInUserTimezone(
+                        trip.pickup_time,
+                        timezone,
+                        "h:mm a",
+                      )}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 text-sm border-l-2 border-emerald-500/20 pl-4">
+                  <MapPin
+                    weight="duotone"
+                    className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"
+                  />
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
+                      Dropoff
+                    </span>
+                    <span className="text-slate-300 line-clamp-2">
+                      {trip.dropoff_location}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6 text-[11px] text-slate-400 pt-5 border-t border-white/10 mt-5">
+              <div className="flex items-center gap-2">
+                <Calendar weight="duotone" className="w-4 h-4 text-slate-500" />
+                {formatInUserTimezone(
+                  trip.pickup_time,
+                  timezone,
+                  "MMMM d, yyyy",
+                )}
               </div>
               {trip.distance_miles && (
-                <div className="flex items-center gap-1.5">
-                  <Car weight="duotone" className="w-3.5 h-3.5" />
-                  {trip.distance_miles} mi
+                <div className="flex items-center gap-2">
+                  <Car weight="duotone" className="w-4 h-4 text-slate-500" />
+                  {trip.distance_miles} miles trip
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Signature Content */}
-        <div className="p-6">
+        {/* Scrollable Signature Content */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-10 bg-white">
           {!showDeclineForm ? (
             <>
               {/* Signer Name */}
@@ -217,30 +261,31 @@ export function SignatureCaptureDialog({
                 </div>
                 <div
                   className={cn(
-                    "border-2 border-dashed rounded-xl overflow-hidden bg-slate-50/50 transition-all",
+                    "border-2 border-dashed rounded-2xl overflow-hidden bg-slate-50/50 transition-all",
                     hasDrawn
-                      ? "border-emerald-300 bg-emerald-50/30"
+                      ? "border-emerald-300 bg-emerald-50/20"
                       : "border-slate-200",
                   )}
                 >
                   <SignatureCanvas
                     ref={sigCanvas}
-                    penColor="#1e293b"
+                    penColor="#0f172a"
                     canvasProps={{
-                      className: "signature-canvas w-full h-40",
+                      className: "signature-canvas w-full h-64 sm:h-80",
                       style: {
                         touchAction: "none",
                         cursor: "crosshair",
                         display: "block",
+                        backgroundColor: "transparent",
                       },
                     }}
                     onEnd={handleEnd}
                   />
                 </div>
-                <p className="text-xs text-slate-400 mt-2 text-center">
+                <p className="text-[11px] font-medium text-slate-400 mt-3 text-center uppercase tracking-wider">
                   {hasDrawn
-                    ? "✓ Signature captured"
-                    : "Draw your signature above"}
+                    ? "✓ Signature captured successfully"
+                    : "Use your mouse or touch screen to sign above"}
                 </p>
               </div>
 
@@ -261,7 +306,7 @@ export function SignatureCaptureDialog({
                   className={cn(
                     "h-12 rounded-xl font-bold transition-all duration-300 w-full sm:flex-1",
                     hasDrawn && signerName.trim()
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50"
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg"
                       : "bg-slate-200 text-slate-400",
                   )}
                 >
@@ -281,7 +326,7 @@ export function SignatureCaptureDialog({
                   value={declineReason}
                   onChange={(e) => setDeclineReason(e.target.value)}
                   placeholder="Please explain why the signature cannot be obtained..."
-                  className="min-h-[120px] rounded-xl border-slate-200 bg-slate-50/50"
+                  className="min-h-[220px] rounded-2xl border-slate-200 bg-slate-50/50 p-4 focus:bg-white transition-all text-base"
                 />
               </div>
 
@@ -331,63 +376,88 @@ export function SignatureDisplay({
   if (!signatureData && !declined) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-      <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-        <Signature weight="duotone" className="w-4 h-4" />
-        Rider Signature
-      </h3>
-
-      {declined ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-amber-700 font-bold text-sm mb-2">
-            <XCircle weight="duotone" className="w-5 h-5" />
-            Signature Declined
-          </div>
-          {declinedReason && (
-            <p className="text-sm text-amber-600/90">{declinedReason}</p>
-          )}
-          {capturedAt && (
-            <p className="text-xs text-amber-500 mt-2">
-              Recorded on{" "}
-              {formatInUserTimezone(capturedAt, timezone, "MMM d, yyyy h:mm a")}
-            </p>
-          )}
+    <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <div className="bg-slate-50/80 px-6 py-3 border-b border-slate-100 flex items-center justify-between">
+        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+          <Signature weight="duotone" className="w-4 h-4 text-slate-400" />
+          Rider Signature
+        </h3>
+        <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider border border-emerald-100">
+          <CheckCircle weight="bold" className="w-3 h-3" />
+          Verified
         </div>
-      ) : (
-        <div className="space-y-3">
-          {/* Signature Image */}
-          <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-            <img
-              src={signatureData!}
-              alt="Rider Signature"
-              className="max-h-24 mx-auto"
-            />
-          </div>
+      </div>
 
-          {/* Signer Info */}
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-slate-600">
-              <User weight="duotone" className="w-4 h-4 text-slate-400" />
-              <span className="font-semibold">{signedByName}</span>
+      <div className="p-6">
+        {declined ? (
+          <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-5">
+            <div className="flex items-center gap-2 text-amber-700 font-bold text-sm mb-3">
+              <XCircle weight="duotone" className="w-5 h-5" />
+              Signature Declined
             </div>
+            {declinedReason && (
+              <p className="text-sm text-amber-800/80 leading-relaxed bg-white/50 rounded-xl p-3 border border-amber-200/50 underline decoration-amber-200 decoration-wavy underline-offset-4">
+                {declinedReason}
+              </p>
+            )}
             {capturedAt && (
-              <span className="text-xs text-slate-400">
+              <div className="flex items-center gap-2 text-[10px] text-amber-500 mt-4 font-medium uppercase tracking-wider">
+                <Clock weight="bold" className="w-3.5 h-3.5" />
+                Recorded on{" "}
                 {formatInUserTimezone(
                   capturedAt,
                   timezone,
                   "MMM d, yyyy h:mm a",
                 )}
-              </span>
+              </div>
             )}
           </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Signature Image */}
+            <div className="bg-slate-50/50 rounded-2xl p-6 border border-slate-100 flex items-center justify-center min-h-[140px] group transition-colors hover:bg-white">
+              <img
+                src={signatureData!}
+                alt="Rider Signature"
+                className="max-h-32 object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-500"
+              />
+            </div>
 
-          {/* Verification Badge */}
-          <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 rounded-lg px-3 py-2 text-xs font-medium border border-emerald-100">
-            <CheckCircle weight="duotone" className="w-4 h-4" />
-            Signature verified and stored for audit
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-50">
+              {/* Signer Info */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                  <User weight="duotone" className="w-5 h-5 text-slate-400" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Signed By
+                  </span>
+                  <span className="text-sm font-semibold text-slate-700">
+                    {signedByName}
+                  </span>
+                </div>
+              </div>
+
+              {/* Timestamp */}
+              {capturedAt && (
+                <div className="sm:text-right">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Date & Time
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {formatInUserTimezone(
+                      capturedAt,
+                      timezone,
+                      "MMM d, yyyy h:mm a",
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
