@@ -273,6 +273,11 @@ function AppContent() {
           <DashboardPage title="Dashboard">
             <Dashboard
               onNavigateToCredits={() => setCurrentPage("client-credits")}
+              onNavigateToDriver={(id) => {
+                setDriverId(id);
+                setFromPage("dashboard");
+                setCurrentPage("driver-details");
+              }}
             />
           </DashboardPage>
         );
@@ -523,6 +528,11 @@ function AppContent() {
           <DashboardPage title="Dashboard">
             <Dashboard
               onNavigateToCredits={() => setCurrentPage("client-credits")}
+              onNavigateToDriver={(id) => {
+                setDriverId(id);
+                setFromPage("dashboard");
+                setCurrentPage("driver-details");
+              }}
             />
           </DashboardPage>
         );

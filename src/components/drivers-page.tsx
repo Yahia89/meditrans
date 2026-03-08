@@ -57,6 +57,7 @@ interface Driver {
   currentLocation?: string;
   custom_fields?: Record<string, string> | null;
   // Additional fields for editing
+  id_number?: string;
   address?: string;
   county?: string;
   license_number?: string;
@@ -278,6 +279,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             currentLocation: undefined, // Mock for now
             custom_fields: d.custom_fields,
             // Preserve all fields for editing
+            id_number: d.id_number || "",
             address: d.address || "",
             county: d.county || "",
             license_number: d.license_number || "",
@@ -518,6 +520,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             ? {
                 id: editingDriver.id,
                 full_name: editingDriver.name,
+                id_number: editingDriver.id_number || "",
                 email: editingDriver.email,
                 phone: editingDriver.phone,
                 address: editingDriver.address || "",

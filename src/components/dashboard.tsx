@@ -7,6 +7,7 @@ import { UpcomingSchedule } from "./dashboard/UpcomingSchedule";
 import { RecentActivity } from "./dashboard/RecentActivity";
 import { QuickActions } from "./dashboard/QuickActions";
 import { LowBalanceAlerts } from "./credits/LowBalanceAlerts";
+import { DriverExpirationAlerts } from "./dashboard/DriverExpirationAlerts";
 import { usePermissions } from "@/hooks/usePermissions";
 
 import { useEffect } from "react";
@@ -14,9 +15,13 @@ import { useQueryState } from "nuqs";
 
 interface DashboardProps {
   onNavigateToCredits?: () => void;
+  onNavigateToDriver?: (driverId: string) => void;
 }
 
-export function Dashboard({ onNavigateToCredits }: DashboardProps) {
+export function Dashboard({
+  onNavigateToCredits,
+  onNavigateToDriver,
+}: DashboardProps) {
   const { dataState, isDemoMode } = useOnboarding();
   const { isAdmin, isEmployee, isDispatch } = usePermissions();
   const [section] = useQueryState("section");
@@ -44,7 +49,10 @@ export function Dashboard({ onNavigateToCredits }: DashboardProps) {
   return (
     <div className="space-y-10 pb-10 max-w-[1600px] mx-auto">
       {/* 1. Header & Greeting */}
-      <DashboardHeader />
+      <DashboardHeader
+        onNavigateToDriver={onNavigateToDriver}
+        onNavigateToCredits={onNavigateToCredits}
+      />
 
       {/* 2. Important Banners */}
       {isInitialState && (
@@ -106,6 +114,11 @@ export function Dashboard({ onNavigateToCredits }: DashboardProps) {
                 </div>
 
                 <div className="space-y-4">
+                  {/* Driver Compliance Alerts */}
+                  <DriverExpirationAlerts
+                    onNavigateToDriver={onNavigateToDriver}
+                  />
+
                   {/* Low Balance Alerts - Dynamic - Only for Owners/Admins */}
                   {isDispatch && (
                     <LowBalanceAlerts onNavigate={onNavigateToCredits} />

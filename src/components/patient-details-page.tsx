@@ -65,8 +65,10 @@ interface Patient {
   service_type: string | null;
   case_manager: string | null;
   case_manager_phone: string | null;
+  case_manager_email: string | null;
   monthly_credit: number | null;
   credit_used_for: string | null;
+  medicaid_id: string | null;
   vehicle_type_need: string | null;
   notes: string | null;
   created_at: string;
@@ -611,6 +613,12 @@ export function PatientDetailsPage({
                         : "N/A"}
                     </p>
                   </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Email</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {patient.case_manager_email || "N/A"}
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
@@ -631,6 +639,12 @@ export function PatientDetailsPage({
                     <p className="text-xs text-slate-500">Credit Used For</p>
                     <p className="text-sm text-slate-600">
                       {patient.credit_used_for || "General use"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Medicaid ID</p>
+                    <p className="text-sm font-medium text-slate-900 font-mono">
+                      {patient.medicaid_id || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -969,8 +983,10 @@ export function PatientDetailsPage({
           service_type: patient.service_type || "",
           case_manager: patient.case_manager || "",
           case_manager_phone: patient.case_manager_phone || "",
+          case_manager_email: patient.case_manager_email || "",
           monthly_credit: patient.monthly_credit?.toString() || "",
           credit_used_for: patient.credit_used_for || "",
+          medicaid_id: patient.medicaid_id || "",
           vehicle_type_need: patient.vehicle_type_need || "",
           notes: patient.notes || "",
         }}

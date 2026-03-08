@@ -620,36 +620,83 @@ export function DriverDetailsPage({
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
-                        DOT Medical Info
+                        DOT Medical #
                       </p>
-                      <p className="text-slate-900 mt-1">
-                        <span className="font-semibold">
-                          {driver.dot_medical_number || "N/A"}
-                        </span>
-                        {driver.dot_medical_expiration && (
-                          <span className="block text-xs text-slate-500 mt-0.5">
-                            Expires:{" "}
-                            {formatDate(
-                              driver.dot_medical_expiration,
-                              activeTimezone,
-                            )}
-                          </span>
+                      <p className="text-slate-900 mt-1 font-semibold">
+                        {driver.dot_medical_number || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                        DOT Medical Expiration
+                      </p>
+                      <p
+                        className={cn(
+                          "text-slate-900 mt-1",
+                          driver.dot_medical_expiration &&
+                            new Date(driver.dot_medical_expiration) < new Date()
+                            ? "text-red-600 font-bold"
+                            : "",
+                        )}
+                      >
+                        {formatDate(
+                          driver.dot_medical_expiration,
+                          activeTimezone,
                         )}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
-                        Insurance
+                        Driver Record Issue
                       </p>
                       <p className="text-slate-900 mt-1">
-                        {driver.insurance_company || "Unknown Provider"}
+                        {formatDate(
+                          driver.driver_record_issue_date,
+                          activeTimezone,
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                        Record Expiration
+                      </p>
+                      <p
+                        className={cn(
+                          "text-slate-900 mt-1",
+                          driver.driver_record_expiration &&
+                            new Date(driver.driver_record_expiration) <
+                              new Date()
+                            ? "text-red-600 font-bold"
+                            : "",
+                        )}
+                      >
+                        {formatDate(
+                          driver.driver_record_expiration,
+                          activeTimezone,
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                        Inspection Date
+                      </p>
+                      <p className="text-slate-900 mt-1">
+                        {formatDate(driver.inspection_date, activeTimezone)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                        Insurance Company
+                      </p>
+                      <p className="text-slate-900 mt-1 font-semibold">
+                        {driver.insurance_company || "N/A"}
                       </p>
                       <p className="text-xs text-slate-500">
                         Policy: {driver.insurance_policy_number || "N/A"}
                       </p>
                     </div>
-                  </div>
-                  <div className="space-y-4">
                     <div>
                       <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
                         Insurance Period
@@ -661,7 +708,7 @@ export function DriverDetailsPage({
                                 driver.insurance_start_date,
                                 activeTimezone,
                               )
-                            : "Start"}
+                            : "Not specified"}
                         </span>
                         <span className="text-slate-400">→</span>
                         <span
@@ -678,16 +725,28 @@ export function DriverDetailsPage({
                                 driver.insurance_expiration_date,
                                 activeTimezone,
                               )
-                            : "End"}
+                            : "Not specified"}
                         </span>
                       </div>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">
-                        Last Inspection
+                        Insurance Expiration
                       </p>
-                      <p className="text-slate-900 mt-1">
-                        {formatDate(driver.inspection_date, activeTimezone)}
+                      <p
+                        className={cn(
+                          "text-slate-900 mt-1",
+                          driver.insurance_expiration_date &&
+                            new Date(driver.insurance_expiration_date) <
+                              new Date()
+                            ? "text-red-600 font-bold"
+                            : "",
+                        )}
+                      >
+                        {formatDate(
+                          driver.insurance_expiration_date,
+                          activeTimezone,
+                        )}
                       </p>
                     </div>
                   </div>

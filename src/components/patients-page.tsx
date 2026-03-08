@@ -70,6 +70,7 @@ interface Patient {
   case_manager_email?: string | null;
   monthly_credit?: number | null;
   credit_used_for?: string | null;
+  medicaid_id?: string | null;
   vehicle_type_need?: string | null;
 }
 
@@ -275,6 +276,7 @@ export function PatientsPage({
           case_manager_email: p.case_manager_email,
           monthly_credit: p.monthly_credit,
           credit_used_for: p.credit_used_for,
+          medicaid_id: p.medicaid_id,
           vehicle_type_need: p.vehicle_type_need,
         } as Patient;
       });
@@ -433,6 +435,7 @@ export function PatientsPage({
                   monthly_credit:
                     editingPatient.monthly_credit?.toString() || "",
                   credit_used_for: editingPatient.credit_used_for || "",
+                  medicaid_id: editingPatient.medicaid_id || "",
                   vehicle_type_need: editingPatient.vehicle_type_need || "",
                   notes: editingPatient.notes || "",
                   custom_fields: editingPatient.custom_fields,
@@ -534,6 +537,7 @@ export function PatientsPage({
                 case_manager_email: editingPatient.case_manager_email || "",
                 monthly_credit: editingPatient.monthly_credit?.toString() || "",
                 credit_used_for: editingPatient.credit_used_for || "",
+                medicaid_id: editingPatient.medicaid_id || "",
                 vehicle_type_need: editingPatient.vehicle_type_need || "",
                 notes: editingPatient.notes || "",
                 custom_fields: editingPatient.custom_fields,

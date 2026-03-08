@@ -192,6 +192,7 @@ export function PatientForm({
           case_manager_email: initialData.case_manager_email || "",
           monthly_credit: initialData.monthly_credit?.toString() || "",
           credit_used_for: initialData.credit_used_for || "",
+          medicaid_id: initialData.medicaid_id || "",
           vehicle_type_need: initialData.vehicle_type_need || "",
           notes: initialData.notes || "",
         }
@@ -212,6 +213,7 @@ export function PatientForm({
           case_manager_email: "",
           monthly_credit: "",
           credit_used_for: "",
+          medicaid_id: "",
           vehicle_type_need: "",
           notes: "",
         },
@@ -329,6 +331,7 @@ export function PatientForm({
           ? parseFloat(data.monthly_credit)
           : null,
         credit_used_for: data.credit_used_for || null,
+        medicaid_id: data.medicaid_id || null,
         vehicle_type_need: data.vehicle_type_need || null,
         notes: data.notes || null,
         custom_fields: Object.keys(fieldsObj).length > 0 ? fieldsObj : null,
