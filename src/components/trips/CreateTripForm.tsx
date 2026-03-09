@@ -407,6 +407,7 @@ export function CreateTripForm({
     newLeg.dropoff_location = lastLeg.pickup_location;
     newLeg.pickup_date = lastLeg.pickup_date;
     newLeg.trip_type = lastLeg.trip_type; // Usually return trip has same billing type
+    newLeg.service_type = lastLeg.service_type; // Inherit service type
 
     setTripLegs([...tripLegs, newLeg]);
     setActiveLegId(newLeg.id);
@@ -420,6 +421,7 @@ export function CreateTripForm({
     newLeg.patient_id = lastLeg.patient_id;
     newLeg.pickup_location = lastLeg.dropoff_location; // Start where we left off
     newLeg.pickup_date = lastLeg.pickup_date;
+    newLeg.service_type = lastLeg.service_type; // Inherit service type
 
     setTripLegs([...tripLegs, newLeg]);
     setActiveLegId(newLeg.id);
@@ -874,7 +876,27 @@ export function CreateTripForm({
                 value={currentLeg.patient_id}
                 onChange={(e) => {
                   const newPatientId = e.target.value;
-                  updateActiveLeg({ patient_id: newPatientId });
+                  const selectedPatient = patients?.find(
+                    (p) => p.id === newPatientId,
+                  );
+
+                  let autoServiceType = currentLeg.service_type;
+                  if (selectedPatient?.vehicle_type_need) {
+                    const mapping: Record<string, string> = {
+                      "COMMON CARRIER": "Ambulatory",
+                      "FOLDED WHEELCHAIR": "Foldable Wheelchair",
+                      WHEELCHAIR: "Wheelchair",
+                      VAN: "Ramp Van",
+                    };
+                    autoServiceType =
+                      mapping[selectedPatient.vehicle_type_need] ||
+                      autoServiceType;
+                  }
+
+                  updateActiveLeg({
+                    patient_id: newPatientId,
+                    service_type: autoServiceType,
+                  });
                 }}
                 className="w-full rounded-md border-slate-200 bg-white h-10 px-3 text-sm focus:ring-2 focus:ring-blue-500/20"
               >
