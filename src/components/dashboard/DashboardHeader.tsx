@@ -35,17 +35,17 @@ export function DashboardHeader({
   const showNotifications = isAdmin || isEmployee || isDispatch;
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight leading-tight">
           {getGreeting()}, <span className="text-lime-600">{userName}.</span>
         </h1>
-        <p className="text-sm font-medium text-slate-500">
+        <p className="text-xs md:text-sm font-medium text-slate-500">
           Welcome back to your operations command center.
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
         {showNotifications && (
           <NotificationBell
             onNavigateToDriver={onNavigateToDriver}
@@ -53,22 +53,22 @@ export function DashboardHeader({
           />
         )}
         {canCreateTrip && (
-          <>
+          <div className="flex items-center gap-2 flex-1 sm:flex-initial">
             <button
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 md:px-6 md:py-3 text-xs md:text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 flex-1 sm:flex-none"
               onClick={() => setModalType("discharge")}
             >
-              <Plus size={18} weight="bold" />
-              Create Discharge Trip
+              <Plus size={16} weight="bold" className="shrink-0" />
+              <span className="truncate">Discharge Trip</span>
             </button>
             <button
-              className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#2E4A2E]"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 md:px-6 md:py-3 text-xs md:text-sm font-bold text-white shadow-sm transition-all hover:bg-[#2E4A2E] flex-1 sm:flex-none"
               onClick={() => setModalType("create")}
             >
-              <Plus size={18} weight="bold" />
-              Create New Trip
+              <Plus size={16} weight="bold" className="shrink-0" />
+              <span className="truncate">New Trip</span>
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>

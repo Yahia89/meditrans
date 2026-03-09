@@ -235,7 +235,7 @@ export function NotificationBell({
         ref={buttonRef}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "relative inline-flex items-center justify-center w-12 h-12 rounded-2xl border-2 transition-all",
+          "relative inline-flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl border-2 transition-all",
           open
             ? "bg-slate-100 border-slate-300 shadow-inner"
             : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm hover:shadow-md",
@@ -243,11 +243,11 @@ export function NotificationBell({
         aria-label={`${unreadCount} unread notifications`}
       >
         <Bell
-          size={24}
+          size={20}
           weight={open ? "fill" : "duotone"}
           className={cn(
             bellColor,
-            "transition-colors w-6 h-6 min-w-[24px] min-h-[24px]",
+            "transition-colors w-5 h-5 md:w-6 md:h-6 min-w-[20px] min-h-[20px] md:min-w-[24px] md:min-h-[24px]",
           )}
         />
 
@@ -255,7 +255,7 @@ export function NotificationBell({
         {unreadCount > 0 && (
           <span
             className={cn(
-              "absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 flex items-center justify-center rounded-full text-[11px] font-bold text-white shadow-lg ring-2 ring-white",
+              "absolute -top-1.5 -right-1.5 md:-top-2 md:-right-2 min-w-[18px] h-[18px] md:min-w-[22px] md:h-[22px] px-1 md:px-1.5 flex items-center justify-center rounded-full text-[9px] md:text-[11px] font-bold text-white shadow-lg ring-2 ring-white",
               badgeColor,
             )}
           >
@@ -265,7 +265,7 @@ export function NotificationBell({
 
         {/* Pulse ring for expired */}
         {hasExpired && unreadCount > 0 && (
-          <span className="absolute -top-2 -right-2 w-[22px] h-[22px] rounded-full bg-red-400 animate-ping opacity-30 pointer-events-none" />
+          <span className="absolute -top-1.5 -right-1.5 md:-top-2 md:-right-2 w-[18px] h-[18px] md:w-[22px] md:h-[22px] rounded-full bg-red-400 animate-ping opacity-30 pointer-events-none" />
         )}
       </button>
 
