@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
@@ -17,6 +17,7 @@ import {
 import { TimezoneSelector } from "./timezone-selector";
 import { StateSelector } from "./state-selector";
 import { cn } from "@/lib/utils";
+import { STATE_TIMEZONE_MAP } from "@/lib/timezone";
 
 const founderSchema = z.object({
   org_name: z
@@ -56,6 +57,7 @@ export function FounderInviteForm() {
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors },
   } = useForm<FounderFormData>({
     resolver: zodResolver(founderSchema),
@@ -68,6 +70,18 @@ export function FounderInviteForm() {
       timezone: "America/Chicago",
     },
   });
+
+  // Watch for state changes to auto-update timezone
+  const selectedState = useWatch({
+    control,
+    name: "operating_state",
+  });
+
+  useEffect(() => {
+    if (selectedState && STATE_TIMEZONE_MAP[selectedState]) {
+      setValue("timezone", STATE_TIMEZONE_MAP[selectedState]);
+    }
+  }, [selectedState, setValue]);
 
   const onSubmit = async (data: FounderFormData) => {
     setIsSubmitting(true);
@@ -101,6 +115,7 @@ export function FounderInviteForm() {
         org_id: org.id,
         email: data.owner_email,
         role: "owner",
+        full_name: data.owner_name,
         invited_by: (await supabase.auth.getUser()).data.user?.id,
       });
 
@@ -177,28 +192,28 @@ export function FounderInviteForm() {
   }
 
   return (
-    <div className="max-w-xl mx-auto p-6 space-y-10">
-      <div className="flex items-center gap-5">
-        <div className="w-16 h-16 rounded-2xl bg-[#3D5A3D]/10 flex items-center justify-center border-2 border-[#3D5A3D]/20 shadow-sm shrink-0">
-          <Shield weight="duotone" className="w-10 h-10 text-[#3D5A3D]" />
+    <div className="max-w-4xl mx-auto p-6 space-y-12 py-12">
+      <div className="flex items-center gap-6">
+        <div className="w-14 h-14 rounded-2xl bg-[#3D5A3D]/10 flex items-center justify-center border-2 border-[#3D5A3D]/20 shadow-sm shrink-0">
+          <Shield weight="duotone" className="w-8 h-8 text-[#3D5A3D]" />
         </div>
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
             Founder Onboarding Tool
           </h1>
-          <p className="text-slate-500 text-sm">
+          <p className="text-slate-500 text-sm font-medium">
             Create a new organization and invite its first owner.
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        <div className="space-y-6 rounded-2xl border border-slate-200 p-6 bg-slate-50/30 shadow-sm">
-          <h3 className="font-bold text-slate-900 flex items-center gap-2.5 text-sm tracking-wide">
+        <div className="space-y-8 rounded-3xl border border-slate-200 p-8 bg-slate-50/30 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300/50">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2.5 text-sm tracking-wide">
             <Buildings weight="duotone" className="h-5 w-5 text-[#3D5A3D]" />
             Organization Details
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">
                 Organization Name
@@ -219,7 +234,7 @@ export function FounderInviteForm() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                <MapPin weight="duotone" className="w-3.5 h-3.5 text-red-500" />
+                <MapPin weight="duotone" className="w-4 h-4 text-red-500" />
                 Operating State
               </label>
               <Controller
@@ -244,7 +259,7 @@ export function FounderInviteForm() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                <Phone weight="fill" className="w-3.5 h-3.5 text-[#3D5A3D]" />
+                <Phone weight="fill" className="w-4 h-4 text-[#3D5A3D]" />
                 Contact Phone
               </label>
               <Controller
@@ -296,12 +311,12 @@ export function FounderInviteForm() {
           </div>
         </div>
 
-        <div className="space-y-6 rounded-2xl border border-slate-200 p-6 bg-slate-50/30 shadow-sm">
-          <h3 className="font-bold text-slate-900 flex items-center gap-2.5 text-sm tracking-wide">
+        <div className="space-y-6 rounded-2xl border border-slate-200 p-8 bg-slate-50/30 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300/50">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2.5 text-sm tracking-wide">
             <UserPlus weight="duotone" className="h-5 w-5 text-[#3D5A3D]" />
             First Owner Details
           </h3>
-          <div className="grid grid-cols-1 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">
                 Full Name
@@ -310,7 +325,7 @@ export function FounderInviteForm() {
                 {...register("owner_name")}
                 placeholder="e.g., John Smith"
                 className={cn(
-                  "h-11 rounded-xl bg-white border-slate-200 focus:border-[#3D5A3D] transition-all px-4",
+                  "h-11 rounded-xl bg-white border-slate-200 focus:border-[#3D5A3D] transition-all px-4 shadow-sm",
                   errors.owner_name && "border-red-500 focus:border-red-500",
                 )}
               />
@@ -329,7 +344,7 @@ export function FounderInviteForm() {
                 type="email"
                 placeholder="owner@company.com"
                 className={cn(
-                  "h-11 rounded-xl bg-white border-slate-200 focus:border-[#3D5A3D] transition-all px-4",
+                  "h-11 rounded-xl bg-white border-slate-200 focus:border-[#3D5A3D] transition-all px-4 shadow-sm",
                   errors.owner_email && "border-red-500 focus:border-red-500",
                 )}
               />

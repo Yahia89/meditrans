@@ -74,7 +74,7 @@ export function TimezoneSelector({
             className,
           )}
         >
-          <div className="flex items-center gap-2 text-left">
+          <div className="flex items-center gap-2 text-left min-w-0 flex-1">
             <Globe
               weight="duotone"
               className="w-4 h-4 text-[#3D5A3D] shrink-0"
@@ -93,7 +93,10 @@ export function TimezoneSelector({
       </PopoverTrigger>
       <PopoverContent
         className="w-[280px] p-0 rounded-2xl border-slate-200 shadow-lg"
-        align="start"
+        align="center"
+        side="bottom"
+        sideOffset={4}
+        collisionPadding={16}
       >
         <Command>
           <CommandInput

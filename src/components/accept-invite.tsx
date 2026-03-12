@@ -94,7 +94,17 @@ export function AcceptInvitePage() {
         user.email?.split("@")[0] ||
         "User";
 
-      // 1. Create membership (include email for easier lookups)
+      // 1. Mark invite as accepted FIRST (before creating membership)
+      // This avoids the trigger race condition where the owner constraint check
+      // sees the newly created membership when updating the invite
+      const { error: updateError } = await supabase
+        .from("org_invites")
+        .update({ accepted_at: new Date().toISOString() })
+        .eq("id", invite.id);
+
+      if (updateError) throw updateError;
+
+      // 2. Create membership (include email for easier lookups)
       const { error: memberError } = await supabase
         .from("organization_memberships")
         .insert({
@@ -107,19 +117,11 @@ export function AcceptInvitePage() {
 
       if (memberError) {
         if (memberError.code === "23505") {
-          // already a member, just mark invite as used
+          // already a member, continue — invite was already marked accepted
         } else {
           throw memberError;
         }
       }
-
-      // 2. Mark invite as accepted
-      const { error: updateError } = await supabase
-        .from("org_invites")
-        .update({ accepted_at: new Date().toISOString() })
-        .eq("id", invite.id);
-
-      if (updateError) throw updateError;
 
       // 3. Link user to their employee/driver record
       if (invite.role === "driver") {
