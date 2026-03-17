@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/auth-context";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   Dialog,
@@ -29,6 +30,11 @@ import {
   Check,
   AlertCircle,
   ShieldAlert,
+  ClipboardCheck,
+  Clock,
+  XCircle,
+  History,
+  CheckCircle2,
 } from "lucide-react";
 import { cn, formatPhoneNumber } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -72,6 +78,11 @@ const patientSchema = z.object({
   referral_date: z.string().optional(),
   referral_expiration_date: z.string().optional(), // REFERRAL EXPIRATION
   service_type: z.string().optional(), // SERVICE TYPE
+  // SAL (Service Agreement Letter)
+  sal_status: z.string().min(1, "SAL status is required"),
+  sal_effective_date: z.string().optional(),
+  sal_through_date: z.string().optional(),
+  sal_pending_reason: z.string().optional(),
   // Case Management
   case_manager: z.string().optional(), // CASE MANAGER NAME
   case_manager_phone: z.string().optional(), // CASE MANAGER PHONE (also labeled PHONE NUMBER)
@@ -89,7 +100,34 @@ const patientSchema = z.object({
   notes: z.string().optional(), // NOTES
   // Legacy
   date_of_birth: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.sal_status === "approved" && !data.sal_effective_date) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Effective date is required when SAL is approved",
+      path: ["sal_effective_date"],
+    });
+  }
+  if (data.sal_status === "pending" && !data.sal_pending_reason) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Reason is required when SAL is pending",
+      path: ["sal_pending_reason"],
+    });
+  }
 });
+
+// SAL History entry type
+interface SalHistoryEntry {
+  id: string;
+  status: string;
+  effective_date: string | null;
+  through_date: string | null;
+  pending_reason: string | null;
+  changed_by_name: string | null;
+  created_at: string;
+  notes: string | null;
+}
 
 interface PatientFormData extends z.infer<typeof patientSchema> {
   id?: string;
@@ -105,6 +143,10 @@ interface PatientFormProps {
   onOpenChange: (open: boolean) => void;
   initialData?: PatientFormData & {
     custom_fields?: Record<string, string> | null;
+    sal_status?: string | null;
+    sal_effective_date?: string | null;
+    sal_through_date?: string | null;
+    sal_pending_reason?: string | null;
   };
 }
 
@@ -143,6 +185,7 @@ export function PatientForm({
   initialData,
 }: PatientFormProps) {
   const { currentOrganization } = useOrganization();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { canEditPatients, canViewBilling, canViewMedicaid } = usePermissions();
@@ -187,6 +230,10 @@ export function PatientForm({
           referral_date: initialData.referral_date || "",
           referral_expiration_date: initialData.referral_expiration_date || "",
           service_type: initialData.service_type || "",
+          sal_status: initialData.sal_status || "",
+          sal_effective_date: initialData.sal_effective_date || "",
+          sal_through_date: initialData.sal_through_date || "",
+          sal_pending_reason: initialData.sal_pending_reason || "",
           case_manager: initialData.case_manager || "",
           case_manager_phone: initialData.case_manager_phone || "",
           case_manager_email: initialData.case_manager_email || "",
@@ -208,6 +255,10 @@ export function PatientForm({
           referral_date: "",
           referral_expiration_date: "",
           service_type: "",
+          sal_status: "",
+          sal_effective_date: "",
+          sal_through_date: "",
+          sal_pending_reason: "",
           case_manager: "",
           case_manager_phone: "",
           case_manager_email: "",
@@ -221,10 +272,27 @@ export function PatientForm({
 
   const watchedServiceType = watch("service_type");
   const watchedReferralBy = watch("referral_by");
+  const watchedSalStatus = watch("sal_status");
 
   // Local state for 'Other' type-in fields
   const [otherServiceType, setOtherServiceType] = useState("");
   const [otherReferralBy, setOtherReferralBy] = useState("");
+
+  // Fetch SAL history for editing existing patients
+  const { data: salHistory = [] } = useQuery({
+    queryKey: ["sal-history", initialData?.id],
+    queryFn: async () => {
+      if (!initialData?.id) return [];
+      const { data, error } = await supabase
+        .from("patient_sal_history")
+        .select("*")
+        .eq("patient_id", initialData.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as SalHistoryEntry[];
+    },
+    enabled: !!initialData?.id && open,
+  });
 
   // Initialize other fields if editing
   useEffect(() => {
@@ -324,6 +392,10 @@ export function PatientForm({
           data.service_type === "Other"
             ? otherServiceType
             : data.service_type || null,
+        sal_status: data.sal_status || null,
+        sal_effective_date: data.sal_status === "approved" ? (data.sal_effective_date || null) : null,
+        sal_through_date: data.sal_status === "approved" ? (data.sal_through_date || null) : null,
+        sal_pending_reason: data.sal_status === "pending" ? (data.sal_pending_reason || null) : null,
         case_manager: data.case_manager || null,
         case_manager_phone: formattedCMPPhone || null,
         case_manager_email: data.case_manager_email || null,
@@ -337,15 +409,54 @@ export function PatientForm({
         custom_fields: Object.keys(fieldsObj).length > 0 ? fieldsObj : null,
       };
 
+      // Determine if SAL status changed (for history logging)
+      const salStatusChanged = initialData?.id
+        ? (data.sal_status || null) !== (initialData.sal_status || null)
+        : !!data.sal_status;
+
       if (initialData?.id) {
         const { error } = await supabase
           .from("patients")
           .update(patientData)
           .eq("id", initialData.id);
         if (error) throw error;
+
+        // Log SAL status change to history
+        if (salStatusChanged && data.sal_status) {
+          const { error: historyError } = await supabase
+            .from("patient_sal_history")
+            .insert({
+              patient_id: initialData.id,
+              org_id: currentOrganization.id,
+              status: data.sal_status,
+              effective_date: data.sal_status === "approved" ? (data.sal_effective_date || null) : null,
+              through_date: data.sal_status === "approved" ? (data.sal_through_date || null) : null,
+              pending_reason: data.sal_status === "pending" ? (data.sal_pending_reason || null) : null,
+              changed_by: user?.id || null,
+              changed_by_name: profile?.full_name || "Unknown",
+            });
+          if (historyError) console.error("Failed to log SAL history:", historyError);
+        }
       } else {
-        const { error } = await supabase.from("patients").insert(patientData);
+        const { data: insertedPatient, error } = await supabase.from("patients").insert(patientData).select("id").single();
         if (error) throw error;
+
+        // Log initial SAL status for new patient
+        if (insertedPatient && data.sal_status) {
+          const { error: historyError } = await supabase
+            .from("patient_sal_history")
+            .insert({
+              patient_id: insertedPatient.id,
+              org_id: currentOrganization.id,
+              status: data.sal_status,
+              effective_date: data.sal_status === "approved" ? (data.sal_effective_date || null) : null,
+              through_date: data.sal_status === "approved" ? (data.sal_through_date || null) : null,
+              pending_reason: data.sal_status === "pending" ? (data.sal_pending_reason || null) : null,
+              changed_by: user?.id || null,
+              changed_by_name: profile?.full_name || "Unknown",
+            });
+          if (historyError) console.error("Failed to log SAL history:", historyError);
+        }
       }
 
       // Invalidate and refetch patients
@@ -355,6 +466,9 @@ export function PatientForm({
       if (initialData?.id) {
         await queryClient.invalidateQueries({
           queryKey: ["patient", initialData.id],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ["sal-history", initialData.id],
         });
       }
 
@@ -399,6 +513,10 @@ export function PatientForm({
           "referral_by",
           "referral_date",
           "referral_expiration_date",
+          "sal_status",
+          "sal_effective_date",
+          "sal_through_date",
+          "sal_pending_reason",
         ];
         break;
       case 4:
@@ -816,6 +934,211 @@ export function PatientForm({
                       type="date"
                       className="h-9"
                     />
+                  </div>
+                </div>
+
+                {/* SAL (Service Agreement Letter) Section */}
+                <div className="border-t border-slate-200 pt-4 mt-4">
+                  <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-3">
+                    <ClipboardCheck className="w-4 h-4 text-[#3D5A3D]" />
+                    Service Agreement Letter (SAL)
+                    <span className="text-red-500 text-xs">*</span>
+                  </h4>
+
+                  {/* SAL Status Selector */}
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700">
+                        SAL Status <span className="text-red-500">*</span>
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { value: "approved", label: "Approved", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200 ring-emerald-500/20", activeBg: "bg-emerald-100 border-emerald-400 ring-2 ring-emerald-500/30" },
+                          { value: "pending", label: "Pending", icon: Clock, color: "text-amber-600", bg: "bg-amber-50 border-amber-200 ring-amber-500/20", activeBg: "bg-amber-100 border-amber-400 ring-2 ring-amber-500/30" },
+                          { value: "expired", label: "Expired", icon: XCircle, color: "text-red-500", bg: "bg-red-50 border-red-200 ring-red-500/20", activeBg: "bg-red-100 border-red-400 ring-2 ring-red-500/30" },
+                        ].map((option) => {
+                          const Icon = option.icon;
+                          const isActive = watchedSalStatus === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setValue("sal_status", option.value, { shouldValidate: true })}
+                              className={cn(
+                                "flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all duration-200",
+                                isActive ? option.activeBg : `${option.bg} hover:opacity-80`,
+                              )}
+                            >
+                              <Icon className={cn("w-4 h-4", option.color)} />
+                              <span className={cn(isActive ? option.color : "text-slate-600")}>
+                                {option.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {errors.sal_status && (
+                        <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.sal_status.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Approved: Show Effective & Through dates */}
+                    {watchedSalStatus === "approved" && (
+                      <div className="animate-in fade-in slide-in-from-top-2 duration-200 p-4 bg-emerald-50/50 rounded-lg border border-emerald-100">
+                        <p className="text-xs font-medium text-emerald-700 mb-3 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Approval Period
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-600">
+                              Effective Date <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              {...register("sal_effective_date")}
+                              type="date"
+                              className="h-9 bg-white"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-600">
+                              Through Date
+                            </label>
+                            <Input
+                              {...register("sal_through_date")}
+                              type="date"
+                              className="h-9 bg-white"
+                            />
+                          </div>
+                        </div>
+                        {errors.sal_effective_date && (
+                          <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {errors.sal_effective_date.message}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Pending: Show reason input */}
+                    {watchedSalStatus === "pending" && (
+                      <div className="animate-in fade-in slide-in-from-top-2 duration-200 p-4 bg-amber-50/50 rounded-lg border border-amber-100">
+                        <p className="text-xs font-medium text-amber-700 mb-3 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5" />
+                          Pending Explanation
+                        </p>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-slate-600">
+                            Why is it pending? <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            {...register("sal_pending_reason")}
+                            placeholder="e.g., Waiting on recertification from case manager..."
+                            className="w-full min-h-[70px] rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
+                          />
+                          {errors.sal_pending_reason && (
+                            <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              {errors.sal_pending_reason.message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Expired: Just a note, no extra input needed */}
+                    {watchedSalStatus === "expired" && (
+                      <div className="animate-in fade-in slide-in-from-top-2 duration-200 p-3 bg-red-50/50 rounded-lg border border-red-100">
+                        <p className="text-xs text-red-600 flex items-center gap-1.5">
+                          <XCircle className="w-3.5 h-3.5" />
+                          SAL has expired. The patient will need recertification to continue transporting.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* SAL History (only when editing) */}
+                    {initialData?.id && salHistory.length > 0 && (
+                      <div className="border-t border-slate-100 pt-3 mt-3">
+                        <button
+                          type="button"
+                          className="w-full flex items-center justify-between text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors group"
+                          onClick={(e) => {
+                            const target = e.currentTarget.nextElementSibling;
+                            if (target) {
+                              target.classList.toggle("hidden");
+                              e.currentTarget.querySelector('[data-chevron]')?.classList.toggle('rotate-180');
+                            }
+                          }}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <History className="w-3.5 h-3.5" />
+                            SAL Status History ({salHistory.length})
+                          </span>
+                          <ChevronRight data-chevron className="w-3.5 h-3.5 transition-transform rotate-90" />
+                        </button>
+                        <div className="mt-2 space-y-2 max-h-[200px] overflow-y-auto">
+                          {salHistory.map((entry) => (
+                            <div
+                              key={entry.id}
+                              className={cn(
+                                "flex items-start gap-3 p-2.5 rounded-lg border text-xs",
+                                entry.status === "approved" && "bg-emerald-50/50 border-emerald-100",
+                                entry.status === "pending" && "bg-amber-50/50 border-amber-100",
+                                entry.status === "expired" && "bg-red-50/50 border-red-100",
+                              )}
+                            >
+                              <div className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                                entry.status === "approved" && "bg-emerald-100",
+                                entry.status === "pending" && "bg-amber-100",
+                                entry.status === "expired" && "bg-red-100",
+                              )}>
+                                {entry.status === "approved" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                                {entry.status === "pending" && <Clock className="w-3.5 h-3.5 text-amber-600" />}
+                                {entry.status === "expired" && <XCircle className="w-3.5 h-3.5 text-red-500" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className={cn(
+                                    "font-semibold capitalize",
+                                    entry.status === "approved" && "text-emerald-700",
+                                    entry.status === "pending" && "text-amber-700",
+                                    entry.status === "expired" && "text-red-600",
+                                  )}>
+                                    {entry.status}
+                                  </span>
+                                  <span className="text-slate-400 shrink-0">
+                                    {new Date(entry.created_at).toLocaleDateString("en-US", {
+                                      month: "short", day: "numeric", year: "numeric",
+                                    })}
+                                  </span>
+                                </div>
+                                {entry.status === "approved" && entry.effective_date && (
+                                  <p className="text-slate-600 mt-0.5">
+                                    {new Date(entry.effective_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                    <span className="mx-1.5 text-slate-400">→</span>
+                                    {entry.through_date
+                                      ? new Date(entry.through_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                                      : "No through date"}
+                                  </p>
+                                )}
+                                {entry.status === "pending" && entry.pending_reason && (
+                                  <p className="text-slate-600 mt-0.5 line-clamp-2">
+                                    {entry.pending_reason}
+                                  </p>
+                                )}
+                                {entry.changed_by_name && (
+                                  <p className="text-slate-400 mt-0.5">by {entry.changed_by_name}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

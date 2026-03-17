@@ -16,11 +16,13 @@ import { useQueryState } from "nuqs";
 interface DashboardProps {
   onNavigateToCredits?: () => void;
   onNavigateToDriver?: (driverId: string) => void;
+  onNavigateToPatient?: (patientId: string) => void;
 }
 
 export function Dashboard({
   onNavigateToCredits,
   onNavigateToDriver,
+  onNavigateToPatient,
 }: DashboardProps) {
   const { dataState, isDemoMode } = useOnboarding();
   const { isAdmin, isEmployee, isDispatch } = usePermissions();
@@ -52,6 +54,7 @@ export function Dashboard({
       <DashboardHeader
         onNavigateToDriver={onNavigateToDriver}
         onNavigateToCredits={onNavigateToCredits}
+        onNavigateToPatient={onNavigateToPatient}
       />
 
       {/* 2. Important Banners */}

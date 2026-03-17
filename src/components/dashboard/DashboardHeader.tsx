@@ -7,11 +7,13 @@ import { NotificationBell } from "./NotificationBell";
 interface DashboardHeaderProps {
   onNavigateToDriver?: (driverId: string) => void;
   onNavigateToCredits?: () => void;
+  onNavigateToPatient?: (patientId: string) => void;
 }
 
 export function DashboardHeader({
   onNavigateToDriver,
   onNavigateToCredits,
+  onNavigateToPatient,
 }: DashboardHeaderProps) {
   const { user, profile } = useAuth();
   const [, setModalType] = useQueryState("modal");
@@ -50,6 +52,7 @@ export function DashboardHeader({
           <NotificationBell
             onNavigateToDriver={onNavigateToDriver}
             onNavigateToCredits={onNavigateToCredits}
+            onNavigateToPatient={onNavigateToPatient}
           />
         )}
         {canCreateTrip && (

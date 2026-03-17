@@ -287,6 +287,14 @@ export function CreditEntryDialog({
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button
               type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              className="rounded-xl text-slate-500 hover:text-slate-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
               variant="outline"
               onClick={handleReset}
               className="rounded-xl"

@@ -15,6 +15,11 @@ import {
   Trash,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
+  Clock,
+  XCircle,
+  CheckCircle2,
+  History,
 } from "lucide-react";
 import {
   CaretLeft,
@@ -72,6 +77,21 @@ interface Patient {
   vehicle_type_need: string | null;
   notes: string | null;
   created_at: string;
+  sal_status: string | null;
+  sal_effective_date: string | null;
+  sal_through_date: string | null;
+  sal_pending_reason: string | null;
+}
+
+interface SalHistoryEntry {
+  id: string;
+  status: string;
+  effective_date: string | null;
+  through_date: string | null;
+  pending_reason: string | null;
+  changed_by_name: string | null;
+  created_at: string;
+  notes: string | null;
 }
 
 const statusColors: Record<TripStatus, string> = {
@@ -158,6 +178,21 @@ export function PatientDetailsPage({
 
       if (error) throw error;
       return data as Patient;
+    },
+    enabled: !!id,
+  });
+
+  // Fetch SAL history
+  const { data: salHistory = [] } = useQuery({
+    queryKey: ["sal-history", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("patient_sal_history")
+        .select("*")
+        .eq("patient_id", id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as SalHistoryEntry[];
     },
     enabled: !!id,
   });
@@ -703,6 +738,145 @@ export function PatientDetailsPage({
               </div>
             </div>
 
+            {/* SAL Status Card */}
+            <div className={cn(
+              "rounded-2xl border p-6 shadow-sm",
+              patient.sal_status === "approved" && "bg-emerald-50/50 border-emerald-200",
+              patient.sal_status === "pending" && "bg-amber-50/50 border-amber-200",
+              patient.sal_status === "expired" && "bg-red-50/50 border-red-200",
+              !patient.sal_status && "bg-white border-slate-200",
+            )}>
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <ClipboardCheck className="w-4 h-4 text-slate-400" />
+                SAL Status
+              </h3>
+
+              {/* Current Status */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  {patient.sal_status === "approved" && (
+                    <>
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-emerald-700">Approved</p>
+                        {patient.sal_effective_date && (
+                          <p className="text-xs text-slate-500">
+                            {formatDate(patient.sal_effective_date, activeTimezone)}
+                            <span className="mx-1">→</span>
+                            {patient.sal_through_date
+                              ? formatDate(patient.sal_through_date, activeTimezone)
+                              : "No end date"}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                  {patient.sal_status === "pending" && (
+                    <>
+                      <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                        <Clock className="w-4 h-4 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-700">Pending</p>
+                        {patient.sal_pending_reason && (
+                          <p className="text-xs text-slate-500 line-clamp-2">
+                            {patient.sal_pending_reason}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                  {patient.sal_status === "expired" && (
+                    <>
+                      <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                        <XCircle className="w-4 h-4 text-red-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-red-600">Expired</p>
+                        <p className="text-xs text-slate-500">Needs recertification</p>
+                      </div>
+                    </>
+                  )}
+                  {!patient.sal_status && (
+                    <>
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                        <ClipboardCheck className="w-4 h-4 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-500">Not Set</p>
+                        <p className="text-xs text-slate-400">No SAL status recorded</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* SAL History Timeline */}
+                {salHistory.length > 0 && (
+                  <div className="border-t border-slate-100 pt-3 mt-3">
+                    <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5 mb-2">
+                      <History className="w-3.5 h-3.5" />
+                      History ({salHistory.length})
+                    </p>
+                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                      {salHistory.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className={cn(
+                            "flex items-start gap-2 p-2 rounded-lg text-xs",
+                            entry.status === "approved" && "bg-emerald-50/70",
+                            entry.status === "pending" && "bg-amber-50/70",
+                            entry.status === "expired" && "bg-red-50/70",
+                          )}
+                        >
+                          <div className={cn(
+                            "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                            entry.status === "approved" && "bg-emerald-100",
+                            entry.status === "pending" && "bg-amber-100",
+                            entry.status === "expired" && "bg-red-100",
+                          )}>
+                            {entry.status === "approved" && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                            {entry.status === "pending" && <Clock className="w-3 h-3 text-amber-600" />}
+                            {entry.status === "expired" && <XCircle className="w-3 h-3 text-red-500" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className={cn(
+                                "font-semibold capitalize",
+                                entry.status === "approved" && "text-emerald-700",
+                                entry.status === "pending" && "text-amber-700",
+                                entry.status === "expired" && "text-red-600",
+                              )}>
+                                {entry.status}
+                              </span>
+                              <span className="text-slate-400 shrink-0">
+                                {new Date(entry.created_at).toLocaleDateString("en-US", {
+                                  month: "short", day: "numeric", year: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                            {entry.status === "approved" && entry.effective_date && (
+                              <p className="text-slate-500">
+                                {new Date(entry.effective_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                <span className="mx-1">→</span>
+                                {entry.through_date
+                                  ? new Date(entry.through_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                                  : "—"}
+                              </p>
+                            )}
+                            {entry.status === "pending" && entry.pending_reason && (
+                              <p className="text-slate-500 line-clamp-1">{entry.pending_reason}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {!canManagePatients && (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
                 <div className="flex items-center gap-3 text-amber-800 mb-2">
@@ -989,6 +1163,10 @@ export function PatientDetailsPage({
           medicaid_id: patient.medicaid_id || "",
           vehicle_type_need: patient.vehicle_type_need || "",
           notes: patient.notes || "",
+          sal_status: patient.sal_status || "",
+          sal_effective_date: patient.sal_effective_date || "",
+          sal_through_date: patient.sal_through_date || "",
+          sal_pending_reason: patient.sal_pending_reason || "",
         }}
       />
 

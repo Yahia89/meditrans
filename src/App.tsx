@@ -278,6 +278,11 @@ function AppContent() {
                 setFromPage("dashboard");
                 setCurrentPage("driver-details");
               }}
+              onNavigateToPatient={(id) => {
+                setPatientId(id);
+                setFromPage("dashboard");
+                setCurrentPage("patient-details");
+              }}
             />
           </DashboardPage>
         );
@@ -532,6 +537,11 @@ function AppContent() {
                 setDriverId(id);
                 setFromPage("dashboard");
                 setCurrentPage("driver-details");
+              }}
+              onNavigateToPatient={(id) => {
+                setPatientId(id);
+                setFromPage("dashboard");
+                setCurrentPage("patient-details");
               }}
             />
           </DashboardPage>

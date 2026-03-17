@@ -72,6 +72,10 @@ interface Patient {
   credit_used_for?: string | null;
   medicaid_id?: string | null;
   vehicle_type_need?: string | null;
+  sal_status?: string | null;
+  sal_effective_date?: string | null;
+  sal_through_date?: string | null;
+  sal_pending_reason?: string | null;
 }
 
 // Demo data for preview mode
@@ -278,6 +282,10 @@ export function PatientsPage({
           credit_used_for: p.credit_used_for,
           medicaid_id: p.medicaid_id,
           vehicle_type_need: p.vehicle_type_need,
+          sal_status: p.sal_status,
+          sal_effective_date: p.sal_effective_date,
+          sal_through_date: p.sal_through_date,
+          sal_pending_reason: p.sal_pending_reason,
         } as Patient;
       });
     },
@@ -439,6 +447,10 @@ export function PatientsPage({
                   vehicle_type_need: editingPatient.vehicle_type_need || "",
                   notes: editingPatient.notes || "",
                   custom_fields: editingPatient.custom_fields,
+                  sal_status: editingPatient.sal_status || "",
+                  sal_effective_date: editingPatient.sal_effective_date || "",
+                  sal_through_date: editingPatient.sal_through_date || "",
+                  sal_pending_reason: editingPatient.sal_pending_reason || "",
                 }
               : undefined
           }
@@ -541,6 +553,10 @@ export function PatientsPage({
                 vehicle_type_need: editingPatient.vehicle_type_need || "",
                 notes: editingPatient.notes || "",
                 custom_fields: editingPatient.custom_fields,
+                sal_status: editingPatient.sal_status || "",
+                sal_effective_date: editingPatient.sal_effective_date || "",
+                sal_through_date: editingPatient.sal_through_date || "",
+                sal_pending_reason: editingPatient.sal_pending_reason || "",
               }
             : undefined
         }

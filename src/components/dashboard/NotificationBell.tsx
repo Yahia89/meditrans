@@ -13,6 +13,7 @@ import {
   CreditCard,
   Trash,
   CheckCircle,
+  ClipboardText,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { useDriverAlerts, type DriverAlert } from "./DriverExpirationAlerts";
@@ -54,6 +55,7 @@ function formatExpirationText(days: number): string {
 interface NotificationBellProps {
   onNavigateToDriver?: (driverId: string) => void;
   onNavigateToCredits?: () => void;
+  onNavigateToPatient?: (patientId: string) => void;
 }
 
 interface CreditAlert {
@@ -63,10 +65,19 @@ interface CreditAlert {
   severity: "expired" | "critical" | "warning";
 }
 
+interface SalAlert {
+  id: string;
+  patientName: string;
+  salStatus: "pending" | "expired";
+  salPendingReason: string | null;
+  severity: "expired" | "warning";
+}
+
 /* ─── Component ─── */
 export function NotificationBell({
   onNavigateToDriver,
   onNavigateToCredits,
+  onNavigateToPatient,
 }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -162,10 +173,38 @@ export function NotificationBell({
     refetchInterval: 60000,
   });
 
+  // ─ SAL status alerts ─
+  const { data: salAlertsRaw = [] } = useQuery<SalAlert[]>({
+    queryKey: ["bell-sal-alerts", currentOrganization?.id],
+    queryFn: async () => {
+      if (!currentOrganization?.id) return [];
+      const { data: patients, error } = await supabase
+        .from("patients")
+        .select("id, full_name, sal_status, sal_pending_reason")
+        .eq("org_id", currentOrganization.id)
+        .in("sal_status", ["pending", "expired"]);
+      if (error) throw error;
+      if (!patients?.length) return [];
+
+      return patients.map((p) => ({
+        id: p.id,
+        patientName: p.full_name,
+        salStatus: p.sal_status as "pending" | "expired",
+        salPendingReason: p.sal_pending_reason,
+        severity: p.sal_status === "expired" ? "expired" as const : "warning" as const,
+      }));
+    },
+    enabled: !!currentOrganization?.id,
+    refetchInterval: 60000,
+  });
+
   // ─ Filter out dismissed ─
   const driverAlerts = driverAlertsRaw.filter((a) => !dismissedIds.has(a.id));
   const creditAlerts = creditAlertsRaw.filter(
     (a) => !dismissedIds.has(`credit-${a.id}`),
+  );
+  const salAlerts = salAlertsRaw.filter(
+    (a) => !dismissedIds.has(`sal-${a.id}`),
   );
 
   // ─ Clear all read (dismiss all that are marked read) ─
@@ -175,26 +214,32 @@ export function NotificationBell({
       ...creditAlerts
         .filter((a) => readIds.has(`credit-${a.id}`))
         .map((a) => `credit-${a.id}`),
+      ...salAlerts
+        .filter((a) => readIds.has(`sal-${a.id}`))
+        .map((a) => `sal-${a.id}`),
     ];
     clearAllRead(readAlertIds);
   };
 
   // ─ Counts ─
-  const totalAlerts = driverAlerts.length + creditAlerts.length;
+  const totalAlerts = driverAlerts.length + creditAlerts.length + salAlerts.length;
   const unreadCount =
     driverAlerts.filter((a) => !readIds.has(a.id)).length +
-    creditAlerts.filter((a) => !readIds.has(`credit-${a.id}`)).length;
+    creditAlerts.filter((a) => !readIds.has(`credit-${a.id}`)).length +
+    salAlerts.filter((a) => !readIds.has(`sal-${a.id}`)).length;
 
   const hasExpired =
     driverAlerts.some((a) => a.severity === "expired") ||
-    creditAlerts.some((a) => a.severity === "expired");
+    creditAlerts.some((a) => a.severity === "expired") ||
+    salAlerts.some((a) => a.severity === "expired");
   const hasCritical =
     driverAlerts.some((a) => a.severity === "critical") ||
     creditAlerts.some((a) => a.severity === "critical");
 
   const hasReadNotifications =
     driverAlerts.some((a) => readIds.has(a.id)) ||
-    creditAlerts.some((a) => readIds.has(`credit-${a.id}`));
+    creditAlerts.some((a) => readIds.has(`credit-${a.id}`)) ||
+    salAlerts.some((a) => readIds.has(`sal-${a.id}`));
 
   // Close on outside click
   useEffect(() => {
@@ -557,8 +602,122 @@ export function NotificationBell({
               </div>
             )}
 
+            {/* SAL alerts section */}
+            {salAlerts.length > 0 && (
+              <div className="p-4 pt-2">
+                {(driverAlerts.length > 0 || creditAlerts.length > 0) && (
+                  <div className="h-px bg-slate-100 mb-3" />
+                )}
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <ClipboardText size={12} weight="duotone" />
+                  SAL Status
+                </h4>
+                <div className="space-y-1.5">
+                  {salAlerts.slice(0, 6).map((alert) => {
+                    const alertId = `sal-${alert.id}`;
+                    const isRead = readIds.has(alertId);
+                    return (
+                      <div
+                        key={alertId}
+                        className={cn(
+                          "relative flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-xl text-left transition-all group",
+                          isRead
+                            ? "bg-slate-50/50 opacity-55"
+                            : alert.severity === "expired"
+                              ? "bg-red-50 hover:bg-red-100"
+                              : "bg-amber-50 hover:bg-amber-100",
+                        )}
+                      >
+                        {/* Click area */}
+                        <button
+                          className="absolute inset-0 z-0 rounded-xl"
+                          onClick={() => {
+                            markRead(alertId);
+                            onNavigateToPatient?.(alert.id);
+                            setOpen(false);
+                          }}
+                          aria-label={`View ${alert.patientName}`}
+                        />
+
+                        {/* Icon */}
+                        <div
+                          className={cn(
+                            "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 relative z-10",
+                            isRead
+                              ? "bg-slate-100 text-slate-400"
+                              : alert.severity === "expired"
+                                ? "bg-red-100 text-red-600"
+                                : "bg-amber-100 text-amber-600",
+                          )}
+                        >
+                          {isRead ? (
+                            <CheckCircle size={16} weight="duotone" />
+                          ) : (
+                            <ClipboardText size={16} weight="duotone" />
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 relative z-10 pointer-events-none">
+                          <p
+                            className={cn(
+                              "text-xs font-semibold truncate",
+                              isRead ? "text-slate-400" : "text-slate-900",
+                            )}
+                          >
+                            {alert.patientName}
+                          </p>
+                          <p
+                            className={cn(
+                              "text-[11px] mt-0.5 truncate",
+                              isRead
+                                ? "text-slate-400"
+                                : alert.severity === "expired"
+                                  ? "text-red-600 font-semibold"
+                                  : "text-amber-600 font-semibold",
+                            )}
+                          >
+                            {alert.salStatus === "expired"
+                              ? "SAL expired — needs recertification"
+                              : `SAL pending${alert.salPendingReason ? ` — ${alert.salPendingReason}` : ""}`}
+                          </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-0.5 relative z-10 flex-shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              dismissAlert(alertId);
+                            }}
+                            className={cn(
+                              "w-8 h-8 flex items-center justify-center rounded-xl transition-all",
+                              "text-slate-300 hover:text-red-500 hover:bg-red-50",
+                              "opacity-0 group-hover:opacity-100",
+                            )}
+                            title="Dismiss"
+                          >
+                            <Trash
+                              size={14}
+                              weight="bold"
+                              className="w-3.5 h-3.5 min-w-[14px] min-h-[14px]"
+                            />
+                          </button>
+                          <ArrowRight
+                            size={12}
+                            weight="bold"
+                            className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all pointer-events-none"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Empty state after all dismissed */}
-            {driverAlerts.length === 0 && creditAlerts.length === 0 && (
+            {driverAlerts.length === 0 && creditAlerts.length === 0 && salAlerts.length === 0 && (
               <div className="p-8 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto mb-3">
                   <CheckCircle size={24} weight="duotone" />
