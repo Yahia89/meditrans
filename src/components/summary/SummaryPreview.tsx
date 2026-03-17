@@ -133,11 +133,11 @@ function TripsTable({
       <table className="w-full text-sm text-left">
         <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
           <tr>
-            <th className="px-4 py-3 w-10">#</th>
-            <th className="px-4 py-3">Patient</th>
-            <th className="px-4 py-3">Pickup Time</th>
-            <th className="px-4 py-3">Purpose</th>
-            <th className="px-4 py-3 text-right">Status</th>
+            <th className="px-6 py-4 w-12 text-center">#</th>
+            <th className="px-6 py-4 min-w-[200px]">Patient</th>
+            <th className="px-6 py-4 min-w-[140px]">Pickup Time</th>
+            <th className="px-6 py-4">Purpose</th>
+            <th className="px-6 py-4 text-right">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
@@ -146,39 +146,39 @@ function TripsTable({
               key={trip.id}
               className="hover:bg-slate-50/50 transition-colors"
             >
-              <td className="px-4 py-3 text-slate-400 font-mono text-xs">
+              <td className="px-6 py-4 text-slate-400 font-mono text-[10px] text-center border-r border-slate-50">
                 {index + 1}
               </td>
-              <td className="px-4 py-3">
-                <div>
-                  <span className="font-medium text-slate-900">
+              <td className="px-6 py-4">
+                <div className="flex items-center flex-wrap gap-2">
+                  <span className="font-semibold text-slate-900">
                     {trip.patient?.full_name || "Unknown"}
                   </span>
                   {hasFilters && trip.patient?.vehicle_type_need && (
-                    <span className="ml-2 text-[10px] font-medium bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-tighter">
                       {trip.patient.vehicle_type_need}
                     </span>
                   )}
                 </div>
               </td>
-              <td className="px-4 py-3 text-slate-600">
+              <td className="px-6 py-4 text-slate-600 font-medium italic">
                 {formatInUserTimezone(
                   trip.pickup_time,
                   timezone,
                   "MMM dd, HH:mm",
                 )}
               </td>
-              <td className="px-4 py-3 text-slate-600">
+              <td className="px-6 py-4 text-slate-500 text-xs font-semibold uppercase">
                 {trip.trip_type || "—"}
               </td>
-              <td className="px-4 py-3 text-right">
+              <td className="px-6 py-4 text-right">
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
                     trip.status === "completed"
-                      ? "bg-emerald-50 text-emerald-700"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                       : trip.status === "cancelled"
-                        ? "bg-red-50 text-red-700"
-                        : "bg-slate-100 text-slate-700"
+                        ? "bg-red-50 text-red-700 border-red-100"
+                        : "bg-slate-100 text-slate-700 border-slate-200"
                   }`}
                 >
                   {trip.status.replace("_", " ")}

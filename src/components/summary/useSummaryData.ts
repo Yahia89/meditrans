@@ -7,9 +7,11 @@ import type { SummaryTrip, FilterState, MultiSelectOption } from "./types";
 interface UseSummaryDataParams {
   orgId: string | undefined;
   filters: FilterState;
+  patientId?: string;
+  driverId?: string;
 }
 
-export function useSummaryData({ orgId, filters }: UseSummaryDataParams) {
+export function useSummaryData({ orgId, filters, patientId, driverId }: UseSummaryDataParams) {
   const [trips, setTrips] = useState<SummaryTrip[]>([]);
   const [matchedPatientCount, setMatchedPatientCount] = useState(0);
   const [isFetching, setIsFetching] = useState(false);
@@ -45,14 +47,14 @@ export function useSummaryData({ orgId, filters }: UseSummaryDataParams) {
         });
 
         // Also include the standard referral sources to ensure they always appear
-        REFERRAL_SOURCES.forEach((s) => {
+        (REFERRAL_SOURCES as unknown as any[]).forEach((s) => {
           if (s !== "Other") {
             uniqueValues.add(s);
           }
         });
 
         // Sort: standard sources first, then custom ones alphabetically
-        const standardSet = new Set(REFERRAL_SOURCES.filter((s) => s !== "Other"));
+        const standardSet = new Set(REFERRAL_SOURCES.filter((s) => s !== "Other") as unknown as any[]);
         const sorted = Array.from(uniqueValues).sort((a, b) => {
           const aStd = standardSet.has(a);
           const bStd = standardSet.has(b);
@@ -104,10 +106,10 @@ export function useSummaryData({ orgId, filters }: UseSummaryDataParams) {
     setHasGenerated(true);
 
     try {
-      // Step 1: If patient-level filters are set, first fetch matching patient IDs
-      let patientIds: string[] | null = null;
+      // Step 1: If patient-level filters are set or a specific patientId is provided
+      let patientIds: string[] | null = patientId ? [patientId] : null;
 
-      if (hasPatientFilters) {
+      if (!patientId && hasPatientFilters) {
         let patientQuery = (supabase
           .from("patients" as any) as any)
           .select("id")
@@ -171,6 +173,10 @@ export function useSummaryData({ orgId, filters }: UseSummaryDataParams) {
 
       if (patientIds) {
         tripsQuery = tripsQuery.in("patient_id", patientIds);
+      }
+
+      if (driverId) {
+        tripsQuery = tripsQuery.eq("driver_id", driverId);
       }
 
       // Apply trip purpose filter directly on trip_type

@@ -31,6 +31,13 @@ import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatInUserTimezone } from "@/lib/timezone";
+import { 
+  IdentificationCard,
+  Files,
+  MapTrifold,
+  FilePdf 
+} from "@phosphor-icons/react";
+import { DriverSummaryTab } from "./summary/DriverSummaryTab";
 
 interface DriverDetailsPageProps {
   id: string;
@@ -100,11 +107,11 @@ export function DriverDetailsPage({
   onTripClick,
 }: DriverDetailsPageProps) {
   const [activeTab, setActiveTab] = useQueryState<
-    "overview" | "documents" | "trips"
+    "overview" | "documents" | "trips" | "summary"
   >("section", {
     defaultValue: "overview",
     parse: (value) =>
-      (value as "overview" | "documents" | "trips") || "overview",
+      (value as "overview" | "documents" | "trips" | "summary") || "overview",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -396,66 +403,93 @@ export function DriverDetailsPage({
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-200">
-        <button
-          onClick={() => setActiveTab("overview")}
-          className={cn(
-            "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
-            activeTab === "overview"
-              ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
-          )}
-        >
-          Overview
-        </button>
-        <button
-          onClick={() => setActiveTab("documents")}
-          className={cn(
-            "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
-            activeTab === "documents"
-              ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
-          )}
-        >
-          Documents
-          <span
+      <div className="border-b-0 sm:border-b border-slate-200 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-0">
+          <button
+            onClick={() => setActiveTab("overview")}
             className={cn(
-              "px-2 py-0.5 rounded-full text-[10px] font-bold",
+              "px-4 py-2 sm:py-3 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap rounded-xl sm:rounded-none sm:border-b-2",
+              activeTab === "overview"
+                ? "bg-[#3D5A3D]/10 text-[#3D5A3D] sm:bg-transparent sm:border-[#3D5A3D]"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
+            )}
+          >
+            <IdentificationCard size={16} weight="duotone" className="text-[#3D5A3D]" />
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab("documents")}
+            className={cn(
+              "px-4 py-2 sm:py-3 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap rounded-xl sm:rounded-none sm:border-b-2",
               activeTab === "documents"
-                ? "bg-[#3D5A3D] text-white"
-                : "bg-slate-100 text-slate-500",
+                ? "bg-[#3D5A3D]/10 text-[#3D5A3D] sm:bg-transparent sm:border-[#3D5A3D]"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
             )}
           >
-            {docCount}
-          </span>
-        </button>
-        <button
-          onClick={() => setActiveTab("trips")}
-          className={cn(
-            "px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
-            activeTab === "trips"
-              ? "border-[#3D5A3D] text-[#3D5A3D]"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
-          )}
-        >
-          Trip History
-          <span
+            <Files size={16} weight="duotone" className="text-[#3D5A3D]" />
+            Documents
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                activeTab === "documents"
+                  ? "bg-[#3D5A3D] text-white"
+                  : "bg-slate-100 text-slate-500",
+              )}
+            >
+              {docCount}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("trips")}
             className={cn(
-              "px-2 py-0.5 rounded-full text-[10px] font-bold",
+              "px-4 py-2 sm:py-3 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap rounded-xl sm:rounded-none sm:border-b-2",
               activeTab === "trips"
-                ? "bg-[#3D5A3D] text-white"
-                : "bg-slate-100 text-slate-500",
+                ? "bg-[#3D5A3D]/10 text-[#3D5A3D] sm:bg-transparent sm:border-[#3D5A3D]"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
             )}
           >
-            {tripCount}
-          </span>
-        </button>
+            <MapTrifold size={16} weight="duotone" className="text-[#3D5A3D]" />
+            Trip History
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                activeTab === "trips"
+                  ? "bg-[#3D5A3D] text-white"
+                  : "bg-slate-100 text-slate-500",
+              )}
+            >
+              {tripCount}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("summary")}
+            className={cn(
+              "px-4 py-2 sm:py-3 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap rounded-xl sm:rounded-none sm:border-b-2",
+              activeTab === "summary"
+                ? "bg-[#3D5A3D]/10 text-[#3D5A3D] sm:bg-transparent sm:border-[#3D5A3D]"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
+            )}
+          >
+            <FilePdf size={16} weight="duotone" className="text-[#3D5A3D]" />
+            Trips summary
+          </button>
+        </div>
       </div>
 
       {/* Tab Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={cn(
+        activeTab === "summary" ? "block" : "grid grid-cols-1 lg:grid-cols-3 gap-6"
+      )}>
         {/* Main Content Area */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className={cn(
+          activeTab === "summary" ? "w-full" : "lg:col-span-2 space-y-6"
+        )}>
+          {activeTab === "summary" && (
+            <DriverSummaryTab 
+              driverId={id} 
+              driverName={driver.full_name} 
+            />
+          )}
           {activeTab === "overview" && (
             <div className="space-y-6">
               {/* Personal Information */}

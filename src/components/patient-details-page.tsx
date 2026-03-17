@@ -27,6 +27,10 @@ import {
   CalendarBlank,
   Funnel,
   Coins,
+  FilePdf,
+  IdentificationCard,
+  Files,
+  MapTrifold,
 } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -41,6 +45,7 @@ import { PatientCreditTab } from "@/components/credits/PatientCreditTab";
 import type { Trip, TripStatus } from "@/components/trips/types";
 import { useAuth } from "@/contexts/auth-context";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { PatientSummaryTab } from "@/components/summary/PatientSummaryTab";
 import {
   getActiveTimezone,
   formatInUserTimezone,
@@ -130,11 +135,11 @@ export function PatientDetailsPage({
   onTripClick,
 }: PatientDetailsPageProps) {
   const [activeTab, setActiveTab] = useQueryState<
-    "overview" | "documents" | "trips" | "credits"
+    "overview" | "documents" | "trips" | "credits" | "summary"
   >("section", {
     defaultValue: "overview",
     parse: (value) =>
-      (value as "overview" | "documents" | "trips" | "credits") || "overview",
+      (value as "overview" | "documents" | "trips" | "credits" | "summary") || "overview",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -394,28 +399,30 @@ export function PatientDetailsPage({
       </div>
 
       {/* Navigation Tabs */}
-      <div className="border-b border-slate-200 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex min-w-max">
+      <div className="border-b-0 sm:border-b border-slate-200 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-0">
           <button
             onClick={() => setActiveTab("overview")}
             className={cn(
-              "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
+              "px-4 py-2 sm:py-3 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap rounded-xl sm:rounded-none sm:border-b-2",
               activeTab === "overview"
-                ? "border-[#3D5A3D] text-[#3D5A3D]"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
+                ? "bg-[#3D5A3D]/10 text-[#3D5A3D] sm:bg-transparent sm:border-[#3D5A3D]"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
             )}
           >
+            <IdentificationCard size={16} weight="duotone" className="text-[#3D5A3D]" />
             Overview
           </button>
           <button
             onClick={() => setActiveTab("documents")}
             className={cn(
-              "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
+              "px-4 py-2 sm:py-3 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap rounded-xl sm:rounded-none sm:border-b-2",
               activeTab === "documents"
-                ? "border-[#3D5A3D] text-[#3D5A3D]"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
+                ? "bg-[#3D5A3D]/10 text-[#3D5A3D] sm:bg-transparent sm:border-[#3D5A3D]"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
             )}
           >
+            <Files size={16} weight="duotone" className="text-[#3D5A3D]" />
             Documents
             <span
               className={cn(
@@ -431,12 +438,13 @@ export function PatientDetailsPage({
           <button
             onClick={() => setActiveTab("trips")}
             className={cn(
-              "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
+              "px-4 py-2 sm:py-3 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap rounded-xl sm:rounded-none sm:border-b-2",
               activeTab === "trips"
-                ? "border-[#3D5A3D] text-[#3D5A3D]"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
+                ? "bg-[#3D5A3D]/10 text-[#3D5A3D] sm:bg-transparent sm:border-[#3D5A3D]"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
             )}
           >
+            <MapTrifold size={16} weight="duotone" className="text-[#3D5A3D]" />
             Trip History
             <span
               className={cn(
@@ -454,13 +462,13 @@ export function PatientDetailsPage({
             <button
               onClick={() => setActiveTab("credits")}
               className={cn(
-                "px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap",
+                "px-4 py-2 sm:py-3 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap rounded-xl sm:rounded-none sm:border-b-2",
                 activeTab === "credits"
-                  ? "border-[#3D5A3D] text-[#3D5A3D]"
-                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300",
+                  ? "bg-[#3D5A3D]/10 text-[#3D5A3D] sm:bg-transparent sm:border-[#3D5A3D]"
+                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
               )}
             >
-              <Coins weight="duotone" className="w-4 h-4" />
+              <Coins weight="duotone" size={16} className="text-[#3D5A3D]" />
               Credits
               {patient.monthly_credit && (
                 <span
@@ -476,6 +484,18 @@ export function PatientDetailsPage({
               )}
             </button>
           )}
+          <button
+            onClick={() => setActiveTab("summary")}
+            className={cn(
+              "px-4 py-2 sm:py-3 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap rounded-xl sm:rounded-none sm:border-b-2",
+              activeTab === "summary"
+                ? "bg-[#3D5A3D]/10 text-[#3D5A3D] sm:bg-transparent sm:border-[#3D5A3D]"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
+            )}
+          >
+            <FilePdf size={16} weight="duotone" className="text-[#3D5A3D]" />
+            Trips summary
+          </button>
         </div>
       </div>
 
@@ -1135,6 +1155,13 @@ export function PatientDetailsPage({
             setSelectedTripDate(date);
             setActiveTab("trips");
           }}
+        />
+      )}
+
+      {activeTab === "summary" && (
+        <PatientSummaryTab
+          patientId={patient.id}
+          patientName={patient.full_name}
         />
       )}
 
