@@ -13,6 +13,8 @@ interface PDFGeneratorParams {
   orgName: string;
   generatedBy: string;
   userRole: string;
+  reportTitle?: string;
+  subjectName?: string;
 }
 
 export function generateSummaryPDF({
@@ -22,6 +24,8 @@ export function generateSummaryPDF({
   orgName,
   generatedBy,
   userRole,
+  reportTitle,
+  subjectName,
 }: PDFGeneratorParams) {
   const doc = new jsPDF({
     orientation: "landscape",
@@ -33,14 +37,16 @@ export function generateSummaryPDF({
   const textColor: [number, number, number] = [15, 23, 42];
   const mutedTextColor: [number, number, number] = [100, 116, 139];
 
-  // Header
   doc.setFontSize(22);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.text(orgName || "MediTrans", 14, 20);
 
   doc.setFontSize(10);
   doc.setTextColor(mutedTextColor[0], mutedTextColor[1], mutedTextColor[2]);
-  doc.text("Trips Summary Report", 14, 26);
+  const displayTitle = reportTitle 
+    ? `${reportTitle}${subjectName ? ` for ${subjectName}` : ""}`
+    : "Trips Summary Report";
+  doc.text(displayTitle, 14, 26);
 
   // Report Info
   doc.setFontSize(10);
@@ -196,5 +202,7 @@ export function generateSummaryPDF({
     },
   });
 
-  doc.save(`trips_summary_${filters.startDate}_to_${filters.endDate}.pdf`);
+  const fileNameSubject = subjectName ? `_${subjectName.replace(/\s+/g, "_")}` : "";
+  const fileType = reportTitle ? reportTitle.toLowerCase().replace(/\s+/g, "_") : "trips_summary";
+  doc.save(`${fileType}${fileNameSubject}_${filters.startDate}_to_${filters.endDate}.pdf`);
 }

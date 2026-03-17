@@ -65,6 +65,7 @@ export function SummaryPage() {
   } = useSummaryData({
     orgId: currentOrganization?.id,
     filters,
+    timezone,
   });
 
   const handleGeneratePDF = async () => {

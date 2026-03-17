@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { REFERRAL_SOURCES } from "@/lib/constants";
+import { fromZonedTime } from "date-fns-tz";
 import type { SummaryTrip, FilterState, MultiSelectOption } from "./types";
 
 interface UseSummaryDataParams {
@@ -9,9 +10,10 @@ interface UseSummaryDataParams {
   filters: FilterState;
   patientId?: string;
   driverId?: string;
+  timezone: string;
 }
 
-export function useSummaryData({ orgId, filters, patientId, driverId }: UseSummaryDataParams) {
+export function useSummaryData({ orgId, filters, patientId, driverId, timezone }: UseSummaryDataParams) {
   const [trips, setTrips] = useState<SummaryTrip[]>([]);
   const [matchedPatientCount, setMatchedPatientCount] = useState(0);
   const [isFetching, setIsFetching] = useState(false);
@@ -157,6 +159,11 @@ export function useSummaryData({ orgId, filters, patientId, driverId }: UseSumma
       }
 
       // Step 2: Fetch trips
+      // Use explicit timezone conversion to ensure we get exactly the dates selected by the user
+      // and avoid UTC "leaks" into previous/subsequent days.
+      const startTime = fromZonedTime(`${filters.startDate} 00:00:00`, timezone).toISOString();
+      const endTime = fromZonedTime(`${filters.endDate} 23:59:59`, timezone).toISOString();
+
       let tripsQuery = (supabase
         .from("trips" as any) as any)
         .select(
@@ -167,8 +174,8 @@ export function useSummaryData({ orgId, filters, patientId, driverId }: UseSumma
         `,
         )
         .eq("org_id", orgId)
-        .gte("pickup_time", `${filters.startDate}T00:00:00`)
-        .lte("pickup_time", `${filters.endDate}T23:59:59`)
+        .gte("pickup_time", startTime)
+        .lte("pickup_time", endTime)
         .order("pickup_time", { ascending: true });
 
       if (patientIds) {

@@ -68,6 +68,7 @@ export function DriverSummaryTab({
     orgId: currentOrganization?.id,
     filters,
     driverId,
+    timezone,
   });
 
   const handleGeneratePDF = async () => {
@@ -85,6 +86,8 @@ export function DriverSummaryTab({
         orgName: currentOrganization?.name || "MediTrans",
         generatedBy: profile?.full_name || user?.email || "Unknown",
         userRole: userRole || "Admin",
+        reportTitle: "Driver trip summary",
+        subjectName: driverName,
       });
       toast.success("Summary generated successfully");
     } catch (error) {

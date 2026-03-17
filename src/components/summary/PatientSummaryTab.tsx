@@ -68,6 +68,7 @@ export function PatientSummaryTab({
     orgId: currentOrganization?.id,
     filters,
     patientId,
+    timezone,
   });
 
   const handleGeneratePDF = async () => {
@@ -85,6 +86,8 @@ export function PatientSummaryTab({
         orgName: currentOrganization?.name || "MediTrans",
         generatedBy: profile?.full_name || user?.email || "Unknown",
         userRole: userRole || "Admin",
+        reportTitle: "Patient trip summary",
+        subjectName: patientName,
       });
       toast.success("Summary generated successfully");
     } catch (error) {
