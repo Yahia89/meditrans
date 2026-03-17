@@ -21,7 +21,7 @@ export function usePermissions() {
       return !restrictedActions.includes(action);
     }
 
-    // Dispatch: Dashboard + Trips (full), Patients/Drivers (view only), NO employees/uploads/billing/medicaid
+    // Dispatch: Dashboard + Trips (view/create/edit), Patients/Drivers (view only), NO employees/uploads/billing/medicaid/deletions
     if (userRole === "dispatch") {
       const allowedActions = [
         "view_dashboard",
@@ -31,10 +31,7 @@ export function usePermissions() {
         "create_trips",
         "assign_trips",
         "edit_trips",
-        "delete_trips",
         "complete_trips",
-        "manage_patients",
-        "manage_drivers",
         "edit_profile",
       ];
       return allowedActions.includes(action);
@@ -75,14 +72,21 @@ export function usePermissions() {
   // Granular permission flags
   const canManageUsers = isAdmin; // Add/edit/invite employees
   const canManageTrips = isDispatch; // Create, assign, edit trips
+  const canDeleteTrips = isAdmin; // Only admin+ can delete trips
   const canViewEmployees = isAdmin; // Only admin+ can see employees page
   const canUploadFiles = isAdmin; // Only admin+ can use upload feature
   const canViewBilling = isAdmin; // Only admin+ can see billing
   const canViewMedicaid = isAdmin; // Only admin+ can see medicaid
   const canViewNotifications = isAdmin; // Only admin+ can see notifications
-  const canEditPatients = isDispatch; // Dispatch can now edit patients
-  const canEditDrivers = isDispatch; // Dispatch can now edit drivers
+  const canEditPatients = isAdmin; // Only admin+ can edit patients
+  const canEditDrivers = isAdmin; // Only admin+ can edit drivers
+  const canDeletePatients = isAdmin; // Only admin+ can delete patients
+  const canDeleteDrivers = isAdmin; // Only admin+ can delete drivers
+  const canCreatePatients = isAdmin; // Only admin+ can create patients
+  const canCreateDrivers = isAdmin; // Only admin+ can create drivers
   const canEditOwnName = isOwner; // Only owners can change their own name
+  const canViewPatients = isEmployee; // Staff can view patient lists/details
+  const canViewDrivers = isEmployee; // Staff can view driver lists/details
 
   return {
     can,
@@ -96,6 +100,7 @@ export function usePermissions() {
     isDriver,
     canManageUsers,
     canManageTrips,
+    canDeleteTrips,
     canViewEmployees,
     canUploadFiles,
     canViewBilling,
@@ -103,6 +108,12 @@ export function usePermissions() {
     canViewNotifications,
     canEditPatients,
     canEditDrivers,
+    canDeletePatients,
+    canDeleteDrivers,
+    canCreatePatients,
+    canCreateDrivers,
     canEditOwnName,
+    canViewPatients,
+    canViewDrivers,
   };
 }

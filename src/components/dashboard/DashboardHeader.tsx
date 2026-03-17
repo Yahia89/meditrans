@@ -17,7 +17,7 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const { user, profile } = useAuth();
   const [, setModalType] = useQueryState("modal");
-  const { isAdmin, isEmployee, isDispatch } = usePermissions();
+  const { isEmployee, isDispatch, canManageTrips } = usePermissions();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -32,9 +32,7 @@ export function DashboardHeader({
     user?.email?.split("@")[0] ||
     "User";
 
-  // Check if user can create trips (Admin and Employee roles)
-  const canCreateTrip = isAdmin || isEmployee;
-  const showNotifications = isAdmin || isEmployee || isDispatch;
+  const showNotifications = isEmployee || isDispatch;
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
@@ -55,7 +53,7 @@ export function DashboardHeader({
             onNavigateToPatient={onNavigateToPatient}
           />
         )}
-        {canCreateTrip && (
+        {canManageTrips && (
           <div className="flex items-center gap-2 flex-1 sm:flex-initial">
             <button
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 md:px-6 md:py-3 text-xs md:text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 flex-1 sm:flex-none"

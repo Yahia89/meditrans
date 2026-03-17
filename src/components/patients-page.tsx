@@ -14,6 +14,7 @@ import {
   GridFour,
   CaretLeft,
   CaretRight,
+  UsersThree,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -188,7 +189,12 @@ export function PatientsPage({
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const { isDemoMode, navigateTo } = useOnboarding();
   const { currentOrganization } = useOrganization();
-  const { canEditPatients } = usePermissions();
+  const { 
+    canCreatePatients, 
+    canEditPatients, 
+    canDeletePatients,
+    canViewPatients
+  } = usePermissions();
   const { profile } = useAuth();
   const activeTimezone = getActiveTimezone(profile, currentOrganization);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -232,7 +238,6 @@ export function PatientsPage({
   const limit = itemsPerPage === "all" ? 9999 : parseInt(itemsPerPage, 10);
 
   // Use permission flag for patient management (admin+ only)
-  const canManagePatients = canEditPatients;
 
   const { data: realPatients, isLoading } = useQuery({
     queryKey: ["patients", currentOrganization?.id],
@@ -508,7 +513,7 @@ export function PatientsPage({
             Manage and view all client records
           </p>
         </div>
-        {canManagePatients && (
+        {canCreatePatients && (
           <Button
             onClick={() => setShowAddForm(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
@@ -727,21 +732,23 @@ export function PatientsPage({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowBulkDeleteDialog(true)}
-            disabled={selectedIds.size === 0 || isDemoMode}
-            className={cn(
-              "transition-all duration-200",
-              selectedIds.size > 0
-                ? "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
-                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent",
-            )}
-          >
-            <Trash className="mr-2 h-3.5 w-3.5" />
-            Delete
-          </Button>
+          {canDeletePatients && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBulkDeleteDialog(true)}
+              disabled={selectedIds.size === 0 || isDemoMode}
+              className={cn(
+                "transition-all duration-200",
+                selectedIds.size > 0
+                  ? "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
+                  : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent",
+              )}
+            >
+              <Trash className="mr-2 h-3.5 w-3.5" />
+              Delete
+            </Button>
+          )}
 
           <Button
             variant="outline"
@@ -784,7 +791,7 @@ export function PatientsPage({
                   <div
                     className="w-14 h-14 rounded-full bg-[#3D5A3D] flex items-center justify-center text-white text-lg font-semibold cursor-pointer"
                     onClick={() =>
-                      canManagePatients && onPatientClick?.(patient.id)
+                      canViewPatients && onPatientClick?.(patient.id)
                     }
                   >
                     {(patient.name || "C")
@@ -795,9 +802,9 @@ export function PatientsPage({
                       .toUpperCase()}
                   </div>
                   <div
-                    className={cn(canManagePatients && "cursor-pointer")}
+                    className={cn(canViewPatients && "cursor-pointer")}
                     onClick={() =>
-                      canManagePatients && onPatientClick?.(patient.id)
+                      canViewPatients && onPatientClick?.(patient.id)
                     }
                   >
                     <h3 className="text-base font-semibold text-slate-900">
@@ -868,7 +875,7 @@ export function PatientsPage({
                 </div>
               )}
 
-              {canManagePatients && (
+              {canViewPatients && (
                 <div
                   className="flex gap-2 pt-4 border-t border-slate-100"
                   onClick={(e) => e.stopPropagation()}
@@ -893,23 +900,27 @@ export function PatientsPage({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem
-                        onClick={() => setEditingPatient(patient)}
-                        className="gap-2"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Edit Client
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteId(patient.id);
-                        }}
-                        className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
-                      >
-                        <Trash className="h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
+                      {canEditPatients && (
+                        <DropdownMenuItem
+                          onClick={() => setEditingPatient(patient)}
+                          className="gap-2"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit Client
+                        </DropdownMenuItem>
+                      )}
+                      {canDeletePatients && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteId(patient.id);
+                          }}
+                          className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                        >
+                          <Trash className="h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -966,11 +977,11 @@ export function PatientsPage({
                   <tr
                     key={patient.id}
                     onClick={() =>
-                      canManagePatients && onPatientClick?.(patient.id)
+                      canViewPatients && onPatientClick?.(patient.id)
                     }
                     className={cn(
                       "hover:bg-slate-50/50 transition-colors",
-                      canManagePatients && "cursor-pointer",
+                      canViewPatients && "cursor-pointer",
                       selectedIds.has(patient.id) && "bg-indigo-50",
                     )}
                   >
@@ -1065,7 +1076,7 @@ export function PatientsPage({
                       className="px-6 py-4 whitespace-nowrap"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {canManagePatients && (
+                      {canViewPatients && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
@@ -1083,23 +1094,37 @@ export function PatientsPage({
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setEditingPatient(patient);
+                                onPatientClick?.(patient.id);
                               }}
                               className="gap-2"
                             >
-                              <Pencil className="h-4 w-4" />
-                              Edit Client
+                              <UsersThree className="h-4 w-4" />
+                              View Profile
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteId(patient.id);
-                              }}
-                              className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
-                            >
-                              <Trash className="h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
+                            {canEditPatients && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingPatient(patient);
+                                }}
+                                className="gap-2"
+                              >
+                                <Pencil className="h-4 w-4" />
+                                Edit Client
+                              </DropdownMenuItem>
+                            )}
+                            {canDeletePatients && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteId(patient.id);
+                                }}
+                                className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                              >
+                                <Trash className="h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}

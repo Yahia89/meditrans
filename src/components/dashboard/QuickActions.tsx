@@ -4,36 +4,48 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 export function QuickActions() {
   const { navigateTo } = useOnboarding();
-  const { isAdmin, isEmployee } = usePermissions();
-
-  if (!isAdmin && !isEmployee) return null;
+  const { canCreatePatients, canCreateDrivers, canUploadFiles } = usePermissions();
 
   const actions = [
-    {
-      title: "Add Patients",
-      desc: "Register new patient records in your system.",
-      icon: Users,
-      iconColor: "text-blue-600",
-      bgColor: "bg-blue-50/50",
-      action: () => navigateTo("patients"),
-    },
-    {
-      title: "Add Drivers",
-      desc: "Enroll and manage your fleet's drivers.",
-      icon: Car,
-      iconColor: "text-emerald-600",
-      bgColor: "bg-emerald-50/50",
-      action: () => navigateTo("drivers"),
-    },
-    {
-      title: "Bulk Upload",
-      desc: "Import large datasets via CSV or Excel.",
-      icon: CloudArrowUp,
-      iconColor: "text-purple-600",
-      bgColor: "bg-purple-50/50",
-      action: () => navigateTo("upload"),
-    },
+    ...(canCreatePatients
+      ? [
+          {
+            title: "Add Patients",
+            desc: "Register new patient records in your system.",
+            icon: Users,
+            iconColor: "text-blue-600",
+            bgColor: "bg-blue-50/50",
+            action: () => navigateTo("patients"),
+          },
+        ]
+      : []),
+    ...(canCreateDrivers
+      ? [
+          {
+            title: "Add Drivers",
+            desc: "Enroll and manage your fleet's drivers.",
+            icon: Car,
+            iconColor: "text-emerald-600",
+            bgColor: "bg-emerald-50/50",
+            action: () => navigateTo("drivers"),
+          },
+        ]
+      : []),
+    ...(canUploadFiles
+      ? [
+          {
+            title: "Bulk Upload",
+            desc: "Import large datasets via CSV or Excel.",
+            icon: CloudArrowUp,
+            iconColor: "text-purple-600",
+            bgColor: "bg-purple-50/50",
+            action: () => navigateTo("upload"),
+          },
+        ]
+      : []),
   ];
+
+  if (actions.length === 0) return null;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

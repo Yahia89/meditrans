@@ -29,8 +29,10 @@ import {
   CheckCircle2,
   Mail,
   AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { cn, formatPhoneNumber } from "@/lib/utils";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useLoadScript } from "@react-google-maps/api";
 import { AddressAutocomplete } from "@/components/trips/AddressAutocomplete";
 
@@ -142,6 +144,8 @@ export function DriverForm({
   const [showSuccess, setShowSuccess] = useState(false);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [lastInviteEmail, setLastInviteEmail] = useState("");
+
+  const { canEditDrivers } = usePermissions();
 
   const {
     register,
@@ -548,6 +552,19 @@ export function DriverForm({
               onSubmit={handleSubmit(onSubmit)}
               className="flex-1 overflow-y-auto p-5"
             >
+              {/* Permission Alert */}
+              {!canEditDrivers && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 text-amber-700">
+                  <ShieldAlert className="w-5 h-5 shrink-0" />
+                  <div>
+                    <p className="font-bold text-sm">View Only Access</p>
+                    <p className="text-xs mt-1">
+                      You do not have permission to modify driver records.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Google Maps Error Alert */}
               {loadError && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
@@ -1091,7 +1108,7 @@ export function DriverForm({
                 {currentStep === STEPS.length && (
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !canEditDrivers}
                     onClick={handleSubmit(onSubmit)}
                     className="bg-[#3D5A3D] hover:bg-[#2E4A2E]"
                   >

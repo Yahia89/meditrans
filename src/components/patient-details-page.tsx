@@ -146,7 +146,7 @@ export function PatientDetailsPage({
   const [isDeleting, setIsDeleting] = useState(false);
   const { profile } = useAuth();
   const { currentOrganization } = useOrganization();
-  const { canEditPatients } = usePermissions();
+  const { canEditPatients, canDeletePatients } = usePermissions();
   const { isDemoMode } = useOnboarding();
   const queryClient = useQueryClient();
 
@@ -169,7 +169,7 @@ export function PatientDetailsPage({
     serialize: (v) => v?.toISOString() ?? "",
   });
 
-  const canManagePatients = canEditPatients;
+  const canManagePatients = canEditPatients || canDeletePatients;
 
   // Fetch patient data
   const { data: patient, isLoading: isLoadingPatient } = useQuery({
@@ -377,23 +377,27 @@ export function PatientDetailsPage({
 
         {canManagePatients && (
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsEditing(true)}
-              className="inline-flex items-center gap-2 rounded-xl"
-            >
-              <Pencil size={16} />
-              Edit Details
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteDialog(true)}
-              disabled={isDemoMode}
-              className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
-            >
-              <Trash size={16} />
-              Delete Patient
-            </Button>
+            {canEditPatients && (
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(true)}
+                className="inline-flex items-center gap-2 rounded-xl"
+              >
+                <Pencil size={16} />
+                Edit Details
+              </Button>
+            )}
+            {canDeletePatients && (
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={isDemoMode}
+                className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
+              >
+                <Trash size={16} />
+                Delete Patient
+              </Button>
+            )}
           </div>
         )}
       </div>

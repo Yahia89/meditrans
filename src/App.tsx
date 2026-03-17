@@ -147,6 +147,7 @@ function AppContent() {
         "medicaid-billing",
         "live-tracking",
         "summary",
+        "client-credits",
       ],
       // Dispatch: No employees, no upload, no billing, no notifications, no medicaid
       dispatch: [
@@ -157,6 +158,7 @@ function AppContent() {
         "billing",
         "notifications",
         "medicaid-billing",
+        "client-credits",
       ],
       admin: ["founder"],
       owner: ["founder"],

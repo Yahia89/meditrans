@@ -219,7 +219,7 @@ export function TripDetails({
   onNavigate,
 }: TripDetailsProps) {
   const { user, profile } = useAuth();
-  const { canManageTrips } = usePermissions();
+  const { canManageTrips, canDeleteTrips } = usePermissions();
   const queryClient = useQueryClient();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [statusToUpdate, setStatusToUpdate] = useState<TripStatus | null>(null);
@@ -667,14 +667,16 @@ export function TripDetails({
                           Edit
                         </Button>
                       )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                        className="h-8 w-8 p-0 rounded-lg border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-100 hover:bg-red-50"
-                      >
-                        <Trash weight="duotone" className="w-4 h-4" />
-                      </Button>
+                      {canDeleteTrips && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsDeleteDialogOpen(true)}
+                          className="h-8 w-8 p-0 rounded-lg border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-100 hover:bg-red-50"
+                        >
+                          <Trash weight="duotone" className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   )}
                   <div

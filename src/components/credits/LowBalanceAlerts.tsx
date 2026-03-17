@@ -11,6 +11,7 @@ import {
   calculateTripCost,
   type OrganizationFees,
 } from "@/lib/credit-utils";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface LowBalancePatient {
   id: string;
@@ -117,7 +118,10 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
     refetchInterval: 60000, // Refresh every minute
   });
 
+  const { canViewBilling } = usePermissions();
+
   if (isLoading) {
+// ... existing lines until buttons ...
     return (
       <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
         <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
@@ -154,28 +158,27 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
   const criticalCount = lowBalancePatients.filter(
     (p) => p.percentRemaining * 100 <= 5,
   ).length;
-  const bgColor =
-    criticalCount > 0
-      ? "bg-red-50 border-red-100 hover:bg-red-100 hover:border-red-200"
-      : "bg-amber-50 border-amber-100 hover:bg-amber-100 hover:border-amber-200";
-  const iconBgColor =
-    criticalCount > 0
-      ? "bg-red-100 text-red-700 group-hover:bg-red-600"
-      : "bg-amber-100 text-amber-700 group-hover:bg-amber-600";
+  const bgColor = criticalCount > 0 ? "bg-red-50 border-red-100" : "bg-amber-50 border-amber-100";
+  const hoverBgColor = criticalCount > 0 ? "hover:bg-red-100 hover:border-red-200" : "hover:bg-amber-100 hover:border-amber-200";
+  const iconBgColor = criticalCount > 0 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700";
+  const iconHoverBgColor = criticalCount > 0 ? "group-hover:bg-red-600" : "group-hover:bg-amber-600";
   const textColor = criticalCount > 0 ? "text-red-600" : "text-amber-600";
 
   return (
     <button
-      onClick={onNavigate}
+      onClick={canViewBilling ? onNavigate : undefined}
+      disabled={!canViewBilling}
       className={cn(
-        "w-full flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer group text-left",
+        "w-full flex items-start gap-4 p-4 rounded-xl border transition-all group text-left",
         bgColor,
+        canViewBilling ? cn("cursor-pointer", hoverBgColor) : "cursor-default select-none shadow-none",
       )}
     >
       <div
         className={cn(
-          "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:text-white transition-colors",
+          "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
           iconBgColor,
+          canViewBilling && cn("group-hover:text-white", iconHoverBgColor),
         )}
       >
         {criticalCount > 0 ? (
@@ -209,19 +212,21 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
               ).toFixed(0)}% credit remaining`
             : `${lowBalancePatients.length} clients are below 50% credit`}
         </p>
-        <div
-          className={cn(
-            "flex items-center gap-1 mt-2 text-xs font-medium",
-            textColor,
-          )}
-        >
-          <span>View details</span>
-          <ArrowRight
-            size={12}
-            weight="bold"
-            className="group-hover:translate-x-1 transition-transform"
-          />
-        </div>
+        {canViewBilling && (
+          <div
+            className={cn(
+              "flex items-center gap-1 mt-2 text-xs font-medium",
+              textColor,
+            )}
+          >
+            <span>View details</span>
+            <ArrowRight
+              size={12}
+              weight="bold"
+              className="group-hover:translate-x-1 transition-transform"
+            />
+          </div>
+        )}
       </div>
     </button>
   );

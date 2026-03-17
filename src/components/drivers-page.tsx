@@ -14,6 +14,7 @@ import {
   GridFour,
   CaretLeft,
   CaretRight,
+  User,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -196,14 +197,18 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
   const { isDemoMode, navigateTo } = useOnboarding();
   const { currentOrganization } = useOrganization();
-  const { canEditDrivers } = usePermissions();
+  const { 
+    canCreateDrivers, 
+    canEditDrivers, 
+    canDeleteDrivers 
+  } = usePermissions();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   // Use permission flag for driver management (admin+ only)
-  const canManageDrivers = canEditDrivers;
+  const canManageDrivers = canEditDrivers || canCreateDrivers || canDeleteDrivers;
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0 || isDemoMode || !canManageDrivers) return;
@@ -495,7 +500,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
               : "View driver fleet and availability"}
           </p>
         </div>
-        {canManageDrivers && (
+        {canCreateDrivers && (
           <Button
             onClick={() => setShowAddForm(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-[#3D5A3D] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#2E4A2E]"
@@ -710,21 +715,23 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowBulkDeleteDialog(true)}
-            disabled={selectedIds.size === 0 || isDemoMode}
-            className={cn(
-              "transition-all duration-200",
-              selectedIds.size > 0
-                ? "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
-                : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent",
-            )}
-          >
-            <Trash className="mr-2 h-3.5 w-3.5" />
-            Delete
-          </Button>
+          {canDeleteDrivers && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBulkDeleteDialog(true)}
+              disabled={selectedIds.size === 0 || isDemoMode}
+              className={cn(
+                "transition-all duration-200",
+                selectedIds.size > 0
+                  ? "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
+                  : "border-transparent text-slate-300 cursor-not-allowed hover:bg-transparent",
+              )}
+            >
+              <Trash className="mr-2 h-3.5 w-3.5" />
+              Delete
+            </Button>
+          )}
 
           <Button
             variant="outline"
@@ -881,23 +888,27 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem
-                      onClick={() => setEditingDriver(driver)}
-                      className="gap-2"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      Edit Driver
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteId(driver.id);
-                      }}
-                      className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
-                    >
-                      <Trash className="h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
+                    {canEditDrivers && (
+                      <DropdownMenuItem
+                        onClick={() => setEditingDriver(driver)}
+                        className="gap-2"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Edit Driver
+                      </DropdownMenuItem>
+                    )}
+                    {canDeleteDrivers && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteId(driver.id);
+                        }}
+                        className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                      >
+                        <Trash className="h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -1057,19 +1068,30 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
                           <DropdownMenuItem
-                            onClick={() => setEditingDriver(driver)}
+                            onClick={() => onDriverClick?.(driver.id)}
                             className="gap-2"
                           >
-                            <Pencil className="h-4 w-4" />
-                            Edit Driver
+                            <User size={16} weight="duotone" className="text-slate-500" />
+                            View Profile
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDeleteId(driver.id)}
-                            className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
-                          >
-                            <Trash className="h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {canEditDrivers && (
+                            <DropdownMenuItem
+                              onClick={() => setEditingDriver(driver)}
+                              className="gap-2"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit Driver
+                            </DropdownMenuItem>
+                          )}
+                          {canDeleteDrivers && (
+                            <DropdownMenuItem
+                              onClick={() => setDeleteId(driver.id)}
+                              className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                            >
+                              <Trash className="h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>

@@ -21,6 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useNotificationStates } from "@/hooks/useNotificationStates";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   calculateCreditStatus,
   calculateTripCost,
@@ -91,6 +92,8 @@ export function NotificationBell({
     dismiss: dismissAlert,
     clearAllRead,
   } = useNotificationStates();
+
+  const { canViewBilling, canViewPatients, canViewDrivers } = usePermissions();
 
   // ─ Driver expiration alerts ─
   const { data: driverAlertsRaw = [] } = useDriverAlerts();
@@ -394,8 +397,12 @@ export function NotificationBell({
                       >
                         {/* Click area for navigation */}
                         <button
-                          className="absolute inset-0 z-0 rounded-xl"
+                          className={cn(
+                            "absolute inset-0 z-0 rounded-xl",
+                            canViewDrivers ? "cursor-pointer" : "cursor-default",
+                          )}
                           onClick={() => {
+                            if (!canViewDrivers) return;
                             markRead(alert.id);
                             onNavigateToDriver?.(alert.driverId);
                             setOpen(false);
@@ -470,11 +477,13 @@ export function NotificationBell({
                               className="w-3.5 h-3.5 min-w-[14px] min-h-[14px]"
                             />
                           </button>
-                          <ArrowRight
-                            size={12}
-                            weight="bold"
-                            className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all pointer-events-none"
-                          />
+                          {canViewDrivers && (
+                            <ArrowRight
+                              size={12}
+                              weight="bold"
+                              className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all pointer-events-none"
+                            />
+                          )}
                         </div>
                       </div>
                     );
@@ -513,8 +522,12 @@ export function NotificationBell({
                       >
                         {/* Click area */}
                         <button
-                          className="absolute inset-0 z-0 rounded-xl"
+                          className={cn(
+                            "absolute inset-0 z-0 rounded-xl",
+                            canViewBilling ? "cursor-pointer" : "cursor-default",
+                          )}
                           onClick={() => {
+                            if (!canViewBilling) return;
                             markRead(alertId);
                             onNavigateToCredits?.();
                             setOpen(false);
@@ -589,11 +602,13 @@ export function NotificationBell({
                               className="w-3.5 h-3.5 min-w-[14px] min-h-[14px]"
                             />
                           </button>
-                          <ArrowRight
-                            size={12}
-                            weight="bold"
-                            className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all pointer-events-none"
-                          />
+                          {canViewBilling && (
+                            <ArrowRight
+                              size={12}
+                              weight="bold"
+                              className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all pointer-events-none"
+                            />
+                          )}
                         </div>
                       </div>
                     );
@@ -630,8 +645,12 @@ export function NotificationBell({
                       >
                         {/* Click area */}
                         <button
-                          className="absolute inset-0 z-0 rounded-xl"
+                          className={cn(
+                            "absolute inset-0 z-0 rounded-xl",
+                            canViewPatients ? "cursor-pointer" : "cursor-default",
+                          )}
                           onClick={() => {
+                            if (!canViewPatients) return;
                             markRead(alertId);
                             onNavigateToPatient?.(alert.id);
                             setOpen(false);
@@ -703,11 +722,13 @@ export function NotificationBell({
                               className="w-3.5 h-3.5 min-w-[14px] min-h-[14px]"
                             />
                           </button>
-                          <ArrowRight
-                            size={12}
-                            weight="bold"
-                            className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all pointer-events-none"
-                          />
+                          {canViewPatients && (
+                            <ArrowRight
+                              size={12}
+                              weight="bold"
+                              className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all pointer-events-none"
+                            />
+                          )}
                         </div>
                       </div>
                     );

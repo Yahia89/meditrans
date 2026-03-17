@@ -116,13 +116,13 @@ export function DriverDetailsPage({
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { canEditDrivers } = usePermissions();
+  const { canEditDrivers, canDeleteDrivers } = usePermissions();
   const { isDemoMode } = useOnboarding();
   const { currentOrganization } = useOrganization();
   const activeTimezone = useTimezone();
   const queryClient = useQueryClient();
 
-  const canManageDrivers = canEditDrivers;
+  const canManageDrivers = canEditDrivers || canDeleteDrivers;
 
   // Fetch driver data
   const { data: driver, isLoading: isLoadingDriver } = useQuery({
@@ -354,50 +354,56 @@ export function DriverDetailsPage({
 
         {canManageDrivers && (
           <div className="flex gap-2 flex-wrap">
-            <Button
-              variant="outline"
-              onClick={() => setIsEditing(true)}
-              className="inline-flex items-center gap-2 rounded-xl"
-            >
-              <Pencil size={16} />
-              Edit Details
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => sendInviteMutation.mutate()}
-              disabled={
-                inviteButtonConfig.disabled ||
-                isDemoMode ||
-                sendInviteMutation.isPending
-              }
-              title={inviteButtonConfig.tooltip}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-xl",
-                inviteButtonConfig.disabled
-                  ? "text-slate-400"
-                  : inviteStatus?.accepted_at
-                    ? "text-green-600 border-green-100"
-                    : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700",
-              )}
-            >
-              {sendInviteMutation.isPending ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <inviteButtonConfig.icon size={16} />
-              )}
-              {sendInviteMutation.isPending
-                ? "Sending..."
-                : inviteButtonConfig.label}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteDialog(true)}
-              disabled={isDemoMode}
-              className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
-            >
-              <Trash size={16} />
-              Delete Driver
-            </Button>
+            {canEditDrivers && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditing(true)}
+                  className="inline-flex items-center gap-2 rounded-xl"
+                >
+                  <Pencil size={16} />
+                  Edit Details
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => sendInviteMutation.mutate()}
+                  disabled={
+                    inviteButtonConfig.disabled ||
+                    isDemoMode ||
+                    sendInviteMutation.isPending
+                  }
+                  title={inviteButtonConfig.tooltip}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-xl",
+                    inviteButtonConfig.disabled
+                      ? "text-slate-400"
+                      : inviteStatus?.accepted_at
+                        ? "text-green-600 border-green-100"
+                        : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700",
+                  )}
+                >
+                  {sendInviteMutation.isPending ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <inviteButtonConfig.icon size={16} />
+                  )}
+                  {sendInviteMutation.isPending
+                    ? "Sending..."
+                    : inviteButtonConfig.label}
+                </Button>
+              </>
+            )}
+            {canDeleteDrivers && (
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={isDemoMode}
+                className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
+              >
+                <Trash size={16} />
+                Delete Driver
+              </Button>
+            )}
           </div>
         )}
       </div>
