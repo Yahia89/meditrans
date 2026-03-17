@@ -1,240 +1,100 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import {
   FilePdf,
-  Calendar,
   User,
   Shield,
   DownloadSimple,
   CircleNotch,
-  Info,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
-import { format } from "date-fns";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { formatInUserTimezone } from "@/lib/timezone";
 import { useTimezone } from "@/hooks/useTimezone";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+
+// Summary module
+import { SummaryFilters } from "./summary/SummaryFilters";
+import { SummaryPreview } from "./summary/SummaryPreview";
+import { useSummaryData } from "./summary/useSummaryData";
+import { generateSummaryPDF } from "./summary/pdf-generator";
+import type { FilterState } from "./summary/types";
 
 export function SummaryPage() {
   const { currentOrganization, userRole } = useOrganization();
   const { user, profile } = useAuth();
   const timezone = useTimezone();
 
-  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-01"));
-  const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  // Fetch trips for the selected period
-  const { data: trips, isLoading } = useQuery({
-    queryKey: ["trips-summary", currentOrganization?.id, startDate, endDate],
-    queryFn: async () => {
-      if (!currentOrganization?.id) return [];
-
-      const { data, error } = await supabase
-        .from("trips")
-        .select(
-          `
-          *,
-          patient:patients(full_name),
-          driver:drivers(full_name, vehicle_info)
-        `,
-        )
-        .eq("org_id", currentOrganization.id)
-        .gte("pickup_time", `${startDate}T00:00:00`)
-        .lte("pickup_time", `${endDate}T23:59:59`)
-        .order("pickup_time", { ascending: true });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!currentOrganization?.id,
+  // Centralized filter state
+  const [filters, setFilters] = useState<FilterState>({
+    startDate: format(new Date(), "yyyy-MM-01"),
+    endDate: format(new Date(), "yyyy-MM-dd"),
+    selectedVehicleTypes: [],
+    selectedWaiverTypes: [],
+    selectedReferredBy: [],
+    selectedSalStatuses: [],
+    selectedTripPurposes: [],
   });
 
-  const generatePDF = async () => {
+  const handleFilterChange = <K extends keyof FilterState>(
+    key: K,
+    value: FilterState[K],
+  ) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    resetGenerated();
+  };
+
+  const {
+    trips,
+    matchedPatientCount,
+    isFetching,
+    hasGenerated,
+    hasFilters,
+    fetchData,
+    resetGenerated,
+    referredByOptions,
+    referredByLoading,
+  } = useSummaryData({
+    orgId: currentOrganization?.id,
+    filters,
+  });
+
+  const handleGeneratePDF = async () => {
     if (!trips || trips.length === 0) {
-      toast.error("No trips found for the selected period");
+      toast.error("No trips found for the selected criteria");
       return;
     }
 
-    setIsGenerating(true);
+    setIsGeneratingPDF(true);
     try {
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
+      generateSummaryPDF({
+        trips,
+        filters,
+        timezone,
+        orgName: currentOrganization?.name || "MediTrans",
+        generatedBy: profile?.full_name || user?.email || "Unknown",
+        userRole: userRole || "Admin",
       });
-
-      // Colors from theme
-      const primaryColor: [number, number, number] = [61, 90, 61]; // #3D5A3D
-      const textColor: [number, number, number] = [15, 23, 42]; // #0f172a
-      const mutedTextColor: [number, number, number] = [100, 116, 139]; // #64748b
-
-      // Add logo/header
-      doc.setFontSize(22);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(currentOrganization?.name || "MediTrans", 14, 20);
-
-      doc.setFontSize(10);
-      doc.setTextColor(mutedTextColor[0], mutedTextColor[1], mutedTextColor[2]);
-      doc.text("Trips Summary Report", 14, 26);
-
-      // Report Info
-      doc.setFontSize(10);
-      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-
-      const infoY = 35;
-      doc.text(
-        `Period: ${format(new Date(startDate), "MMM dd, yyyy")} - ${format(new Date(endDate), "MMM dd, yyyy")}`,
-        14,
-        infoY,
-      );
-      doc.text(
-        `Generated By: ${profile?.full_name || user?.email}`,
-        14,
-        infoY + 5,
-      );
-      doc.text(`Role: ${userRole || "Admin"}`, 14, infoY + 10);
-      doc.text(
-        `Generated On: ${format(new Date(), "MMM dd, yyyy HH:mm")}`,
-        280,
-        infoY,
-        { align: "right" },
-      );
-      doc.text(`Total Trips: ${trips.length}`, 280, infoY + 5, {
-        align: "right",
-      });
-
-      // Table Data
-      const tableData = trips.map((trip, index) => {
-        const pickupTime = formatInUserTimezone(
-          trip.pickup_time,
-          timezone,
-          "MMM dd, yyyy HH:mm",
-        );
-        const duration =
-          trip.actual_duration_minutes || trip.duration_minutes || "";
-
-        return [
-          (index + 1).toString(),
-          trip.id.slice(0, 8),
-          trip.trip_type || "N/A",
-          pickupTime,
-          trip.pickup_location || "",
-          trip.dropoff_location || "",
-          duration ? `${duration} min` : "N/A",
-          trip.actual_distance_miles ? `${trip.actual_distance_miles} mi` : "",
-          trip.billing_details?.total_cost
-            ? `$${trip.billing_details.total_cost.toFixed(2)}`
-            : "",
-          trip.status.replace("_", " "),
-          trip.driver?.full_name || "Unassigned",
-          trip.driver?.vehicle_info || "N/A",
-          trip.patient?.full_name || "N/A",
-        ];
-      });
-
-      autoTable(doc, {
-        startY: 55,
-        head: [
-          [
-            "#",
-            "ID",
-            "Type",
-            "Date/Time",
-            "Pickup",
-            "Dropoff",
-            "Duration",
-            "Dist",
-            "Cost",
-            "Status",
-            "Driver",
-            "Vehicle",
-            "Patient",
-          ],
-        ],
-        body: tableData,
-        theme: "striped",
-        headStyles: {
-          fillColor: primaryColor,
-          textColor: [255, 255, 255],
-          fontSize: 8,
-          fontStyle: "bold",
-        },
-        bodyStyles: {
-          fontSize: 7,
-          cellPadding: 2,
-        },
-        columnStyles: {
-          0: { cellWidth: 10 }, // #
-          1: { cellWidth: 15 }, // ID
-          2: { cellWidth: 15 }, // Type
-          3: { cellWidth: 25 }, // Date
-          4: { cellWidth: 35 }, // Pickup
-          5: { cellWidth: 35 }, // Dropoff
-          6: { cellWidth: 15 }, // Duration
-          7: { cellWidth: 12 }, // Dist
-          8: { cellWidth: 15 }, // Cost
-          9: { cellWidth: 18 }, // Status
-          10: { cellWidth: 25 }, // Driver
-          11: { cellWidth: 20 }, // Vehicle
-          12: { cellWidth: 25 }, // Patient
-        },
-        didParseCell: (data) => {
-          // Color based on status (now column 9 because of the # column)
-          if (data.section === "body" && data.column.index === 9) {
-            const row = data.row.raw as any;
-            const status = row[9] as string;
-            if (status.includes("completed")) {
-              data.cell.styles.textColor = [16, 185, 129] as [
-                number,
-                number,
-                number,
-              ]; // emerald-600
-              data.cell.styles.fontStyle = "bold";
-            } else if (status.includes("cancelled")) {
-              data.cell.styles.textColor = [239, 68, 68] as [
-                number,
-                number,
-                number,
-              ]; // red-500
-            } else if (status.includes("in progress")) {
-              data.cell.styles.textColor = [59, 130, 246] as [
-                number,
-                number,
-                number,
-              ]; // blue-500
-              data.cell.styles.fontStyle = "bold";
-            }
-          }
-        },
-      });
-
-      doc.save(`trips_summary_${startDate}_to_${endDate}.pdf`);
       toast.success("Summary generated successfully");
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF summary");
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingPDF(false);
     }
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      {/* Header */}
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
           <FilePdf size={32} weight="duotone" className="text-[#3D5A3D]" />
@@ -242,179 +102,81 @@ export function SummaryPage() {
         </h1>
         <p className="text-slate-500">
           Generate detailed PDF reports for trips within a selected period.
+          Apply filters to narrow results by patient category or trip purpose.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-1 border-slate-200 shadow-sm rounded-2xl overflow-hidden">
-          <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar size={20} weight="bold" className="text-slate-400" />
-              Period Selection
-            </CardTitle>
-            <CardDescription>
-              Select the date range for the report
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="space-y-2">
-              <Label
-                htmlFor="start-date"
-                className="text-sm font-semibold text-slate-700"
-              >
-                From Date
-              </Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="rounded-xl border-slate-200 focus:ring-[#3D5A3D] focus:border-[#3D5A3D] h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label
-                htmlFor="end-date"
-                className="text-sm font-semibold text-slate-700"
-              >
-                To Date
-              </Label>
-              <Input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="rounded-xl border-slate-200 focus:ring-[#3D5A3D] focus:border-[#3D5A3D] h-11"
-              />
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Filters + Generate */}
+        <div className="lg:col-span-1 space-y-5">
+          <SummaryFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            referredByOptions={referredByOptions}
+            referredByLoading={referredByLoading}
+          />
 
-            <div className="pt-4">
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <Button
+              onClick={fetchData}
+              disabled={isFetching}
+              className={cn(
+                "w-full rounded-xl h-12 gap-2 shadow-lg transition-all font-bold text-sm",
+                hasGenerated && trips.length > 0
+                  ? "bg-slate-700 hover:bg-slate-800 text-white shadow-slate-300/30"
+                  : "bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white shadow-[#3D5A3D]/20",
+              )}
+            >
+              {isFetching ? (
+                <>
+                  <CircleNotch size={18} className="animate-spin" />
+                  Fetching Data...
+                </>
+              ) : (
+                <>
+                  <MagnifyingGlass size={18} weight="bold" />
+                  {hasGenerated ? "Regenerate Results" : "Generate Results"}
+                </>
+              )}
+            </Button>
+
+            {hasGenerated && trips.length > 0 && (
               <Button
-                onClick={generatePDF}
-                disabled={isGenerating || isLoading || !trips?.length}
-                className="w-full bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white rounded-xl h-12 gap-2 shadow-lg shadow-[#3D5A3D]/20 transition-all font-bold"
+                onClick={handleGeneratePDF}
+                disabled={isGeneratingPDF}
+                className="w-full bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white rounded-xl h-12 gap-2 shadow-lg shadow-[#3D5A3D]/20 transition-all font-bold text-sm animate-in fade-in slide-in-from-top-2 duration-300"
               >
-                {isGenerating ? (
+                {isGeneratingPDF ? (
                   <>
-                    <CircleNotch size={20} className="animate-spin" />
-                    Generating...
+                    <CircleNotch size={18} className="animate-spin" />
+                    Generating PDF...
                   </>
                 ) : (
                   <>
-                    <DownloadSimple size={20} weight="bold" />
-                    Download PDF Summary
+                    <DownloadSimple size={18} weight="bold" />
+                    Download PDF ({trips.length} trips)
                   </>
                 )}
               </Button>
-              {!isLoading && trips && trips.length === 0 && (
-                <p className="text-center text-xs text-red-500 mt-2 font-medium">
-                  No trips found for this period
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2 border-slate-200 shadow-sm rounded-2xl overflow-hidden">
-          <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Info size={20} weight="bold" className="text-slate-400" />
-              Summary Preview
-            </CardTitle>
-            <CardDescription>
-              A quick look at the trips to be included
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 overflow-hidden">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center p-20 gap-4">
-                <CircleNotch
-                  size={40}
-                  className="animate-spin text-[#3D5A3D]"
-                />
-                <p className="text-slate-500 font-medium">
-                  Fetching trips data...
-                </p>
-              </div>
-            ) : trips && trips.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
-                    <tr>
-                      <th className="px-4 py-3 w-10">#</th>
-                      <th className="px-4 py-3">Patient</th>
-                      <th className="px-4 py-3">Pickup Time</th>
-                      <th className="px-4 py-3">Type</th>
-                      <th className="px-4 py-3 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {trips.slice(0, 10).map((trip, index) => (
-                      <tr
-                        key={trip.id}
-                        className="hover:bg-slate-50/50 transition-colors"
-                      >
-                        <td className="px-4 py-3 text-slate-400 font-mono text-xs">
-                          {index + 1}
-                        </td>
-                        <td className="px-4 py-3 font-medium text-slate-900">
-                          {trip.patient?.full_name || "Unknown"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {formatInUserTimezone(
-                            trip.pickup_time,
-                            timezone,
-                            "MMM dd, HH:mm",
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {trip.trip_type}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              trip.status === "completed"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : trip.status === "cancelled"
-                                  ? "bg-red-50 text-red-700"
-                                  : "bg-slate-100 text-slate-700"
-                            }`}
-                          >
-                            {trip.status.replace("_", " ")}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {trips.length > 10 && (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="px-4 py-3 text-center text-slate-400 italic text-xs"
-                        >
-                          + {trips.length - 10} more trips...
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center p-20 text-center">
-                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                  <FilePdf size={32} className="text-slate-300" />
-                </div>
-                <h3 className="text-slate-900 font-bold mb-1">
-                  No Data Available
-                </h3>
-                <p className="text-slate-500 max-w-[250px] text-sm">
-                  Adjust your date range to find trips for the report.
-                </p>
-              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
+        {/* Right Column: Preview */}
+        <div className="lg:col-span-2">
+          <SummaryPreview
+            trips={trips}
+            hasGenerated={hasGenerated}
+            isFetching={isFetching}
+            hasFilters={hasFilters}
+            matchedPatientCount={matchedPatientCount}
+            timezone={timezone}
+          />
+        </div>
       </div>
 
+      {/* Footer Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-slate-200 shadow-sm rounded-2xl">
           <CardContent className="p-6">
@@ -444,8 +206,8 @@ export function SummaryPage() {
                   Personalized Report
                 </h3>
                 <p className="text-sm text-slate-500">
-                  Reports include the generator's details and timestamps for
-                  auditing purposes.
+                  Reports include the generator's details, applied filters, and
+                  timestamps for auditing purposes.
                 </p>
               </div>
             </div>
