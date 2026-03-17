@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Loader2, ShieldAlert, Trash } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Loader2, ShieldAlert, Trash, Upload } from "lucide-react";
 import {
   FilePdf,
   FileDoc,
@@ -14,6 +14,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -36,6 +38,7 @@ export interface OrgDocument {
   file_size: number;
   created_at: string;
   uploaded_by: string;
+  document_label?: string;
   uploader_profile?: {
     full_name: string;
   };
@@ -155,13 +158,13 @@ function DocumentPreview({
 
   return (
     <Dialog open={!!doc} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden flex flex-col gap-0 rounded-[2rem] border-slate-200 shadow-2xl">
-        <DialogHeader className="p-6 border-b border-slate-100 shrink-0">
-          <div className="flex items-center justify-between gap-4">
+      <DialogContent className="max-w-5xl h-[85dvh] sm:h-[85vh] p-0 overflow-hidden flex flex-col gap-0 rounded-2xl sm:rounded-[2rem] border-slate-200 shadow-2xl">
+        <DialogHeader className="p-3 sm:p-6 border-b border-slate-100 shrink-0">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <div
                 className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                  "flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl",
                   kind === "image"
                     ? "bg-indigo-50 text-indigo-600"
                     : kind === "pdf"
@@ -176,17 +179,20 @@ function DocumentPreview({
                 <DocumentIcon kind={kind} />
               </div>
               <div className="min-w-0">
-                <DialogTitle className="text-base font-semibold text-slate-900 truncate">
-                  {doc.original_filename}
+                <DialogTitle className="text-sm sm:text-base font-semibold text-slate-900 truncate">
+                  {doc.document_label || doc.original_filename}
                 </DialogTitle>
-                <DialogDescription className="text-xs text-slate-500">
+                <DialogDescription className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">
+                  {doc.document_label && (
+                    <span className="text-slate-600 font-medium">{doc.original_filename} — </span>
+                  )}
                   {formatBytes(doc.file_size)} • Uploaded{" "}
                   {formatDate(doc.created_at, activeTimezone)}
                 </DialogDescription>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mr-8">
+            <div className="flex items-center gap-1 sm:gap-2 mr-6 sm:mr-8 shrink-0">
               {kind === "image" && (
                 <div className="hidden sm:flex items-center bg-slate-50 rounded-xl p-1 gap-1 border border-slate-200/60 mr-2">
                   <Button
@@ -222,7 +228,7 @@ function DocumentPreview({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 bg-slate-50 overflow-auto relative flex items-center justify-center p-8">
+        <div className="flex-1 bg-slate-50 overflow-auto relative flex items-center justify-center p-3 sm:p-8">
           {isLoading ? (
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
@@ -295,12 +301,26 @@ export function DocumentManager({
 }: DocumentManagerProps) {
   const [docToDelete, setDocToDelete] = useState<OrgDocument | null>(null);
   const [docPreview, setDocPreview] = useState<OrgDocument | null>(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [documentLabel, setDocumentLabel] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [labelError, setLabelError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { currentOrganization } = useOrganization();
   const { isAdmin, isOwner } = usePermissions();
   const activeTimezone = useTimezone();
   const queryClient = useQueryClient();
 
   const canManage = isAdmin || isOwner;
+
+  // Reset upload dialog state
+  const resetUploadDialog = () => {
+    setUploadDialogOpen(false);
+    setDocumentLabel("");
+    setSelectedFile(null);
+    setLabelError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   // Fetch documents
   const { data: documents, isLoading: isLoadingDocs } = useQuery({
@@ -329,7 +349,7 @@ export function DocumentManager({
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, label }: { file: File; label: string }) => {
       if (!currentOrganization) return;
 
       const fileExt = file.name.split(".").pop();
@@ -355,6 +375,7 @@ export function DocumentManager({
         purpose: purpose,
         notes: ownerId, // Store entity ID in notes
         original_filename: file.name,
+        document_label: label.trim(),
         status: "committed",
         file_size: file.size,
         uploaded_by: authUser.user?.id,
@@ -366,6 +387,7 @@ export function DocumentManager({
       queryClient.invalidateQueries({
         queryKey: ["documents", ownerId, purpose],
       });
+      resetUploadDialog();
       onUploadSuccess?.();
     },
     onError: (error: any) => {
@@ -419,47 +441,50 @@ export function DocumentManager({
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      uploadMutation.mutate(file);
+      setSelectedFile(file);
     }
+  };
+
+  const handleUploadSubmit = () => {
+    const trimmed = documentLabel.trim();
+    if (!trimmed) {
+      setLabelError("Please describe what you are uploading.");
+      return;
+    }
+    if (trimmed.length < 3) {
+      setLabelError("Description must be at least 3 characters.");
+      return;
+    }
+    if (!selectedFile) {
+      setLabelError("Please select a file to upload.");
+      return;
+    }
+    setLabelError("");
+    uploadMutation.mutate({ file: selectedFile, label: trimmed });
   };
 
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900 capitalize">
+        <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-3">
+          <h3 className="text-base sm:text-lg font-semibold text-slate-900 capitalize">
             {source.replace("s", "")} Documents
           </h3>
           {canManage && (
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={uploadMutation.isPending}
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.gif,.webp,.heic"
-              />
-              <Button
-                asChild
-                size="sm"
-                className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white gap-2 rounded-xl"
-              >
-                <span>
-                  {uploadMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus size={16} />
-                  )}
-                  Upload
-                </span>
-              </Button>
-            </label>
+            <Button
+              size="sm"
+              className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white gap-2 rounded-xl"
+              onClick={() => setUploadDialogOpen(true)}
+            >
+              <Plus size={16} />
+              Upload
+            </Button>
           )}
         </div>
-        <div className="p-6 space-y-3">
+        <div className="p-3 sm:p-6 space-y-2 sm:space-y-3">
           {isLoadingDocs ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-slate-200" />
@@ -471,10 +496,10 @@ export function DocumentManager({
                 <div
                   key={doc.id}
                   onClick={() => setDocPreview(doc)}
-                  className="group flex items-center justify-between rounded-2xl border border-slate-200/60 bg-white p-3.5 transition-all duration-200 hover:border-slate-300 hover:shadow-sm cursor-pointer"
+                  className="group flex items-center justify-between rounded-xl sm:rounded-2xl border border-slate-200/60 bg-white p-2.5 sm:p-3.5 transition-all duration-200 hover:border-slate-300 hover:shadow-sm cursor-pointer"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/60 bg-slate-50 transition-colors group-hover:bg-slate-100">
+                  <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl border border-slate-200/60 bg-slate-50 transition-colors group-hover:bg-slate-100">
                       <div
                         className={cn(
                           kind === "image"
@@ -494,19 +519,23 @@ export function DocumentManager({
 
                     <div className="min-w-0">
                       <p className="truncate text-xs font-semibold text-slate-900">
-                        {doc.original_filename ||
-                          doc.file_path.split("/").pop()}
+                        {doc.document_label || doc.original_filename || doc.file_path.split("/").pop()}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                          {doc.document_label && (
+                            <span className="normal-case text-slate-500 hidden sm:inline">
+                              {doc.original_filename} —{" "}
+                            </span>
+                          )}
                           {formatDate(doc.created_at, activeTimezone)}
-                          <span className="normal-case">
+                          <span className="normal-case hidden sm:inline">
                             {" "}
                             — {formatBytes(doc.file_size)} •{" "}
                             {doc.uploader_profile?.full_name || "System"}
                           </span>
                         </p>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="h-1 w-1 rounded-full bg-slate-300" />
                           <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">
                             Click to view
@@ -551,7 +580,7 @@ export function DocumentManager({
               );
             })
           ) : (
-            <div className="p-12 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+            <div className="p-8 sm:p-12 text-center bg-slate-50/50 rounded-xl sm:rounded-2xl border border-dashed border-slate-200">
               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <FileText className="text-slate-300" size={24} />
               </div>
@@ -564,6 +593,141 @@ export function DocumentManager({
             </div>
           )}
         </div>
+
+        {/* Upload Dialog */}
+        <Dialog open={uploadDialogOpen} onOpenChange={(open) => {
+          if (!open) resetUploadDialog();
+        }}>
+          <DialogContent className="sm:max-w-md rounded-2xl sm:rounded-[2rem] border-slate-200 shadow-2xl p-0 overflow-hidden">
+            <DialogHeader className="p-4 sm:p-6 pb-2">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#3D5A3D]/10">
+                  <Upload className="h-5 w-5 text-[#3D5A3D]" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-semibold text-slate-900">
+                    Upload Document
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                    Describe the document before uploading.
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-3 sm:space-y-4">
+              {/* Document Label (Required) */}
+              <div className="space-y-2">
+                <Label htmlFor="document-label" className="text-sm font-semibold text-slate-700">
+                  Document Description <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  id="document-label"
+                  placeholder="e.g. Driver's License, Insurance Card, Medical Record..."
+                  value={documentLabel}
+                  onChange={(e) => {
+                    setDocumentLabel(e.target.value);
+                    if (labelError) setLabelError("");
+                  }}
+                  className={cn(
+                    "rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-colors",
+                    labelError && "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+                  )}
+                  maxLength={120}
+                  autoFocus
+                />
+                {labelError && (
+                  <p className="text-xs font-medium text-rose-500 flex items-center gap-1.5">
+                    <ShieldAlert size={12} />
+                    {labelError}
+                  </p>
+                )}
+                <p className="text-[10px] text-slate-400 font-medium">
+                  {documentLabel.trim().length}/120 characters
+                </p>
+              </div>
+
+              {/* File Picker */}
+              <div className="space-y-2">
+                <Label htmlFor="document-file" className="text-sm font-semibold text-slate-700">
+                  Select File <span className="text-rose-500">*</span>
+                </Label>
+                <div
+                  className={cn(
+                    "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 sm:p-6 transition-all cursor-pointer",
+                    selectedFile
+                      ? "border-[#3D5A3D]/30 bg-[#3D5A3D]/5"
+                      : "border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-50"
+                  )}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    id="document-file"
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.gif,.webp,.heic"
+                  />
+                  {selectedFile ? (
+                    <div className="flex items-center gap-3 w-full">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200/60">
+                        <DocumentIcon kind={getFileKind(selectedFile.type, selectedFile.name)} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-900 truncate">
+                          {selectedFile.name}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-medium">
+                          {formatBytes(selectedFile.size)} — Click to change
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm border border-slate-100">
+                        <Plus size={18} className="text-slate-400" />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-600">Click to select a file</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        PDF, DOC, XLS, CSV, JPG, PNG, HEIC • Max 10MB
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit */}
+              <div className="flex gap-2 sm:gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-xl border-slate-200 font-semibold"
+                  onClick={resetUploadDialog}
+                  disabled={uploadMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 rounded-xl bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white font-semibold gap-1.5 sm:gap-2 text-xs sm:text-sm"
+                  onClick={handleUploadSubmit}
+                  disabled={uploadMutation.isPending || !documentLabel.trim() || !selectedFile}
+                >
+                  {uploadMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={14} />
+                      Upload Document
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Shared UI Components */}
         <DocumentPreview
