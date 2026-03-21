@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   MagnifyingGlass,
   Plus,
@@ -27,7 +27,7 @@ import { PatientForm } from "@/components/forms/patient-form";
 import { Loader2, Pencil, Trash, Check } from "lucide-react";
 import { exportToExcel } from "@/lib/export";
 import { usePermissions } from "@/hooks/usePermissions";
-import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
+import { getActiveTimezone } from "@/lib/timezone";
 import { useAuth } from "@/contexts/auth-context";
 import {
   DropdownMenu,
@@ -54,8 +54,7 @@ interface Patient {
   phone: string;
   email: string;
   address: string;
-  lastVisit: string;
-  status: "active" | "inactive";
+  status: "approved" | "pending" | "expired";
   totalTrips: number;
   date_of_birth?: string | null;
   notes?: string | null;
@@ -88,8 +87,7 @@ const demoPatients: Patient[] = [
     phone: "(555) 123-4567",
     email: "john.smith@email.com",
     address: "123 Main St, Springfield",
-    lastVisit: "2024-03-15",
-    status: "active",
+    status: "approved",
     totalTrips: 24,
   },
   {
@@ -99,8 +97,7 @@ const demoPatients: Patient[] = [
     phone: "(555) 234-5678",
     email: "sarah.j@email.com",
     address: "456 Oak Ave, Springfield",
-    lastVisit: "2024-03-14",
-    status: "active",
+    status: "approved",
     totalTrips: 18,
   },
   {
@@ -110,8 +107,7 @@ const demoPatients: Patient[] = [
     phone: "(555) 345-6789",
     email: "r.brown@email.com",
     address: "789 Pine Rd, Springfield",
-    lastVisit: "2024-03-10",
-    status: "active",
+    status: "pending",
     totalTrips: 31,
   },
   {
@@ -121,8 +117,7 @@ const demoPatients: Patient[] = [
     phone: "(555) 456-7890",
     email: "emily.d@email.com",
     address: "321 Elm St, Springfield",
-    lastVisit: "2024-02-28",
-    status: "inactive",
+    status: "expired",
     totalTrips: 12,
   },
   {
@@ -132,8 +127,7 @@ const demoPatients: Patient[] = [
     phone: "(555) 567-8901",
     email: "m.wilson@email.com",
     address: "654 Maple Dr, Springfield",
-    lastVisit: "2024-03-12",
-    status: "active",
+    status: "approved",
     totalTrips: 27,
   },
 ];
@@ -227,7 +221,18 @@ export function PatientsPage({
   };
 
   // View and pagination state
-  const [viewMode, setViewMode] = useState<"bento" | "list">("bento");
+  const [viewMode, setViewMode] = useState<"bento" | "list">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("patients-view-mode");
+      if (saved === "bento" || saved === "list") return saved;
+    }
+    return "bento";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("patients-view-mode", viewMode);
+  }, [viewMode]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useQueryState("limit", {
     defaultValue: "5",
@@ -246,7 +251,10 @@ export function PatientsPage({
 
       const { data, error } = await supabase
         .from("patients")
-        .select("*")
+        .select(`
+          *,
+          trips:trips(count)
+        `)
         .eq("org_id", currentOrganization.id)
         .order("created_at", { ascending: false });
 
@@ -268,9 +276,8 @@ export function PatientsPage({
           phone: p.phone || "",
           email: p.email || "",
           address: p.primary_address || "",
-          lastVisit: p.created_at, // Using created_at as proxy for now
-          status: (p.status || "active").toLowerCase() as "active" | "inactive",
-          totalTrips: 0, // Placeholder
+          status: (p.sal_status || "pending").toLowerCase() as "approved" | "pending" | "expired",
+          totalTrips: p.trips?.[0]?.count || 0,
           date_of_birth: p.date_of_birth,
           notes: p.notes,
           custom_fields: p.custom_fields,
@@ -377,7 +384,7 @@ export function PatientsPage({
     setCurrentPage(1);
   }, [searchQuery]);
 
-  const activeCount = patients.filter((p) => p.status === "active").length;
+  const approvedCount = patients.filter((p) => p.status === "approved").length;
   const totalTrips = patients.reduce((sum, p) => sum + p.totalTrips, 0);
 
   // Multi-select handlers
@@ -478,7 +485,7 @@ export function PatientsPage({
               <ZeroStat label="Total Clients" />
             </div>
             <div className="pl-8">
-              <ZeroStat label="Active" />
+              <ZeroStat label="Approved" />
             </div>
             <div className="pl-8">
               <ZeroStat label="New This Month" />
@@ -606,8 +613,8 @@ export function PatientsPage({
           </div>
           <div className="pl-8">
             <InlineStat
-              label="Active"
-              value={activeCount}
+              label="Approved"
+              value={approvedCount}
               valueColor="text-[#2E7D32]"
             />
           </div>
@@ -819,9 +826,11 @@ export function PatientsPage({
                 <span
                   className={cn(
                     "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                    patient.status === "active"
+                    patient.status === "approved"
                       ? "bg-[#E8F5E9] text-[#2E7D32]"
-                      : "bg-slate-100 text-slate-600",
+                      : patient.status === "pending"
+                      ? "bg-amber-50 text-amber-700"
+                      : "bg-red-50 text-red-700",
                   )}
                 >
                   {patient.status.charAt(0).toUpperCase() +
@@ -959,9 +968,6 @@ export function PatientsPage({
                     Address
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Last Visit
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Trips
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
@@ -1041,20 +1047,6 @@ export function PatientsPage({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <CalendarBlank
-                          size={14}
-                          weight="duotone"
-                          className="text-slate-400"
-                        />
-                        {formatInUserTimezone(
-                          patient.lastVisit,
-                          activeTimezone,
-                          "MM/dd/yyyy",
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-semibold text-slate-900">
                         {patient.totalTrips}
                       </span>
@@ -1063,9 +1055,11 @@ export function PatientsPage({
                       <span
                         className={cn(
                           "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                          patient.status === "active"
+                          patient.status === "approved"
                             ? "bg-[#E8F5E9] text-[#2E7D32]"
-                            : "bg-slate-100 text-slate-600",
+                            : patient.status === "pending"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-red-50 text-red-700",
                         )}
                       >
                         {patient.status.charAt(0).toUpperCase() +
