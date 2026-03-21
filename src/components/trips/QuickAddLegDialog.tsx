@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -15,7 +15,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Plus, MapPin, Clock, Clipboard, Car } from "lucide-react";
+import {
+  Plus,
+  MapPin,
+  Clock,
+  ClipboardText,
+  Car,
+  ArrowsLeftRight,
+  CircleNotch,
+} from "@phosphor-icons/react";
 import { TimePicker, TRIP_TYPES } from "./trip-utils";
 import type { Trip } from "./types";
 import { useLoadScript } from "@react-google-maps/api";
@@ -25,6 +33,7 @@ import {
   parseZonedTime,
   formatInUserTimezone,
 } from "@/lib/timezone";
+import { TRANSPORT_SERVICE_TYPES } from "@/lib/constants";
 
 // Libraries must be defined outside component to avoid re-loading
 const GOOGLE_MAPS_LIBRARIES: (
@@ -76,6 +85,24 @@ export function QuickAddLegDialog({
   const [otherTripType, setOtherTripType] = useState("");
   const [notes, setNotes] = useState("");
   const [driverId, setDriverId] = useState("");
+  const [serviceType, setServiceType] = useState("Ambulatory");
+  const [distanceMiles, setDistanceMiles] = useState<number | null>(null);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
+
+  // Fetch Patient preference if no first trip
+  const { data: patientDetails } = useQuery({
+    queryKey: ["patient-pref", patientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("vehicle_type_need")
+        .eq("id", patientId)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: open && !!patientId,
+  });
 
   // Fetch existing trips for this patient on this day to pre-fill pickup
   const { data: existingTrips } = useQuery({
@@ -111,13 +138,64 @@ export function QuickAddLegDialog({
     enabled: open && !!patientId,
   });
 
-  // Pre-fill pickup if we have existing trips
-  useMemo(() => {
-    if (existingTrips && existingTrips.length > 0 && !pickupLocation) {
-      const lastTrip = existingTrips[existingTrips.length - 1];
-      setPickupLocation(lastTrip.dropoff_location);
+  // Pre-fill logic when dialog opens or data is loaded
+  useEffect(() => {
+    if (open) {
+      if (existingTrips && existingTrips.length > 0) {
+        const lastTrip = existingTrips[existingTrips.length - 1];
+        setPickupLocation(lastTrip.dropoff_location);
+        setTripType(lastTrip.trip_type || "MEDICAL APPOINTMENT");
+        setServiceType(lastTrip.billing_details?.service_type || "Ambulatory");
+      } else if (patientDetails?.vehicle_type_need) {
+        const mapping: Record<string, string> = {
+          "COMMON CARRIER": "Ambulatory",
+          "FOLDED WHEELCHAIR": "Foldable Wheelchair",
+          WHEELCHAIR: "Wheelchair",
+          VAN: "Ramp Van",
+        };
+        setServiceType(mapping[patientDetails.vehicle_type_need] || "Ambulatory");
+      }
     }
-  }, [existingTrips, pickupLocation]);
+  }, [open, existingTrips, patientDetails]);
+
+  // Route calculation logic
+  const calculateRoute = async (pickup: string, dropoff: string) => {
+    if (!pickup || !dropoff || !isLoaded) return;
+    try {
+      const directionsService = new google.maps.DirectionsService();
+      const result = await directionsService.route({
+        origin: pickup,
+        destination: dropoff,
+        travelMode: google.maps.TravelMode.DRIVING,
+      });
+
+      if (result.routes[0]?.legs[0]) {
+        const leg = result.routes[0].legs[0];
+        setDistanceMiles(Math.ceil((leg.distance?.value || 0) * 0.000621371));
+        setDurationMinutes(Math.ceil((leg.duration?.value || 0) / 60));
+      }
+    } catch (err) {
+      console.error("Error calculating route:", err);
+    }
+  };
+
+  const swapLocations = () => {
+    const oldP = pickupLocation;
+    const oldD = dropoffLocation;
+    setPickupLocation(oldD);
+    setDropoffLocation(oldP);
+    if (oldD && oldP) calculateRoute(oldD, oldP);
+  };
+
+  const handleLocationChange = (field: "pickup" | "dropoff", value: string) => {
+    if (field === "pickup") {
+      setPickupLocation(value);
+      if (value && dropoffLocation) calculateRoute(value, dropoffLocation);
+    } else {
+      setDropoffLocation(value);
+      if (value && pickupLocation) calculateRoute(pickupLocation, value);
+    }
+  };
 
   // Fetch Drivers
   const { data: drivers } = useQuery({
@@ -133,16 +211,6 @@ export function QuickAddLegDialog({
     },
     enabled: !!currentOrganization,
   });
-
-  const allPotentialDrivers = useMemo(
-    () =>
-      (drivers || [])
-        .map((d) => ({ ...d, type: "driver" as const }))
-        .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")),
-    [drivers],
-  );
-
-  const compatibleDrivers = allPotentialDrivers;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,6 +242,11 @@ export function QuickAddLegDialog({
         trip_type: tripType === "OTHER" ? otherTripType : tripType,
         notes: notes,
         status: driverId ? "assigned" : "pending",
+        distance_miles: distanceMiles,
+        duration_minutes: durationMinutes,
+        billing_details: {
+          service_type: serviceType,
+        },
       };
 
       const { data: newTrip, error: insertError } = await supabase
@@ -212,6 +285,9 @@ export function QuickAddLegDialog({
     setOtherTripType("");
     setNotes("");
     setDriverId("");
+    setServiceType("Ambulatory");
+    setDistanceMiles(null);
+    setDurationMinutes(null);
     setError(null);
   };
 
@@ -220,10 +296,10 @@ export function QuickAddLegDialog({
       <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl border-none shadow-2xl bg-white">
         <DialogHeader className="p-6 pb-4 border-b border-slate-100 bg-white">
           <DialogTitle className="text-xl font-bold text-slate-900">
-            Add Leg to Trip
+            Smart Add Trip Leg
           </DialogTitle>
           <p className="text-sm text-slate-500 mt-1">
-            Adding a new transport leg for <strong>{patientName}</strong> on{" "}
+            Adding a transport leg for <strong>{patientName}</strong> on{" "}
             {formatInUserTimezone(date, activeTimezone, "MMMM d, yyyy")}
           </p>
         </DialogHeader>
@@ -241,66 +317,84 @@ export function QuickAddLegDialog({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Locations */}
-                <div className="space-y-4 md:col-span-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-red-500" />
-                      Pickup Location
-                    </Label>
-                    {isLoaded ? (
-                      <AddressAutocomplete
-                        isLoaded={isLoaded}
-                        placeholder="Enter pickup address"
-                        value={pickupLocation}
-                        onChange={(value) => setPickupLocation(value)}
-                        onAddressSelect={(place) => {
-                          const address =
-                            place.formatted_address || place.name || "";
-                          setPickupLocation(address);
-                        }}
-                        className="w-full rounded-xl border-slate-200 h-11 px-3 text-sm focus:ring-2 focus:ring-emerald-500/20"
-                      />
-                    ) : (
-                      <Input
-                        placeholder="Enter pickup address"
-                        value={pickupLocation}
-                        onChange={(e) => setPickupLocation(e.target.value)}
-                        className="rounded-xl border-slate-200 h-11"
-                      />
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-emerald-500" />
-                      Dropoff Location
-                    </Label>
-                    {isLoaded ? (
-                      <AddressAutocomplete
-                        isLoaded={isLoaded}
-                        placeholder="Enter destination address"
-                        value={dropoffLocation}
-                        onChange={(value) => setDropoffLocation(value)}
-                        onAddressSelect={(place) => {
-                          const address =
-                            place.formatted_address || place.name || "";
-                          setDropoffLocation(address);
-                        }}
-                        className="w-full rounded-xl border-slate-200 h-11 px-3 text-sm focus:ring-2 focus:ring-emerald-500/20"
-                      />
-                    ) : (
-                      <Input
-                        placeholder="Enter destination address"
-                        value={dropoffLocation}
-                        onChange={(e) => setDropoffLocation(e.target.value)}
-                        className="rounded-xl border-slate-200 h-11"
-                      />
-                    )}
-                  </div>
+              <div className="relative space-y-4 p-5 bg-slate-50/50 rounded-xl border border-slate-100">
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-red-500" />
+                    Pickup Location
+                  </Label>
+                  {isLoaded ? (
+                    <AddressAutocomplete
+                      isLoaded={isLoaded}
+                      placeholder="Enter pickup address"
+                      value={pickupLocation}
+                      onChange={(val) => setPickupLocation(val)}
+                      onAddressSelect={(place) => {
+                        const address = place.formatted_address || place.name || "";
+                        handleLocationChange("pickup", address);
+                      }}
+                      className="w-full rounded-xl border-slate-200 h-11 px-3 text-sm focus:ring-2 focus:ring-[#3D5A3D]/20 shadow-sm"
+                    />
+                  ) : (
+                    <Input
+                      placeholder="Enter pickup address"
+                      value={pickupLocation}
+                      onChange={(e) => setPickupLocation(e.target.value)}
+                      className="rounded-xl border-slate-200 h-11"
+                    />
+                  )}
                 </div>
 
-                {/* Time & Type */}
+                {/* Swap Button */}
+                <div className="absolute left-1/2 top-[76px] -translate-x-1/2 z-10 hidden md:block">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={swapLocations}
+                    className="rounded-full h-8 w-8 bg-white border-slate-200 shadow-lg border-2 hover:border-[#3D5A3D]"
+                  >
+                    <ArrowsLeftRight weight="bold" className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-emerald-500" />
+                    Dropoff Location
+                  </Label>
+                  {isLoaded ? (
+                    <AddressAutocomplete
+                      isLoaded={isLoaded}
+                      placeholder="Enter destination address"
+                      value={dropoffLocation}
+                      onChange={(val) => setDropoffLocation(val)}
+                      onAddressSelect={(place) => {
+                        const address = place.formatted_address || place.name || "";
+                        handleLocationChange("dropoff", address);
+                      }}
+                      className="w-full rounded-xl border-slate-200 h-11 px-3 text-sm focus:ring-2 focus:ring-[#3D5A3D]/20 shadow-sm"
+                    />
+                  ) : (
+                    <Input
+                      placeholder="Enter destination address"
+                      value={dropoffLocation}
+                      onChange={(e) => setDropoffLocation(e.target.value)}
+                      className="rounded-xl border-slate-200 h-11"
+                    />
+                  )}
+                </div>
+
+                {/* Metrics */}
+                {(distanceMiles || durationMinutes) && (
+                  <div className="flex items-center gap-4 mt-1 text-[11px] font-bold text-slate-500 px-1">
+                    {distanceMiles && <span>{distanceMiles} miles</span>}
+                    {durationMinutes && <span>~{durationMinutes} mins</span>}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-blue-500" />
@@ -311,13 +405,13 @@ export function QuickAddLegDialog({
 
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <Clipboard className="w-4 h-4 text-orange-500" />
+                    <ClipboardText className="w-4 h-4 text-orange-500" />
                     Trip Purpose
                   </Label>
                   <select
                     value={tripType}
                     onChange={(e) => setTripType(e.target.value)}
-                    className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
+                    className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-[#3D5A3D]/20"
                   >
                     {TRIP_TYPES.map((type) => (
                       <option key={type.value} value={type.value}>
@@ -330,13 +424,28 @@ export function QuickAddLegDialog({
                       placeholder="Specify purpose"
                       value={otherTripType}
                       onChange={(e) => setOtherTripType(e.target.value)}
-                      className="mt-2 rounded-xl border-slate-200"
+                      className="mt-2 rounded-xl border-slate-200 h-11"
                     />
                   )}
                 </div>
 
-                {/* Driver */}
-                <div className="space-y-2 md:col-span-2">
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <Car className="w-4 h-4 text-blue-600" />
+                    Service Type
+                  </Label>
+                  <select
+                    value={serviceType}
+                    onChange={(e) => setServiceType(e.target.value)}
+                    className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-[#3D5A3D]/20"
+                  >
+                    {TRANSPORT_SERVICE_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
                   <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                     <Car className="w-4 h-4 text-indigo-500" />
                     Assign Driver (Optional)
@@ -344,10 +453,10 @@ export function QuickAddLegDialog({
                   <select
                     value={driverId}
                     onChange={(e) => setDriverId(e.target.value)}
-                    className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
+                    className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm focus:ring-2 focus:ring-[#3D5A3D]/20"
                   >
                     <option value="">Unassigned</option>
-                    {compatibleDrivers.map((driver) => (
+                    {drivers?.map((driver) => (
                       <option key={driver.id} value={driver.id}>
                         {driver.full_name}
                       </option>
@@ -355,16 +464,15 @@ export function QuickAddLegDialog({
                   </select>
                 </div>
 
-                {/* Notes */}
                 <div className="space-y-2 md:col-span-2">
                   <Label className="text-sm font-bold text-slate-700">
                     Notes
                   </Label>
                   <Textarea
-                    placeholder="Add any specific details for the driver or trip..."
+                    placeholder="Add special instructions for the driver..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="rounded-xl border-slate-200 min-h-[100px] resize-none text-sm"
+                    className="rounded-xl border-slate-200 min-h-[100px] resize-none text-sm focus:ring-2 focus:ring-[#3D5A3D]/20"
                   />
                 </div>
               </div>
@@ -384,16 +492,16 @@ export function QuickAddLegDialog({
             <Button
               type="submit"
               disabled={loading}
-              className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white rounded-xl h-11 px-8 font-bold shadow-lg shadow-emerald-900/10"
+              className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white rounded-xl h-11 px-8 font-bold shadow-lg shadow-[#3D5A3D]/10"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Adding Leg...
+                  <CircleNotch weight="bold" className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus weight="bold" className="w-4 h-4 mr-2" />
                   Add Leg
                 </>
               )}

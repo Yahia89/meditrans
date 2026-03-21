@@ -27,8 +27,6 @@ import { PatientForm } from "@/components/forms/patient-form";
 import { Loader2, Pencil, Trash, Check } from "lucide-react";
 import { exportToExcel } from "@/lib/export";
 import { usePermissions } from "@/hooks/usePermissions";
-import { getActiveTimezone } from "@/lib/timezone";
-import { useAuth } from "@/contexts/auth-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -189,8 +187,8 @@ export function PatientsPage({
     canDeletePatients,
     canViewPatients
   } = usePermissions();
-  const { profile } = useAuth();
-  const activeTimezone = getActiveTimezone(profile, currentOrganization);
+
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
