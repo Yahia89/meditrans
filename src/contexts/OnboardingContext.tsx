@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { useOrganization } from './OrganizationContext'
 import { supabase } from '@/lib/supabase'
 
@@ -69,17 +69,67 @@ interface OnboardingProviderProps {
     onNavigate?: (page: string) => void
 }
 
+// ─── localStorage helpers ───
+// These are synchronous reads at module load time. Safe because this code
+// only runs in the browser (Vite SPA). Using a versioned key prevents
+// stale data from breaking the app if we ever change the schema.
+
+const STORAGE_KEY_DATA_STATE = 'onboarding:dataState'
+const STORAGE_KEY_DEMO_MODE = 'onboarding:isDemoMode'
+
+function readCachedDataState(): DataState | null {
+    try {
+        const v = localStorage.getItem(STORAGE_KEY_DATA_STATE)
+        if (v === 'empty' || v === 'onboarding' || v === 'live') return v
+    } catch { /* quota / SSR / private-browsing – ignore */ }
+    return null
+}
+
+function writeCachedDataState(state: DataState) {
+    try { localStorage.setItem(STORAGE_KEY_DATA_STATE, state) } catch { /* */ }
+}
+
+function readCachedDemoMode(): boolean {
+    try { return localStorage.getItem(STORAGE_KEY_DEMO_MODE) === 'true' } catch { return false }
+}
+
+function writeCachedDemoMode(v: boolean) {
+    try { localStorage.setItem(STORAGE_KEY_DEMO_MODE, v.toString()) } catch { /* */ }
+}
+
 export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderProps) => {
     const { currentOrganization } = useOrganization()
-    const [isLoading, setIsLoading] = useState(true)
-    const [isDemoMode, setIsDemoMode] = useState(false)
-    const [dataCounts, setDataCounts] = useState<DataCounts>({
-        patients: 0,
-        drivers: 0,
-        employees: 0,
-        trips: 0,
+
+    // ─── Synchronous initial state from cache ───
+    // By reading from localStorage *inside the initializer*, the very first
+    // render already has the correct answer. No useEffect, no flash.
+    const cachedDataState = useRef(readCachedDataState())
+
+    // If the cache says "live", we know the user has real data.
+    // Skip the loading state entirely — start with isLoading: false and
+    // use the cached dataState so the dashboard renders instantly.
+    const [isLoading, setIsLoading] = useState(() => cachedDataState.current !== 'live')
+
+    const [isDemoMode, setIsDemoMode] = useState(readCachedDemoMode)
+
+    const [dataCounts, setDataCounts] = useState<DataCounts>(() => {
+        // If cached as "live", seed with non-zero sentinel counts so
+        // getDataState() returns "live" on the first render.
+        if (cachedDataState.current === 'live') {
+            return { patients: 1, drivers: 1, employees: 1, trips: 1 }
+        }
+        return { patients: 0, drivers: 0, employees: 0, trips: 0 }
     })
+
     const [recentUploads, setRecentUploads] = useState<UploadRecord[]>([])
+
+    // ─── Persist demo mode ───
+    // Using a ref + write-on-change instead of useEffect avoids the
+    // unnecessary render cycle on mount.
+    const handleSetDemoMode = useCallback((enabled: boolean) => {
+        setIsDemoMode(enabled)
+        writeCachedDemoMode(enabled)
+    }, [])
 
     // Compute uploaded types from recent uploads
     const uploadedTypes = new Set(
@@ -108,6 +158,11 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
     }, [])
 
     const dataState = getDataState(dataCounts)
+
+    // ─── Cache the computed dataState whenever it changes ───
+    useEffect(() => {
+        writeCachedDataState(dataState)
+    }, [dataState])
 
     // Navigate helper
     const navigateTo = useCallback((page: string) => {
@@ -147,7 +202,12 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
             return
         }
 
-        setIsLoading(true)
+        // Only show loading spinner if we don't have a cached "live" state.
+        // If we do, we're silently refreshing in the background.
+        if (cachedDataState.current !== 'live') {
+            setIsLoading(true)
+        }
+
         try {
             // Fetch counts for each table
             const [patientsRes, driversRes, employeesRes, tripsRes] = await Promise.all([
@@ -169,19 +229,25 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
                     .eq('org_id', currentOrganization.id),
             ])
 
-            setDataCounts({
+            const newCounts = {
                 patients: patientsRes.count ?? 0,
                 drivers: driversRes.count ?? 0,
                 employees: employeesRes.count ?? 0,
                 trips: tripsRes.count ?? 0,
-            })
+            }
+            setDataCounts(newCounts)
+
+            // Update the cache ref so subsequent calls know the truth
+            const newState = getDataState(newCounts)
+            cachedDataState.current = newState
         } catch (error) {
             console.error('Error fetching data counts:', error)
-            setDataCounts({ patients: 0, drivers: 0, employees: 0, trips: 0 })
+            // On error, keep whatever we have (cached or zeroes).
+            // Don't reset to zero — that would flash onboarding for live users.
         } finally {
             setIsLoading(false)
         }
-    }, [currentOrganization])
+    }, [currentOrganization, getDataState])
 
     // Fetch counts and upload history when organization changes
     useEffect(() => {
@@ -247,7 +313,7 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
         dataCounts,
         isLoading,
         isDemoMode,
-        setDemoMode: setIsDemoMode,
+        setDemoMode: handleSetDemoMode,
         setupChecklist,
         completedSteps,
         totalSteps,

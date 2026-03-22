@@ -15,10 +15,11 @@ export function SetupChecklist({ className }: SetupChecklistProps) {
     totalSteps,
     completionPercentage,
     dataState,
+    isLoading,
   } = useOnboarding();
 
-  // Don't show if already live
-  if (dataState === "live") {
+  // Don't show if loading or already live
+  if (isLoading || dataState === "live") {
     return null;
   }
 
@@ -159,10 +160,10 @@ function ChecklistItem({ item, index }: ChecklistItemProps) {
 
 // Compact version for sidebar or smaller spaces
 export function CompactSetupProgress({ className }: { className?: string }) {
-  const { completedSteps, totalSteps, completionPercentage, dataState } =
+  const { completedSteps, totalSteps, completionPercentage, dataState, isLoading } =
     useOnboarding();
 
-  if (dataState === "live") {
+  if (isLoading || dataState === "live") {
     return null;
   }
 

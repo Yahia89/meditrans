@@ -8,10 +8,10 @@ interface DemoModeBannerProps {
 }
 
 export function DemoModeBanner({ className }: DemoModeBannerProps) {
-  const { isDemoMode, setDemoMode, dataState } = useOnboarding();
+  const { isDemoMode, setDemoMode, dataState, isLoading } = useOnboarding();
 
-  // Don't show if already have real data (live state)
-  if (dataState === "live") {
+  // Don't show if loading or already have real data (live state)
+  if (isLoading || dataState === "live") {
     return null;
   }
 
@@ -89,9 +89,9 @@ export function DemoModeBanner({ className }: DemoModeBannerProps) {
 
 // Compact toggle for header/nav
 export function DemoModeToggle({ className }: { className?: string }) {
-  const { isDemoMode, setDemoMode, dataState } = useOnboarding();
+  const { isDemoMode, setDemoMode, dataState, isLoading } = useOnboarding();
 
-  if (dataState === "live") {
+  if (isLoading || dataState === "live") {
     return null;
   }
 

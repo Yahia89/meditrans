@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAuth } from "@/contexts/auth-context";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Button } from "@/components/ui/button";
 import {
   ChevronDown,
@@ -14,8 +15,6 @@ import {
   Clock,
   Users,
   MapPin,
-  Car,
-  User,
   Calendar as CalendarIcon,
   LayoutGrid,
   List,
@@ -26,6 +25,8 @@ import type { Trip, TripStatus } from "./types";
 import { cn } from "@/lib/utils";
 import { formatInUserTimezone, getTimezoneLabel } from "@/lib/timezone";
 import { TripTimeline, TripTimelineVertical } from "./TripTimeline";
+import { TripCardsView } from "./TripCardsView";
+import { TripListView } from "./TripListView";
 import { Input } from "@/components/ui/input";
 import { QuickAddLegDialog } from "./QuickAddLegDialog";
 import { useTimezone } from "@/hooks/useTimezone";
@@ -33,16 +34,9 @@ import { TimezoneSelector } from "../timezone-selector";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { toast } from "sonner";
 
-interface TripsSchedulerProps {
-  onCreateClick?: () => void;
-  onDischargeClick?: () => void;
-  onBulkImportClick?: () => void;
-  onTripClick: (id: string) => void;
-  patientId?: string;
-  driverId?: string;
-}
+// --- Constants (moved outside component) ---
 
-const statusColors: Record<TripStatus, string> = {
+const STATUS_COLORS: Record<TripStatus, string> = {
   pending: "bg-slate-100 text-slate-700 border-slate-200",
   assigned: "bg-blue-50 text-blue-700 border-blue-100",
   accepted: "bg-indigo-50 text-indigo-700 border-indigo-100",
@@ -55,40 +49,59 @@ const statusColors: Record<TripStatus, string> = {
   no_show: "bg-orange-50 text-orange-700 border-orange-100",
 };
 
-// Generate dates for week view
+// Only select the columns we need from trips (not *)
+const TRIPS_SELECT = `
+  id,
+  org_id,
+  patient_id,
+  driver_id,
+  pickup_location,
+  dropoff_location,
+  pickup_time,
+  trip_type,
+  status,
+  notes,
+  created_at,
+  patient:patients(id, full_name, phone, created_at),
+  driver:drivers(id, full_name, phone, user_id, vehicle_info)
+`;
+
+// --- Props ---
+
+interface TripsSchedulerProps {
+  onCreateClick?: () => void;
+  onDischargeClick?: () => void;
+  onBulkImportClick?: () => void;
+  onTripClick: (id: string) => void;
+  patientId?: string;
+  driverId?: string;
+}
+
+// --- Utility functions ---
+
 function getWeekDates(date: Date, timezone: string): Date[] {
   const zonedDate = toZonedTime(date, timezone);
   const dates: Date[] = [];
-
-  // Start from Sunday of the current week in the target timezone
   const dayOfWeek = zonedDate.getDay();
   const start = new Date(zonedDate);
   start.setDate(zonedDate.getDate() - dayOfWeek);
-
   for (let i = 0; i < 7; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    // Convert back from zoned local to a real UTC Date representing 12am in that timezone
     dates.push(fromZonedTime(d, timezone));
   }
   return dates;
 }
 
-// Generate dates for month view (shy calendar)
 function getMonthDates(date: Date, timezone: string): Date[] {
   const zonedDate = toZonedTime(date, timezone);
   const year = zonedDate.getFullYear();
   const month = zonedDate.getMonth();
-
-  // First day of the month in the target timezone
   const firstDayZoned = new Date(year, month, 1);
-  const startDay = firstDayZoned.getDay(); // 0 = Sunday
-
+  const startDay = firstDayZoned.getDay();
   const dates: Date[] = [];
   const curr = new Date(firstDayZoned);
   curr.setDate(curr.getDate() - startDay);
-
-  // 42 days for 6 weeks grid to cover all months fully
   for (let i = 0; i < 42; i++) {
     const d = new Date(curr);
     dates.push(fromZonedTime(d, timezone));
@@ -96,6 +109,30 @@ function getMonthDates(date: Date, timezone: string): Date[] {
   }
   return dates;
 }
+
+/**
+ * Get a date range for the Supabase query.
+ * Fetches 3 months of data centered on the selected date to allow
+ * smooth navigation without refetching every time.
+ */
+function getQueryDateRange(date: Date): { start: string; end: string } {
+  const start = new Date(date);
+  start.setMonth(start.getMonth() - 1);
+  start.setDate(1);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(date);
+  end.setMonth(end.getMonth() + 2);
+  end.setDate(0); // last day of next month
+  end.setHours(23, 59, 59, 999);
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  };
+}
+
+// --- Main Component ---
 
 export function TripsScheduler({
   onCreateClick,
@@ -109,6 +146,7 @@ export function TripsScheduler({
   const { profile, refresh } = useAuth();
   const { isDriver } = usePermissions();
   const activeTimezone = useTimezone();
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const [isUpdatingTimezone, setIsUpdatingTimezone] = useState(false);
 
   // View state
@@ -118,7 +156,6 @@ export function TripsScheduler({
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<TripStatus | "all">("all");
-  const [isMobile, setIsMobile] = useState(false);
   const [isMonthExpanded, setIsMonthExpanded] = useState(false);
   const [quickAddData, setQuickAddData] = useState<{
     patientId: string;
@@ -126,32 +163,34 @@ export function TripsScheduler({
     date: Date;
   } | null>(null);
 
-  // Detect mobile
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  // Derive query date range from selectedDate (no useEffect!)
+  const queryDateRange = useMemo(
+    () => getQueryDateRange(selectedDate),
+    // Only re-derive when month changes, not every date selection
+    [selectedDate.getFullYear(), selectedDate.getMonth()],
+  );
 
-  // Fetch trips
+  // Fetch trips with date range filter
   const {
     data: trips,
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["trips", currentOrganization?.id, patientId, driverId],
+    queryKey: [
+      "trips",
+      currentOrganization?.id,
+      patientId,
+      driverId,
+      queryDateRange.start,
+      queryDateRange.end,
+    ],
     queryFn: async () => {
       let query = supabase
         .from("trips")
-        .select(
-          `
-          *,
-          patient:patients(id, full_name, phone, created_at),
-          driver:drivers(id, full_name, phone, user_id, vehicle_info)
-        `,
-        )
+        .select(TRIPS_SELECT)
         .eq("org_id", currentOrganization?.id)
+        .gte("pickup_time", queryDateRange.start)
+        .lte("pickup_time", queryDateRange.end)
         .order("pickup_time", { ascending: true });
 
       if (patientId) {
@@ -163,53 +202,52 @@ export function TripsScheduler({
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as Trip[];
+      return data as unknown as Trip[];
     },
     enabled: !!currentOrganization,
-    refetchInterval: 30000, // Auto refresh every 30 seconds
+    refetchInterval: 30000,
+    staleTime: 10000, // Don't refetch if data is less than 10s old
   });
 
-  const handleUpdateTimezone = async (newTimezone: string) => {
-    if (!profile) return;
-    setIsUpdatingTimezone(true);
-    try {
-      const { error } = await supabase
-        .from("user_profiles")
-        .update({ timezone: newTimezone || null })
-        .eq("user_id", profile.user_id);
+  // Memoized timezone update handler
+  const handleUpdateTimezone = useCallback(
+    async (newTimezone: string) => {
+      if (!profile) return;
+      setIsUpdatingTimezone(true);
+      try {
+        const { error } = await supabase
+          .from("user_profiles")
+          .update({ timezone: newTimezone || null })
+          .eq("user_id", profile.user_id);
 
-      if (error) throw error;
-      await refresh();
-      const timezoneLabel = newTimezone
-        ? getTimezoneLabel(newTimezone)
-        : "Organization Default";
-      toast.success(`Timezone updated to ${timezoneLabel}`);
-    } catch (error: any) {
-      console.error("Error updating timezone:", error);
-      toast.error(error.message || "Failed to update timezone");
-    } finally {
-      setIsUpdatingTimezone(false);
-    }
-  };
+        if (error) throw error;
+        await refresh();
+        const timezoneLabel = newTimezone
+          ? getTimezoneLabel(newTimezone)
+          : "Organization Default";
+        toast.success(`Timezone updated to ${timezoneLabel}`);
+      } catch (error: any) {
+        console.error("Error updating timezone:", error);
+        toast.error(error.message || "Failed to update timezone");
+      } finally {
+        setIsUpdatingTimezone(false);
+      }
+    },
+    [profile, refresh],
+  );
 
-  // Dates for navigation (Week or Month)
+  // Calendar dates (week/month grid)
   const calendarDates = useMemo(() => {
     return isMonthExpanded
       ? getMonthDates(selectedDate, activeTimezone)
       : getWeekDates(selectedDate, activeTimezone);
   }, [selectedDate, isMonthExpanded, activeTimezone]);
 
-  // Filter trips
+  // Filter trips for display
   const filteredTrips = useMemo(() => {
     if (!trips) return [];
-
     return trips.filter((trip) => {
-      // Status filter
-      if (statusFilter !== "all" && trip.status !== statusFilter) {
-        return false;
-      }
-
-      // Search filter
+      if (statusFilter !== "all" && trip.status !== statusFilter) return false;
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesPatient = trip.patient?.full_name
@@ -222,29 +260,27 @@ export function TripsScheduler({
           trip.pickup_location?.toLowerCase().includes(query) ||
           trip.dropoff_location?.toLowerCase().includes(query);
         const matchesType = trip.trip_type?.toLowerCase().includes(query);
-
-        if (
-          !matchesPatient &&
-          !matchesDriver &&
-          !matchesLocation &&
-          !matchesType
-        ) {
+        if (!matchesPatient && !matchesDriver && !matchesLocation && !matchesType)
           return false;
-        }
       }
-
       return true;
     });
   }, [trips, statusFilter, searchQuery]);
 
+  // Pre-compute today's date string once
+  const todayStr = useMemo(
+    () => formatInUserTimezone(new Date(), activeTimezone, "yyyy-MM-dd"),
+    [activeTimezone],
+  );
+
+  const selectedDateStr = useMemo(
+    () => formatInUserTimezone(selectedDate, activeTimezone, "yyyy-MM-dd"),
+    [selectedDate, activeTimezone],
+  );
+
   // Trips for selected date
   const tripsForDate = useMemo(() => {
     return filteredTrips.filter((trip) => {
-      const selectedDateStr = formatInUserTimezone(
-        selectedDate,
-        activeTimezone,
-        "yyyy-MM-dd",
-      );
       const tripDateStr = formatInUserTimezone(
         trip.pickup_time,
         activeTimezone,
@@ -252,9 +288,9 @@ export function TripsScheduler({
       );
       return tripDateStr === selectedDateStr;
     });
-  }, [filteredTrips, selectedDate, activeTimezone]);
+  }, [filteredTrips, selectedDateStr, activeTimezone]);
 
-  // Count trips per day in week/month
+  // Count trips per day (for calendar badges)
   const tripCountByDay = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredTrips.forEach((trip) => {
@@ -268,36 +304,48 @@ export function TripsScheduler({
     return counts;
   }, [filteredTrips, activeTimezone]);
 
-  // Active trips (in progress)
-  const activeTrips = useMemo(
-    () => filteredTrips.filter((t) => t.status === "in_progress"),
+  // Active & pending counts (derived, not synced with useEffect)
+  const activeCount = useMemo(
+    () => filteredTrips.filter((t) => t.status === "in_progress").length,
+    [filteredTrips],
+  );
+  const pendingCount = useMemo(
+    () => filteredTrips.filter((t) => t.status === "pending").length,
     [filteredTrips],
   );
 
-  // Navigation handlers
-  const goToPrevious = () => {
-    const newDate = new Date(selectedDate);
-    if (isMonthExpanded) {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else {
-      newDate.setDate(newDate.getDate() - 7);
-    }
-    setSelectedDate(newDate);
-  };
+  // Navigation handlers (stable references via useCallback)
+  const goToPrevious = useCallback(() => {
+    setSelectedDate((prev) => {
+      const newDate = new Date(prev);
+      if (isMonthExpanded) {
+        newDate.setMonth(newDate.getMonth() - 1);
+      } else {
+        newDate.setDate(newDate.getDate() - 7);
+      }
+      return newDate;
+    });
+  }, [isMonthExpanded]);
 
-  const goToNext = () => {
-    const newDate = new Date(selectedDate);
-    if (isMonthExpanded) {
-      newDate.setMonth(newDate.getMonth() + 1);
-    } else {
-      newDate.setDate(newDate.getDate() + 7);
-    }
-    setSelectedDate(newDate);
-  };
+  const goToNext = useCallback(() => {
+    setSelectedDate((prev) => {
+      const newDate = new Date(prev);
+      if (isMonthExpanded) {
+        newDate.setMonth(newDate.getMonth() + 1);
+      } else {
+        newDate.setDate(newDate.getDate() + 7);
+      }
+      return newDate;
+    });
+  }, [isMonthExpanded]);
 
-  const goToToday = () => {
-    setSelectedDate(new Date());
-  };
+  const goToToday = useCallback(() => setSelectedDate(new Date()), []);
+
+  const handleQuickAdd = useCallback(
+    (pId: string, pName: string, date: Date) =>
+      setQuickAddData({ patientId: pId, patientName: pName, date }),
+    [],
+  );
 
   if (isLoading) {
     return (
@@ -398,7 +446,7 @@ export function TripsScheduler({
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">
-                {activeTrips.length}
+                {activeCount}
               </p>
               <p className="text-xs text-slate-500">Active Now</p>
             </div>
@@ -411,7 +459,7 @@ export function TripsScheduler({
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-900">
-                {filteredTrips.filter((t) => t.status === "pending").length}
+                {pendingCount}
               </p>
               <p className="text-xs text-slate-500">Pending</p>
             </div>
@@ -558,21 +606,9 @@ export function TripsScheduler({
               activeTimezone,
               "yyyy-MM-dd",
             );
-            const selectedDateStr = formatInUserTimezone(
-              selectedDate,
-              activeTimezone,
-              "yyyy-MM-dd",
-            );
-            const todayStr = formatInUserTimezone(
-              new Date(),
-              activeTimezone,
-              "yyyy-MM-dd",
-            );
-
             const isSelected = dateStr === selectedDateStr;
             const isToday = dateStr === todayStr;
 
-            // For Month view, check if same month in target timezone
             const zonedDate = toZonedTime(date, activeTimezone);
             const zonedSelected = toZonedTime(selectedDate, activeTimezone);
             const isCurrentMonth =
@@ -638,16 +674,13 @@ export function TripsScheduler({
 
       {/* Main Content */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 min-h-[400px]">
-        {/* Mobile: Always show vertical timeline */}
         {isMobile ? (
           <TripTimelineVertical
             trips={filteredTrips}
             onTripClick={onTripClick}
             selectedDate={selectedDate}
             timezone={activeTimezone}
-            onQuickAdd={(patientId, patientName, date) =>
-              setQuickAddData({ patientId, patientName, date })
-            }
+            onQuickAdd={handleQuickAdd}
           />
         ) : viewMode === "timeline" ? (
           <TripTimeline
@@ -660,17 +693,15 @@ export function TripsScheduler({
           <TripCardsView
             trips={tripsForDate}
             onTripClick={onTripClick}
-            statusColors={statusColors}
+            statusColors={STATUS_COLORS}
             timezone={activeTimezone}
-            onQuickAdd={(patientId, patientName, date) =>
-              setQuickAddData({ patientId, patientName, date })
-            }
+            onQuickAdd={handleQuickAdd}
           />
         ) : (
           <TripListView
             trips={tripsForDate}
             onTripClick={onTripClick}
-            statusColors={statusColors}
+            statusColors={STATUS_COLORS}
             timezone={activeTimezone}
           />
         )}
@@ -686,288 +717,6 @@ export function TripsScheduler({
           onSuccess={() => refetch()}
         />
       )}
-    </div>
-  );
-}
-
-// Cards view component
-function TripCardsView({
-  trips,
-  onTripClick,
-  statusColors,
-  timezone,
-  onQuickAdd,
-}: {
-  trips: Trip[];
-  onTripClick: (id: string) => void;
-  statusColors: Record<TripStatus, string>;
-  timezone: string;
-  onQuickAdd: (patientId: string, patientName: string, date: Date) => void;
-}) {
-  const groupedTrips = useMemo(() => {
-    const groups: Record<string, Trip[]> = {};
-    trips.forEach((trip) => {
-      const key = trip.patient_id || "unknown";
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(trip);
-    });
-    return Object.values(groups).sort((a, b) => {
-      const timeA = new Date(a[0]?.pickup_time || 0).getTime();
-      const timeB = new Date(b[0]?.pickup_time || 0).getTime();
-      return timeA - timeB;
-    });
-  }, [trips]);
-
-  if (trips.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-          <CalendarIcon className="w-6 h-6 text-slate-300" />
-        </div>
-        <p className="text-slate-500">No trips for this date</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {groupedTrips.map((group) => {
-        const patient = group[0].patient;
-        const sortedGroup = [...group].sort(
-          (a, b) =>
-            new Date(a.pickup_time).getTime() -
-            new Date(b.pickup_time).getTime(),
-        );
-
-        return (
-          <div
-            key={group[0].patient_id || "unknown"}
-            className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden"
-          >
-            {/* Patient Header */}
-            <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
-                <User className="w-5 h-5 text-slate-700" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-slate-900 truncate">
-                    {patient?.full_name || "Unknown Patient"}
-                  </p>
-                  <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-medium">
-                    {group.length} Trip{group.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 font-medium">
-                  {patient?.phone}
-                </p>
-              </div>
-            </div>
-
-            {/* Trips Timeline */}
-            <div className="p-4 space-y-0 relative">
-              {/* Vertical Timeline Line */}
-              {sortedGroup.length > 1 && (
-                <div className="absolute left-[29px] top-4 bottom-8 w-0.5 bg-slate-100" />
-              )}
-
-              {sortedGroup.map((trip, index) => (
-                <div
-                  key={trip.id}
-                  onClick={() => onTripClick(trip.id)}
-                  className="relative pl-8 pb-6 last:pb-0 z-10 cursor-pointer group"
-                >
-                  {/* Timeline Node */}
-                  <div
-                    className={cn(
-                      "absolute left-0 top-1 w-7 h-7 rounded-full border-2 flex items-center justify-center bg-white transition-colors",
-                      trip.status === "completed"
-                        ? "border-emerald-500 text-emerald-500"
-                        : trip.status === "in_progress"
-                          ? "border-blue-500 text-blue-500"
-                          : trip.status === "cancelled"
-                            ? "border-red-200 text-red-300"
-                            : "border-slate-300 text-slate-400 group-hover:border-blue-400 group-hover:text-blue-400",
-                    )}
-                  >
-                    {index + 1}
-                  </div>
-
-                  {/* Trip Card Content */}
-                  <div className="bg-slate-50/50 rounded-lg border border-slate-100 p-3 hover:bg-white hover:shadow-md hover:border-blue-200 transition-all">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-bold text-slate-700 font-mono">
-                        {formatInUserTimezone(
-                          trip.pickup_time,
-                          timezone,
-                          "h:mm a",
-                        )}
-                      </span>
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide border",
-                          statusColors[trip.status],
-                        )}
-                      >
-                        {trip.status.replace("_", " ")}
-                      </span>
-                    </div>
-
-                    <div className="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wider">
-                      {trip.trip_type}
-                    </div>
-
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-red-500 mt-0.5 shrink-0" />
-                        <span className="text-slate-700 leading-tight">
-                          {trip.pickup_location}
-                        </span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
-                        <span className="text-slate-700 leading-tight">
-                          {trip.dropoff_location}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-2 border-t border-slate-200/50 flex items-center gap-2">
-                      <Car className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="text-xs text-slate-600 font-medium">
-                        {trip.driver?.full_name || "Unassigned"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* Quick Add Leg Button */}
-              <div className="relative pl-8 pt-2">
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const date = new Date(sortedGroup[0].pickup_time);
-                    onQuickAdd(
-                      sortedGroup[0].patient_id,
-                      patient?.full_name || "Patient",
-                      date,
-                    );
-                  }}
-                  variant="ghost"
-                  className="w-full h-auto min-h-[44px] py-2.5 border border-slate-200 bg-white shadow-sm rounded-xl text-slate-500 hover:text-[#3D5A3D] hover:border-[#3D5A3D] hover:bg-[#3D5A3D]/5 transition-all flex items-center justify-center gap-2 group"
-                >
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center group-hover:border-[#3D5A3D] group-hover:text-[#3D5A3D] transition-colors flex-shrink-0">
-                    <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" weight="bold" />
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">
-                    Add Leg
-                  </span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// List view component
-function TripListView({
-  trips,
-  onTripClick,
-  statusColors,
-  timezone,
-}: {
-  trips: Trip[];
-  onTripClick: (id: string) => void;
-  statusColors: Record<TripStatus, string>;
-  timezone: string;
-}) {
-  if (trips.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-          <List className="w-6 h-6 text-slate-300" />
-        </div>
-        <p className="text-slate-500">No trips for this date</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-slate-100">
-            <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Time
-            </th>
-            <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Patient
-            </th>
-            <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Type
-            </th>
-            <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Pickup
-            </th>
-            <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Driver
-            </th>
-            <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Status
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {trips.map((trip) => (
-            <tr
-              key={trip.id}
-              onClick={() => onTripClick(trip.id)}
-              className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors"
-            >
-              <td className="py-3 px-4">
-                <span className="text-sm font-medium text-slate-900">
-                  {formatInUserTimezone(trip.pickup_time, timezone, "h:mm a")}
-                </span>
-              </td>
-              <td className="py-3 px-4">
-                <span className="text-sm text-slate-900">
-                  {trip.patient?.full_name || "Unknown"}
-                </span>
-              </td>
-              <td className="py-3 px-4">
-                <span className="text-sm text-slate-600">{trip.trip_type}</span>
-              </td>
-              <td className="py-3 px-4">
-                <span className="text-sm text-slate-600 max-w-[200px] truncate block">
-                  {trip.pickup_location}
-                </span>
-              </td>
-              <td className="py-3 px-4">
-                <div className="flex items-center gap-2">
-                  <Car className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm text-slate-600">
-                    {trip.driver?.full_name || "Unassigned"}
-                  </span>
-                </div>
-              </td>
-              <td className="py-3 px-4">
-                <span
-                  className={cn(
-                    "px-2.5 py-0.5 rounded-full text-xs font-semibold border",
-                    statusColors[trip.status],
-                  )}
-                >
-                  {trip.status.replace("_", " ").toUpperCase()}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }

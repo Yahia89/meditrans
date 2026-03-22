@@ -24,7 +24,7 @@ export function Dashboard({
   onNavigateToDriver,
   onNavigateToPatient,
 }: DashboardProps) {
-  const { dataState, isDemoMode } = useOnboarding();
+  const { dataState, isDemoMode, isLoading } = useOnboarding();
   const { isAdmin, isEmployee, isDispatch } = usePermissions();
   const [section] = useQueryState("section");
 
@@ -43,7 +43,9 @@ export function Dashboard({
   }, [section]);
 
   const isInitialState =
-    (dataState === "empty" || dataState === "onboarding") && !isDemoMode;
+    !isLoading &&
+    (dataState === "empty" || dataState === "onboarding") &&
+    !isDemoMode;
 
   // Dispatchers should see the full dashboard just like admins
   const showAdminSections = isAdmin || isEmployee || isDispatch;

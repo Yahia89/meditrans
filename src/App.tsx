@@ -1,20 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import "./App.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./components/app-sidebar";
 import { DashboardPage } from "./components/dashboard-page";
-import { Dashboard } from "./components/dashboard";
-import { PatientsPage } from "./components/patients-page";
-import { DriversPage } from "./components/drivers-page";
-import { EmployeesPage } from "./components/employees-page";
-import { EmployeeDetailsPage } from "./components/employee-details-page";
-import { UploadPage } from "./components/upload-page";
-import { AccountPage } from "./components/account-page";
-import { BillingPage } from "./components/billing-page";
-import { NotificationsPage } from "./components/notifications-page";
-import { FounderInviteForm } from "./components/founder-invite-form";
-import { AcceptInvitePage } from "./components/accept-invite";
 import { LoginForm } from "./components/login-form";
 
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
@@ -29,6 +18,8 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { usePresence } from "@/hooks/usePresence";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
+import { useDriverLocation } from "@/hooks/useDriverLocation";
+import { ErrorBoundary } from "./components/error-boundary";
 
 // Define valid page values for type safety
 export const pages = [
@@ -60,25 +51,45 @@ export const pages = [
 
 export type Page = (typeof pages)[number];
 
-import { UploadReviewPage } from "./components/upload-review-page";
-import { PatientDetailsPage } from "./components/patient-details-page";
-import { DriverDetailsPage } from "./components/driver-details-page";
-import { TripDetails } from "./components/trips/TripDetails";
-import { TripDialog } from "./components/trips/TripDialog";
-import { TripsScheduler } from "./components/trips/TripsScheduler";
-import { BulkImportDialog } from "./components/trips/BulkImportDialog";
-import { CreateDischargeDialog } from "./components/trips/CreateDischargeDialog";
-import { ClientCreditsPage } from "./components/client-credits-page";
-import { DriverHistoryPage } from "./components/driver-history-page";
-import { ErrorBoundary } from "./components/error-boundary";
+// ---------- Lazy-loaded page components ----------
+// Each page becomes its own chunk, loaded on demand.
+// This reduces the initial bundle from ~3.4MB to the shell only.
+const Dashboard = lazy(() => import("./components/dashboard").then(m => ({ default: m.Dashboard })));
+const PatientsPage = lazy(() => import("./components/patients-page").then(m => ({ default: m.PatientsPage })));
+const DriversPage = lazy(() => import("./components/drivers-page").then(m => ({ default: m.DriversPage })));
+const EmployeesPage = lazy(() => import("./components/employees-page").then(m => ({ default: m.EmployeesPage })));
+const EmployeeDetailsPage = lazy(() => import("./components/employee-details-page").then(m => ({ default: m.EmployeeDetailsPage })));
+const UploadPage = lazy(() => import("./components/upload-page").then(m => ({ default: m.UploadPage })));
+const AccountPage = lazy(() => import("./components/account-page").then(m => ({ default: m.AccountPage })));
+const BillingPage = lazy(() => import("./components/billing-page").then(m => ({ default: m.BillingPage })));
+const NotificationsPage = lazy(() => import("./components/notifications-page").then(m => ({ default: m.NotificationsPage })));
+const FounderInviteForm = lazy(() => import("./components/founder-invite-form").then(m => ({ default: m.FounderInviteForm })));
+const AcceptInvitePage = lazy(() => import("./components/accept-invite").then(m => ({ default: m.AcceptInvitePage })));
+const UploadReviewPage = lazy(() => import("./components/upload-review-page").then(m => ({ default: m.UploadReviewPage })));
+const PatientDetailsPage = lazy(() => import("./components/patient-details-page").then(m => ({ default: m.PatientDetailsPage })));
+const DriverDetailsPage = lazy(() => import("./components/driver-details-page").then(m => ({ default: m.DriverDetailsPage })));
+const TripDetails = lazy(() => import("./components/trips/TripDetails").then(m => ({ default: m.TripDetails })));
+const TripDialog = lazy(() => import("./components/trips/TripDialog").then(m => ({ default: m.TripDialog })));
+const TripsScheduler = lazy(() => import("./components/trips/TripsScheduler").then(m => ({ default: m.TripsScheduler })));
+const BulkImportDialog = lazy(() => import("./components/trips/BulkImportDialog").then(m => ({ default: m.BulkImportDialog })));
+const CreateDischargeDialog = lazy(() => import("./components/trips/CreateDischargeDialog").then(m => ({ default: m.CreateDischargeDialog })));
+const ClientCreditsPage = lazy(() => import("./components/client-credits-page").then(m => ({ default: m.ClientCreditsPage })));
+const DriverHistoryPage = lazy(() => import("./components/driver-history-page").then(m => ({ default: m.DriverHistoryPage })));
+const MedicaidBillingPage = lazy(() => import("./components/MedicaidBillingPage").then(m => ({ default: m.MedicaidBillingPage })));
+const LiveTrackingPage = lazy(() => import("./components/live/LiveTrackingPage").then(m => ({ default: m.LiveTrackingPage })));
+const CompaniesPage = lazy(() => import("./components/admin/companies-page").then(m => ({ default: m.CompaniesPage })));
+const ResetPasswordPage = lazy(() => import("./components/reset-password-page").then(m => ({ default: m.ResetPasswordPage })));
+const FeeSettingsPage = lazy(() => import("./components/admin/FeeSettingsPage").then(m => ({ default: m.FeeSettingsPage })));
+const SummaryPage = lazy(() => import("./components/summary-page").then(m => ({ default: m.SummaryPage })));
 
-import { MedicaidBillingPage } from "./components/MedicaidBillingPage";
-import { useDriverLocation } from "@/hooks/useDriverLocation";
-import { LiveTrackingPage } from "./components/live/LiveTrackingPage";
-import { CompaniesPage } from "./components/admin/companies-page";
-import { ResetPasswordPage } from "./components/reset-password-page";
-import { FeeSettingsPage } from "./components/admin/FeeSettingsPage";
-import { SummaryPage } from "./components/summary-page";
+// Suspense fallback for lazy-loaded pages
+function PageLoader() {
+  return (
+    <div className="flex h-64 items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+    </div>
+  );
+}
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
@@ -576,7 +587,9 @@ function AppContent() {
         />
         <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
           <ErrorBoundary fallbackTitle="Page Error">
-            {renderPage()}
+            <Suspense fallback={<PageLoader />}>
+              {renderPage()}
+            </Suspense>
           </ErrorBoundary>
         </main>
 
