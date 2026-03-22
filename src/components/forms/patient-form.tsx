@@ -35,6 +35,7 @@ import {
   XCircle,
   History,
   CheckCircle2,
+  MinusCircle,
 } from "lucide-react";
 import { cn, formatPhoneNumber } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -951,11 +952,12 @@ export function PatientForm({
                       <label className="text-sm font-medium text-slate-700">
                         SAL Status <span className="text-red-500">*</span>
                       </label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {[
                           { value: "approved", label: "Approved", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200 ring-emerald-500/20", activeBg: "bg-emerald-100 border-emerald-400 ring-2 ring-emerald-500/30" },
                           { value: "pending", label: "Pending", icon: Clock, color: "text-amber-600", bg: "bg-amber-50 border-amber-200 ring-amber-500/20", activeBg: "bg-amber-100 border-amber-400 ring-2 ring-amber-500/30" },
                           { value: "expired", label: "Expired", icon: XCircle, color: "text-red-500", bg: "bg-red-50 border-red-200 ring-red-500/20", activeBg: "bg-red-100 border-red-400 ring-2 ring-red-500/30" },
+                          { value: "n/a", label: "N/A", icon: MinusCircle, color: "text-slate-500", bg: "bg-slate-50 border-slate-200 ring-slate-500/20", activeBg: "bg-slate-200 border-slate-400 ring-2 ring-slate-500/30" },
                         ].map((option) => {
                           const Icon = option.icon;
                           const isActive = watchedSalStatus === option.value;
@@ -1088,6 +1090,7 @@ export function PatientForm({
                                 entry.status === "approved" && "bg-emerald-50/50 border-emerald-100",
                                 entry.status === "pending" && "bg-amber-50/50 border-amber-100",
                                 entry.status === "expired" && "bg-red-50/50 border-red-100",
+                                entry.status === "n/a" && "bg-slate-50 border-slate-200",
                               )}
                             >
                               <div className={cn(
@@ -1099,6 +1102,7 @@ export function PatientForm({
                                 {entry.status === "approved" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
                                 {entry.status === "pending" && <Clock className="w-3.5 h-3.5 text-amber-600" />}
                                 {entry.status === "expired" && <XCircle className="w-3.5 h-3.5 text-red-500" />}
+                                {entry.status === "n/a" && <MinusCircle className="w-3.5 h-3.5 text-slate-500" />}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2">
@@ -1107,8 +1111,9 @@ export function PatientForm({
                                     entry.status === "approved" && "text-emerald-700",
                                     entry.status === "pending" && "text-amber-700",
                                     entry.status === "expired" && "text-red-600",
+                                    entry.status === "n/a" && "text-slate-600",
                                   )}>
-                                    {entry.status}
+                                    {entry.status === "n/a" ? "N/A" : entry.status}
                                   </span>
                                   <span className="text-slate-400 shrink-0">
                                     {new Date(entry.created_at).toLocaleDateString("en-US", {

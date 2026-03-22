@@ -20,6 +20,7 @@ import {
   XCircle,
   CheckCircle2,
   History,
+  MinusCircle,
 } from "lucide-react";
 import {
   CaretLeft,
@@ -823,6 +824,17 @@ export function PatientDetailsPage({
                       </div>
                     </>
                   )}
+                  {patient.sal_status === "n/a" && (
+                    <>
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                        <MinusCircle className="w-4 h-4 text-slate-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-600">N/A</p>
+                        <p className="text-xs text-slate-500">Not applicable to this client</p>
+                      </div>
+                    </>
+                  )}
                   {!patient.sal_status && (
                     <>
                       <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
@@ -848,10 +860,10 @@ export function PatientDetailsPage({
                         <div
                           key={entry.id}
                           className={cn(
-                            "flex items-start gap-2 p-2 rounded-lg text-xs",
                             entry.status === "approved" && "bg-emerald-50/70",
                             entry.status === "pending" && "bg-amber-50/70",
                             entry.status === "expired" && "bg-red-50/70",
+                            entry.status === "n/a" && "bg-slate-50",
                           )}
                         >
                           <div className={cn(
@@ -859,10 +871,12 @@ export function PatientDetailsPage({
                             entry.status === "approved" && "bg-emerald-100",
                             entry.status === "pending" && "bg-amber-100",
                             entry.status === "expired" && "bg-red-100",
+                            entry.status === "n/a" && "bg-slate-200",
                           )}>
                             {entry.status === "approved" && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
                             {entry.status === "pending" && <Clock className="w-3 h-3 text-amber-600" />}
                             {entry.status === "expired" && <XCircle className="w-3 h-3 text-red-500" />}
+                            {entry.status === "n/a" && <MinusCircle className="w-3 h-3 text-slate-500" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
@@ -871,8 +885,9 @@ export function PatientDetailsPage({
                                 entry.status === "approved" && "text-emerald-700",
                                 entry.status === "pending" && "text-amber-700",
                                 entry.status === "expired" && "text-red-600",
+                                entry.status === "n/a" && "text-slate-600",
                               )}>
-                                {entry.status}
+                                {entry.status === "n/a" ? "N/A" : entry.status}
                               </span>
                               <span className="text-slate-400 shrink-0">
                                 {new Date(entry.created_at).toLocaleDateString("en-US", {

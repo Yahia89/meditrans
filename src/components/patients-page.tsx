@@ -52,7 +52,7 @@ interface Patient {
   phone: string;
   email: string;
   address: string;
-  status: "approved" | "pending" | "expired";
+  status: "approved" | "pending" | "expired" | "n/a";
   totalTrips: number;
   date_of_birth?: string | null;
   notes?: string | null;
@@ -274,7 +274,7 @@ export function PatientsPage({
           phone: p.phone || "",
           email: p.email || "",
           address: p.primary_address || "",
-          status: (p.sal_status || "pending").toLowerCase() as "approved" | "pending" | "expired",
+          status: (p.sal_status || "pending").toLowerCase() as "approved" | "pending" | "expired" | "n/a",
           totalTrips: p.trips?.[0]?.count || 0,
           date_of_birth: p.date_of_birth,
           notes: p.notes,
@@ -828,11 +828,12 @@ export function PatientsPage({
                       ? "bg-[#E8F5E9] text-[#2E7D32]"
                       : patient.status === "pending"
                       ? "bg-amber-50 text-amber-700"
-                      : "bg-red-50 text-red-700",
+                      : patient.status === "expired"
+                      ? "bg-red-50 text-red-700"
+                      : "bg-slate-100 text-slate-700",
                   )}
                 >
-                  {patient.status.charAt(0).toUpperCase() +
-                    patient.status.slice(1)}
+                  {patient.status === "n/a" ? "N/A" : patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}
                 </span>
               </div>
 
@@ -1057,11 +1058,12 @@ export function PatientsPage({
                             ? "bg-[#E8F5E9] text-[#2E7D32]"
                             : patient.status === "pending"
                             ? "bg-amber-50 text-amber-700"
-                            : "bg-red-50 text-red-700",
+                            : patient.status === "expired"
+                            ? "bg-red-50 text-red-700"
+                            : "bg-slate-100 text-slate-700",
                         )}
                       >
-                        {patient.status.charAt(0).toUpperCase() +
-                          patient.status.slice(1)}
+                        {patient.status === "n/a" ? "N/A" : patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}
                       </span>
                     </td>
                     <td
