@@ -81,6 +81,10 @@ export function NotificationBell({
   onNavigateToPatient,
 }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
+  const [driverLimit, setDriverLimit] = useState(10);
+  const [creditLimit, setCreditLimit] = useState(10);
+  const [salLimit, setSalLimit] = useState(10);
+
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -379,7 +383,7 @@ export function NotificationBell({
                   Driver Compliance
                 </h4>
                 <div className="space-y-1.5">
-                  {driverAlerts.slice(0, 10).map((alert) => {
+                  {driverAlerts.slice(0, driverLimit).map((alert) => {
                     const isRead = readIds.has(alert.id);
                     return (
                       <div
@@ -488,6 +492,15 @@ export function NotificationBell({
                       </div>
                     );
                   })}
+                  {driverAlerts.length > driverLimit && (
+                    <button
+                      onClick={() => setDriverLimit((prev) => prev + 10)}
+                      className="w-full py-2 px-3 mt-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all border border-dashed border-slate-200 hover:border-slate-300 flex items-center justify-center gap-2 uppercase tracking-tight"
+                    >
+                      Show {driverAlerts.length - driverLimit} more drivers
+                      <ArrowRight size={10} weight="bold" />
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -503,7 +516,7 @@ export function NotificationBell({
                   Patient Credits
                 </h4>
                 <div className="space-y-1.5">
-                  {creditAlerts.slice(0, 6).map((alert) => {
+                  {creditAlerts.slice(0, creditLimit).map((alert) => {
                     const alertId = `credit-${alert.id}`;
                     const isRead = readIds.has(alertId);
                     return (
@@ -613,6 +626,15 @@ export function NotificationBell({
                       </div>
                     );
                   })}
+                  {creditAlerts.length > creditLimit && (
+                    <button
+                      onClick={() => setCreditLimit((prev) => prev + 10)}
+                      className="w-full py-2 px-3 mt-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all border border-dashed border-slate-200 hover:border-slate-300 flex items-center justify-center gap-2 uppercase tracking-tight"
+                    >
+                      Show {creditAlerts.length - creditLimit} more patient credits
+                      <ArrowRight size={10} weight="bold" />
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -628,7 +650,7 @@ export function NotificationBell({
                   SAL Status
                 </h4>
                 <div className="space-y-1.5">
-                  {salAlerts.slice(0, 6).map((alert) => {
+                  {salAlerts.slice(0, salLimit).map((alert) => {
                     const alertId = `sal-${alert.id}`;
                     const isRead = readIds.has(alertId);
                     return (
@@ -733,6 +755,15 @@ export function NotificationBell({
                       </div>
                     );
                   })}
+                  {salAlerts.length > salLimit && (
+                    <button
+                      onClick={() => setSalLimit((prev) => prev + 10)}
+                      className="w-full py-2 px-3 mt-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all border border-dashed border-slate-200 hover:border-slate-300 flex items-center justify-center gap-2 uppercase tracking-tight"
+                    >
+                      Show {salAlerts.length - salLimit} more SAL status
+                      <ArrowRight size={10} weight="bold" />
+                    </button>
+                  )}
                 </div>
               </div>
             )}
