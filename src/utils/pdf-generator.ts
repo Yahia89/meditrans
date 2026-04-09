@@ -301,29 +301,29 @@ export async function generateTripSummaryPDF(
     ["Vehicle", trip.driver?.vehicle_info || "N/A"],
     ["Trip Type", trip.trip_type],
     [
-      "Recorded Distance",
+      "Distance",
       trip.actual_distance_miles
         ? `${Math.ceil(Number(trip.actual_distance_miles))} miles`
         : trip.distance_miles
-          ? `${Math.ceil(Number(trip.distance_miles))} (est) miles`
+          ? `${Math.ceil(Number(trip.distance_miles))} miles`
           : "N/A",
     ],
     [
-      "Actual Duration of current leg",
+      "Duration",
       trip.actual_duration_minutes
         ? `${trip.actual_duration_minutes} minutes`
         : trip.duration_minutes
-          ? `${trip.duration_minutes} (est) minutes`
+          ? `${trip.duration_minutes} minutes`
           : "N/A",
     ],
     [
-      "Total Legs Duration",
+      "Total Journey Duration",
       journeyTrips.length > 0
         ? `${journeyTrips.reduce((acc, leg) => acc + (Number(leg.actual_duration_minutes) || Number(leg.duration_minutes) || 0), 0)} minutes`
         : trip.actual_duration_minutes
           ? `${trip.actual_duration_minutes} minutes`
           : trip.duration_minutes
-            ? `${trip.duration_minutes} (est) minutes`
+            ? `${trip.duration_minutes} minutes`
             : "N/A",
     ],
   ];
