@@ -137,6 +137,7 @@ function TripsTable({
             <th className="px-6 py-4 min-w-[200px]">Patient</th>
             <th className="px-6 py-4 min-w-[140px]">Pickup Time</th>
             <th className="px-6 py-4">Purpose</th>
+            <th className="px-6 py-4">Dist</th>
             <th className="px-6 py-4 text-right">Status</th>
           </tr>
         </thead>
@@ -170,6 +171,13 @@ function TripsTable({
               </td>
               <td className="px-6 py-4 text-slate-500 text-xs font-semibold uppercase">
                 {trip.trip_type || "—"}
+              </td>
+              <td className="px-6 py-4 text-slate-500 text-xs">
+                {trip.actual_distance_miles 
+                  ? `${trip.actual_distance_miles} mi` 
+                  : trip.distance_miles 
+                    ? `${trip.distance_miles} mi` 
+                    : "—"}
               </td>
               <td className="px-6 py-4 text-right">
                 <span

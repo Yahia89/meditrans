@@ -132,7 +132,11 @@ export function generateSummaryPDF({
       trip.pickup_location || "",
       trip.dropoff_location || "",
       duration ? `${duration} min` : "N/A",
-      trip.actual_distance_miles ? `${trip.actual_distance_miles} mi` : "",
+      trip.actual_distance_miles 
+        ? `${trip.actual_distance_miles} mi` 
+        : trip.distance_miles 
+          ? `${trip.distance_miles} mi` 
+          : "",
       trip.billing_details?.total_cost
         ? `$${trip.billing_details.total_cost.toFixed(2)}`
         : "",

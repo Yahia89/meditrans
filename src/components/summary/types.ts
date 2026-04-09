@@ -9,6 +9,7 @@ export interface SummaryTrip {
   status: string;
   duration_minutes: number | null;
   actual_duration_minutes: number | null;
+  distance_miles: number | null;
   actual_distance_miles: number | null;
   billing_details: { total_cost: number } | null;
   patient: {
