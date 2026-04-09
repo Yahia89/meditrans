@@ -8,6 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import {
   User,
   Car,
   MapPin,
@@ -314,7 +319,7 @@ export function CreateTripForm({
       // 1. Fetch patients
       const { data: patients, error: patientsError } = await supabase
         .from("patients")
-        .select("id, full_name, vehicle_type_need, monthly_credit")
+        .select("id, full_name, vehicle_type_need, monthly_credit, service_type")
         .eq("org_id", currentOrganization.id)
         .order("full_name");
 
@@ -881,6 +886,7 @@ export function CreateTripForm({
                   );
 
                   let autoServiceType = currentLeg.service_type;
+                  
                   if (selectedPatient?.vehicle_type_need) {
                     const mapping: Record<string, string> = {
                       "COMMON CARRIER": "Ambulatory",
@@ -1165,6 +1171,42 @@ export function CreateTripForm({
               <Label className="flex items-center gap-2 text-slate-700 font-semibold">
                 <Car weight="duotone" className="w-4 h-4 text-blue-500" />
                 Service Type
+                {currentLeg.patient_id && (
+                  (() => {
+                    const patient = patients?.find(p => p.id === currentLeg.patient_id);
+                    
+                    // Map patient's vehicle_type_need to transport service type
+                    const mapping: Record<string, string> = {
+                      "COMMON CARRIER": "Ambulatory",
+                      "FOLDED WHEELCHAIR": "Foldable Wheelchair",
+                      WHEELCHAIR: "Wheelchair",
+                      VAN: "Ramp Van",
+                    };
+                    
+                    const defaultServiceType = patient?.vehicle_type_need 
+                      ? (mapping[patient.vehicle_type_need] || patient.vehicle_type_need)
+                      : null;
+
+                    const isDifferent = defaultServiceType && currentLeg.service_type !== defaultServiceType;
+                    
+                    if (isDifferent) {
+                      return (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help inline-flex items-center text-amber-500 animate-pulse ml-1">
+                              <WarningCircle weight="fill" className="w-4 h-4 mr-0.5" />
+                              <span className="text-xs">⚠️</span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>This isn't the patient's default vehicle need ({defaultServiceType})</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+                    return null;
+                  })()
+                )}
               </Label>
               <select
                 value={currentLeg.service_type}
