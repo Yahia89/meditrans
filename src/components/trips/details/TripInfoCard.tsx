@@ -1,6 +1,13 @@
 import type { Trip } from "../types";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash, MapPin, Calendar, Clock, FileText } from "@phosphor-icons/react";
+import {
+  Pencil,
+  Trash,
+  MapPin,
+  Calendar,
+  Clock,
+  FileText,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { formatInUserTimezone } from "@/lib/timezone";
 
@@ -66,8 +73,7 @@ export function TripInfoCard({
                   ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                   : trip.status === "in_progress"
                     ? "bg-blue-50 text-blue-700 border-blue-100"
-                    : trip.status === "cancelled" ||
-                        trip.status === "no_show"
+                    : trip.status === "cancelled" || trip.status === "no_show"
                       ? "bg-red-50 text-red-700 border-red-100"
                       : "bg-slate-50 text-slate-600 border-slate-200",
               )}
@@ -94,10 +100,7 @@ export function TripInfoCard({
           <div className="space-y-6">
             <div className="flex gap-4">
               <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
-                <MapPin
-                  weight="duotone"
-                  className="w-5 h-5 text-rose-500"
-                />
+                <MapPin weight="duotone" className="w-5 h-5 text-rose-500" />
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -110,10 +113,7 @@ export function TripInfoCard({
             </div>
             <div className="flex gap-4">
               <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center flex-shrink-0">
-                <MapPin
-                  weight="duotone"
-                  className="w-5 h-5 text-slate-400"
-                />
+                <MapPin weight="duotone" className="w-5 h-5 text-slate-400" />
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -129,10 +129,7 @@ export function TripInfoCard({
           <div className="space-y-6">
             <div className="flex gap-4">
               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                <Calendar
-                  weight="duotone"
-                  className="w-5 h-5 text-blue-500"
-                />
+                <Calendar weight="duotone" className="w-5 h-5 text-blue-500" />
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -149,10 +146,7 @@ export function TripInfoCard({
             </div>
             <div className="flex gap-4">
               <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-                <Clock
-                  weight="duotone"
-                  className="w-5 h-5 text-amber-600"
-                />
+                <Clock weight="duotone" className="w-5 h-5 text-amber-600" />
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -173,10 +167,7 @@ export function TripInfoCard({
         {trip.notes && (
           <div className="mt-12 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
             <div className="flex items-center gap-2 mb-3">
-              <FileText
-                weight="duotone"
-                className="w-4 h-4 text-slate-400"
-              />
+              <FileText weight="duotone" className="w-4 h-4 text-slate-400" />
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                 Special Instructions
               </span>

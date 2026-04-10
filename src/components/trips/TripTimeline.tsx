@@ -566,15 +566,22 @@ export function TripTimelineVertical({
                       </div>
 
                       {/* Driver footer */}
-                      <div className="mt-3 pt-3 border-t border-slate-100/80 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <Car className="w-3.5 h-3.5" />
-                          <span className="font-medium">
-                            {trip.driver?.full_name || "Unassigned"}
-                          </span>
+                      <div className="mt-3 pt-3 border-t border-slate-100/80 flex items-center justify-between gap-2 overflow-hidden">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex items-center gap-2 text-xs text-slate-500 min-w-0">
+                            <Car className="w-3.5 h-3.5 shrink-0" />
+                            <span className="font-medium truncate">
+                              {trip.driver?.full_name || "Unassigned"}
+                            </span>
+                          </div>
+                          <div className="px-1.5 py-0.5 rounded bg-white/50 border border-slate-200/50 shrink-0">
+                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight tabular-nums">
+                              ID: {trip.id.split("-")[0].toUpperCase()}
+                            </span>
+                          </div>
                         </div>
                         {trip.status === "in_progress" && (
-                          <div className="flex items-center gap-1.5 text-blue-600">
+                          <div className="flex items-center gap-1.5 text-blue-600 shrink-0">
                             <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
                             <span className="text-xs font-bold">Active</span>
                           </div>

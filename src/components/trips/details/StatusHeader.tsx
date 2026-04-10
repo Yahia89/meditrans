@@ -1,4 +1,4 @@
-import { User, Phone, Envelope, Hash } from "@phosphor-icons/react";
+import { User, Phone, Envelope } from "@phosphor-icons/react";
 import type { Trip } from "../types";
 
 interface StatusHeaderProps {
@@ -20,10 +20,6 @@ export function StatusHeader({ trip }: StatusHeaderProps) {
           <div className="flex items-center gap-6 lg:gap-10">
             <div className="hidden md:block h-12 w-px bg-slate-100" />
             <div className="flex items-center gap-1.5 text-slate-500 group">
-              <Hash
-                weight="bold"
-                className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors"
-              />
               <span className="text-[11px] font-bold tracking-tight text-slate-600">
                 Trip ID: {trip.id.slice(0, 8).toUpperCase()}
               </span>

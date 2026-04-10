@@ -154,11 +154,18 @@ export function TripCardsView({
                       </div>
                     </div>
 
-                    <div className="mt-3 pt-2 border-t border-slate-200/50 flex items-center gap-2">
-                      <Car className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="text-xs text-slate-600 font-medium">
-                        {trip.driver?.full_name || "Unassigned"}
-                      </span>
+                    <div className="mt-3 pt-2 border-t border-slate-200/50 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Car className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="text-xs text-slate-600 font-medium truncate">
+                          {trip.driver?.full_name || "Unassigned"}
+                        </span>
+                      </div>
+                      <div className="px-1.5 py-0.5 rounded bg-slate-100/80 border border-slate-200/50 shrink-0">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight tabular-nums">
+                          ID: {trip.id.split("-")[0].toUpperCase()}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
