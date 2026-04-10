@@ -13,17 +13,20 @@ import {
   Path,
 } from "@phosphor-icons/react";
 import { useMemo } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ActivityTimelineProps {
   trip: Trip;
   history: TripStatusHistory[] | undefined;
   activeTimezone: string;
+  isHistoryLoading?: boolean;
 }
 
 export function TripActivityTimeline({ 
   trip, 
   history, 
-  activeTimezone 
+  activeTimezone,
+  isHistoryLoading,
 }: ActivityTimelineProps) {
   const timelineEvents = useMemo(() => {
     const events: Array<{
@@ -64,6 +67,29 @@ export function TripActivityTimeline({
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
   }, [history, trip]);
+
+  // While history is loading, render a height-stable skeleton so the card
+  // occupies its space immediately and siblings don't shift when data arrives.
+  // We use the trip's own status to show at least one real synthesised row
+  // once the trip itself is in cache, giving immediate visual feedback.
+  if (isHistoryLoading && !history) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <Skeleton className="h-3 w-36 rounded mb-6" />
+        <div className="space-y-5">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex gap-3">
+              <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+              <div className="flex-1 space-y-1.5 pt-0.5">
+                <Skeleton className="h-3.5 w-2/3 rounded" />
+                <Skeleton className="h-3 w-1/3 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">

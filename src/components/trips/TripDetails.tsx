@@ -148,6 +148,7 @@ export function TripDetails({
             trip={state.trip}
             history={state.history}
             activeTimezone={state.activeTimezone}
+            isHistoryLoading={state.isHistoryLoading}
           />
 
           {state.trip.status === "completed" &&

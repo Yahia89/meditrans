@@ -75,7 +75,7 @@ export function useTripDetails({
     initialDataUpdatedAt: getSeededAt,
   });
 
-  const { data: history } = useQuery({
+  const { data: history, isLoading: isHistoryLoading } = useQuery({
     queryKey: ["trip-history", tripId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -299,6 +299,7 @@ export function useTripDetails({
       history,
       org,
       isLoading,
+      isHistoryLoading,
       isDeleteDialogOpen,
       statusToUpdate,
       showSignatureDialog,
