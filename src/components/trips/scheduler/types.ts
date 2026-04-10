@@ -1,5 +1,3 @@
-import type { Trip, TripStatus } from "../types";
-
 export interface TripsSchedulerProps {
   onCreateClick?: () => void;
   onDischargeClick?: () => void;

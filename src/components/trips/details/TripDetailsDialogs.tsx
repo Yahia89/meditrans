@@ -92,13 +92,6 @@ export function StatusUpdateDialog({
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelExplanation, setCancelExplanation] = useState<string>("");
 
-  useEffect(() => {
-    if (!statusToUpdate) {
-      setCancelReason("");
-      setCancelExplanation("");
-    }
-  }, [statusToUpdate]);
-
   const handleConfirm = () => {
     onConfirm({
       reason: statusToUpdate === "cancelled" ? cancelReason : undefined,
@@ -206,15 +199,9 @@ export function EditMileageDialog({
   trip: Trip | null;
   onConfirm: (miles: number) => void;
 }) {
-  const [miles, setMiles] = useState<string>("");
-
-  useEffect(() => {
-    if (trip && isOpen) {
-      setMiles(
-        (trip.actual_distance_miles || trip.distance_miles || 0).toString(),
-      );
-    }
-  }, [trip, isOpen]);
+  const [miles, setMiles] = useState<string>(
+    (trip?.actual_distance_miles || trip?.distance_miles || 0).toString()
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,13 +263,9 @@ export function EditWaitTimeDialog({
   trip: Trip | null;
   onConfirm: (minutes: number) => void;
 }) {
-  const [minutes, setMinutes] = useState<string>("");
-
-  useEffect(() => {
-    if (trip && isOpen) {
-      setMinutes((trip.total_waiting_minutes || 0).toString());
-    }
-  }, [trip, isOpen]);
+  const [minutes, setMinutes] = useState<string>(
+    (trip?.total_waiting_minutes || 0).toString()
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

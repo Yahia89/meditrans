@@ -219,11 +219,13 @@ export function useTripsScheduler({
         const query = searchQuery.toLowerCase();
         const matchesPatient = trip.patient?.full_name?.toLowerCase().includes(query);
         const matchesDriver = trip.driver?.full_name?.toLowerCase().includes(query);
+        const matchesId = trip.id.toLowerCase().includes(query);
         const matchesLocation =
           trip.pickup_location?.toLowerCase().includes(query) ||
           trip.dropoff_location?.toLowerCase().includes(query);
         const matchesType = trip.trip_type?.toLowerCase().includes(query);
-        if (!matchesPatient && !matchesDriver && !matchesLocation && !matchesType)
+        
+        if (!matchesPatient && !matchesDriver && !matchesLocation && !matchesType && !matchesId)
           return false;
       }
       return true;

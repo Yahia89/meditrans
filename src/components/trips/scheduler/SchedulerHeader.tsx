@@ -1,12 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { ArrowClockwise, CloudArrowUp, Plus } from "@phosphor-icons/react";
-import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TripsSchedulerProps } from "./types";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/contexts/auth-context";
 
-interface SchedulerHeaderProps extends Pick<TripsSchedulerProps, "onCreateClick" | "onDischargeClick" | "onBulkImportClick"> {
+interface SchedulerHeaderProps extends Pick<
+  TripsSchedulerProps,
+  "onCreateClick" | "onDischargeClick" | "onBulkImportClick"
+> {
   onRefresh: () => void;
   isFetching?: boolean;
 }
@@ -51,7 +53,9 @@ export function SchedulerHeader({
           onClick={onRefresh}
           className="h-10 px-4 gap-2 border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl font-medium"
         >
-          <ArrowClockwise className={cn("w-4 h-4", isFetching && "animate-spin")} />
+          <ArrowClockwise
+            className={cn("w-4 h-4", isFetching && "animate-spin")}
+          />
           <span className="hidden sm:inline">
             {isFetching ? "Syncing..." : "Refresh"}
           </span>
