@@ -10,8 +10,9 @@
  */
 
 import React, { memo, useMemo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatInUserTimezone, parseZonedTime } from "@/lib/timezone";
 import { Path, Pencil, Timer } from "@phosphor-icons/react";
@@ -63,11 +64,35 @@ export function useJourneyTrips(
   pickupTime: string | undefined,
   timezone: string,
 ) {
+  const queryClient = useQueryClient();
+
   // Compute a stable date string for the query key
   const dateKey = useMemo(() => {
     if (!pickupTime) return null;
     return formatInUserTimezone(pickupTime, timezone, "yyyy-MM-dd");
   }, [pickupTime, timezone]);
+
+  // Seed from any cached scheduler/list query that covers this patient+day.
+  // This means navigating from the trips list gives instant timeline data
+  // with no extra network round-trip.
+  const getSeedFromCache = useCallback((): Trip[] | undefined => {
+    if (!patientId || !dateKey) return undefined;
+    const allQueries = queryClient.getQueriesData<Trip[]>({ queryKey: ["trips"] });
+    let merged: Trip[] | undefined;
+    for (const [, trips] of allQueries) {
+      if (!trips) continue;
+      const same = trips.filter(
+        (t) =>
+          t.patient_id === patientId &&
+          formatInUserTimezone(t.pickup_time, timezone, "yyyy-MM-dd") === dateKey,
+      );
+      if (same.length > 0) {
+        // Take the superset — later cache hits may have more trips
+        if (!merged || same.length > merged.length) merged = same;
+      }
+    }
+    return merged ? [...merged].sort((a, b) => a.pickup_time.localeCompare(b.pickup_time)) : undefined;
+  }, [queryClient, patientId, dateKey, timezone]);
 
   return useQuery({
     // Route-level cache: keyed by patient + date, NOT by tripId
@@ -96,6 +121,8 @@ export function useJourneyTrips(
     placeholderData: (previousData) => previousData,
     // Cache for 30 minutes even after unmount
     gcTime: 30 * 60 * 1000,
+    // Seed from list cache for instant render on first navigation
+    initialData: getSeedFromCache,
   });
 }
 
@@ -295,7 +322,7 @@ export const JourneyTimeline = memo(function JourneyTimeline({
   onEditWaitTime,
 }: JourneyTimelineProps) {
   // Use the route-level cached hook
-  const { data: trips } = useJourneyTrips(patientId, pickupTime, timezone);
+  const { data: trips, isLoading } = useJourneyTrips(patientId, pickupTime, timezone);
 
   // Memoize total distance calculation
   const totalDistance = useMemo(() => {
@@ -307,7 +334,21 @@ export const JourneyTimeline = memo(function JourneyTimeline({
     );
   }, [trips]);
 
-  // Don't render if no trips or only one trip
+  // While loading: render a height-stable skeleton so sibling components
+  // don't shift position when the timeline pops in.
+  if (isLoading && !trips) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <Skeleton className="h-3 w-32 rounded mb-6" />
+        <div className="space-y-4">
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if no trips or only one trip (single-leg journey)
   if (!trips || trips.length <= 1) return null;
 
   return (

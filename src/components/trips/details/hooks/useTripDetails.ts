@@ -1,10 +1,10 @@
 import { useState, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryState } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth-context";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTimezone } from "@/hooks/useTimezone";
-import type { Trip, TripStatus, TripStatusHistory } from "../types";
+import type { Trip, TripStatus, TripStatusHistory } from "../../types";
 
 export function useTripDetails({
   tripId,
@@ -25,6 +25,31 @@ export function useTripDetails({
   const [editingWaitTimeTrip, setEditingWaitTimeTrip] = useState<Trip | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
+  // Seed the individual trip query from any cached list query that already
+  // contains this trip — gives instant data on navigation, no loading flash.
+  const getSeedFromCache = useCallback((): Trip | undefined => {
+    // Walk every cached query whose key starts with "trips" (list queries)
+    const allQueries = queryClient.getQueriesData<Trip[]>({ queryKey: ["trips"] });
+    for (const [, trips] of allQueries) {
+      if (!trips) continue;
+      const match = trips.find((t) => t.id === tripId);
+      if (match) return match as Trip;
+    }
+    return undefined;
+  }, [queryClient, tripId]);
+
+  const getSeededAt = useCallback((): number => {
+    const queries = queryClient.getQueriesData<Trip[]>({ queryKey: ["trips"] });
+    let latest = 0;
+    for (const [key] of queries) {
+      const state = queryClient.getQueryState(key) as QueryState<Trip[]> | undefined;
+      if (state?.dataUpdatedAt && state.dataUpdatedAt > latest) {
+        latest = state.dataUpdatedAt;
+      }
+    }
+    return latest;
+  }, [queryClient, tripId]);
+
   // Queries
   const { data: trip, isLoading } = useQuery({
     queryKey: ["trip", tripId],
@@ -43,6 +68,11 @@ export function useTripDetails({
     },
     staleTime: 60 * 1000,
     placeholderData: keepPreviousData,
+    // Seed from list cache so the UI renders instantly on first navigation.
+    // initialData is considered valid only as long as the list cache is fresh
+    // (controlled by initialDataUpdatedAt + staleTime above).
+    initialData: getSeedFromCache,
+    initialDataUpdatedAt: getSeededAt,
   });
 
   const { data: history } = useQuery({

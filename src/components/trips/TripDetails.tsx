@@ -1,7 +1,8 @@
 import { SignatureCaptureDialog, SignatureDisplay } from "./SignatureCapture";
 import { JourneyTimeline, useJourneyTrips } from "./JourneyTimeline";
 import { Button } from "@/components/ui/button";
-import { CaretLeft, DotsThreeVertical } from "@phosphor-icons/react";
+import { CaretLeft } from "@phosphor-icons/react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Sub-components
 import { TripInfoCard } from "./details/TripInfoCard";
@@ -46,8 +47,26 @@ export function TripDetails({
 
   if (state.isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <DotsThreeVertical className="h-8 w-8 animate-pulse text-slate-300" />
+      <div className="space-y-6">
+        {onBack && (
+          <Skeleton className="h-9 w-32 rounded-xl" />
+        )}
+        {/* StatusHeader skeleton */}
+        <Skeleton className="h-16 w-full rounded-2xl" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left column */}
+          <div className="lg:col-span-2 space-y-8">
+            <Skeleton className="h-56 w-full rounded-2xl" />
+            <Skeleton className="h-40 w-full rounded-2xl" />
+          </div>
+          {/* Right column */}
+          <div className="flex flex-col gap-6">
+            <Skeleton className="h-32 w-full rounded-2xl" />
+            <Skeleton className="h-48 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
+          </div>
+        </div>
       </div>
     );
   }
