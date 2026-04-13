@@ -66,7 +66,7 @@ export function useTripDetails({
       if (error) throw error;
       return data as Trip;
     },
-    staleTime: 60 * 1000,
+    staleTime: 0,
     placeholderData: keepPreviousData,
     // Seed from list cache so the UI renders instantly on first navigation.
     // initialData is considered valid only as long as the list cache is fresh

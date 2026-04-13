@@ -71,9 +71,20 @@ const TRIPS_SELECT = `
   trip_type,
   status,
   notes,
+  distance_miles,
+  duration_minutes,
+  actual_distance_miles,
+  actual_duration_minutes,
+  total_waiting_minutes,
+  signature_captured_at,
+  signature_declined,
+  signature_declined_reason,
+  signed_by_name,
+  cancel_reason,
+  cancel_explanation,
   created_at,
-  patient:patients(id, full_name, phone, created_at),
-  driver:drivers(id, full_name, phone, user_id, vehicle_info)
+  patient:patients(id, full_name, phone, email, created_at, user_id),
+  driver:drivers(id, full_name, phone, email, user_id, vehicle_info)
 `;
 
 export function useTripsScheduler({
