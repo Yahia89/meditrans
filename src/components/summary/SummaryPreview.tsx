@@ -138,6 +138,7 @@ function TripsTable({
             <th className="px-6 py-4 min-w-[140px]">Pickup Time</th>
             <th className="px-6 py-4">Purpose</th>
             <th className="px-6 py-4">Dist</th>
+            <th className="px-6 py-4 text-right">Cost</th>
             <th className="px-6 py-4 text-right">Status</th>
           </tr>
         </thead>
@@ -179,6 +180,11 @@ function TripsTable({
                     ? `${trip.distance_miles} mi` 
                     : "—"}
               </td>
+              <td className="px-6 py-4 text-right text-slate-900 font-semibold">
+                {trip.billing_details?.total_cost
+                  ? `$${trip.billing_details.total_cost.toFixed(2)}`
+                  : "—"}
+              </td>
               <td className="px-6 py-4 text-right">
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
@@ -205,6 +211,20 @@ function TripsTable({
             </tr>
           )}
         </tbody>
+        <tfoot className="bg-slate-50/50 border-t border-slate-100">
+          <tr>
+            <td colSpan={4} className="px-6 py-4 text-right font-bold text-slate-700">TOTALS:</td>
+            <td className="px-6 py-4 font-bold text-slate-900 border-r border-transparent">
+              {trips.reduce((sum, trip) => sum + (trip.actual_distance_miles || trip.distance_miles || 0), 0).toFixed(1)} mi
+            </td>
+            <td className="px-6 py-4 text-right font-bold text-slate-900">
+              ${trips.reduce((sum, trip) => sum + (trip.billing_details?.total_cost || 0), 0).toFixed(2)}
+            </td>
+            <td className="px-6 py-4 text-right font-bold text-[#3D5A3D]">
+              {trips.length} Trips
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );

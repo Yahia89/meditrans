@@ -93,7 +93,8 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
     filters.selectedWaiverTypes.length > 0 ||
     filters.selectedReferredBy.length > 0 ||
     filters.selectedSalStatuses.length > 0 ||
-    filters.selectedTripPurposes.length > 0;
+    filters.selectedTripPurposes.length > 0 ||
+    filters.selectedTripStatuses.length > 0;
 
   const hasPatientFilters =
     filters.selectedVehicleTypes.length > 0 ||
@@ -189,6 +190,11 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
       // Apply trip purpose filter directly on trip_type
       if (filters.selectedTripPurposes.length > 0) {
         tripsQuery = tripsQuery.in("trip_type", filters.selectedTripPurposes);
+      }
+
+      // Apply trip status filter
+      if (filters.selectedTripStatuses.length > 0) {
+        tripsQuery = tripsQuery.in("status", filters.selectedTripStatuses);
       }
 
       const { data, error } = await tripsQuery;

@@ -16,11 +16,15 @@ import {
   DownloadSimple,
   CircleNotch,
   MagnifyingGlass,
+  MapPin,
+  ClipboardText,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { useTimezone } from "@/hooks/useTimezone";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { MultiSelect } from "./MultiSelect";
+import { TRIP_TYPES } from "@/components/trips/trip-utils";
 
 import { SummaryPreview } from "./SummaryPreview";
 import { useSummaryData } from "./useSummaryData";
@@ -31,6 +35,28 @@ interface DriverSummaryTabProps {
   driverId: string;
   driverName: string;
 }
+
+// Trip Purpose options (from trip_type values)
+const TRIP_PURPOSE_OPTIONS = TRIP_TYPES.filter(
+  (t) => t.value !== "OTHER",
+).map((t) => ({
+  value: t.value,
+  label: t.label,
+}));
+
+// Trip Status options
+const TRIP_STATUS_OPTIONS = [
+  { value: "pending", label: "Pending" },
+  { value: "assigned", label: "Assigned" },
+  { value: "accepted", label: "Accepted" },
+  { value: "en_route", label: "En Route" },
+  { value: "arrived", label: "Arrived" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "no_show", label: "No Show" },
+  { value: "waiting", label: "Waiting" },
+];
 
 export function DriverSummaryTab({
   driverId,
@@ -51,9 +77,13 @@ export function DriverSummaryTab({
     selectedReferredBy: [],
     selectedSalStatuses: [],
     selectedTripPurposes: [],
+    selectedTripStatuses: [],
   });
 
-  const handleDateChange = (key: "startDate" | "endDate", value: string) => {
+  const handleFilterChange = <K extends keyof FilterState>(
+    key: K,
+    value: FilterState[K],
+  ) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     resetGenerated();
   };
@@ -125,7 +155,7 @@ export function DriverSummaryTab({
                   id="driver-start-date"
                   type="date"
                   value={filters.startDate}
-                  onChange={(e) => handleDateChange("startDate", e.target.value)}
+                  onChange={(e) => handleFilterChange("startDate", e.target.value)}
                   className="rounded-xl border-slate-200 focus:ring-[#3D5A3D] focus:border-[#3D5A3D] h-10"
                 />
               </div>
@@ -140,8 +170,28 @@ export function DriverSummaryTab({
                   id="driver-end-date"
                   type="date"
                   value={filters.endDate}
-                  onChange={(e) => handleDateChange("endDate", e.target.value)}
+                  onChange={(e) => handleFilterChange("endDate", e.target.value)}
                   className="rounded-xl border-slate-200 focus:ring-[#3D5A3D] focus:border-[#3D5A3D] h-10"
+                />
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <MultiSelect
+                  label="Trip Purpose"
+                  icon={MapPin}
+                  options={TRIP_PURPOSE_OPTIONS}
+                  selected={filters.selectedTripPurposes}
+                  onChange={(v) => handleFilterChange("selectedTripPurposes", v)}
+                  placeholder="All trip purposes"
+                />
+
+                <MultiSelect
+                  label="Trip Status"
+                  icon={ClipboardText}
+                  options={TRIP_STATUS_OPTIONS}
+                  selected={filters.selectedTripStatuses}
+                  onChange={(v) => handleFilterChange("selectedTripStatuses", v)}
+                  placeholder="All trip statuses"
                 />
               </div>
 
@@ -199,7 +249,7 @@ export function DriverSummaryTab({
             trips={trips}
             hasGenerated={hasGenerated}
             isFetching={isFetching}
-            hasFilters={false}
+            hasFilters={filters.selectedTripPurposes.length > 0 || filters.selectedTripStatuses.length > 0}
             matchedPatientCount={0}
             timezone={timezone}
           />

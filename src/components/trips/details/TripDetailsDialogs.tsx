@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Warning, Path, Timer } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 interface DeleteConfirmationDialogProps {
   isOpen: boolean;
@@ -54,8 +54,8 @@ export function DeleteConfirmationDialog({
             Delete Trip?
           </AlertDialogTitle>
           <AlertDialogDescription className="text-slate-600">
-            This action cannot be undone. This will permanently delete the
-            trip for
+            This action cannot be undone. This will permanently delete the trip
+            for
             <span className="font-bold text-slate-900 ml-1">
               {trip.patient?.full_name}
             </span>
@@ -103,16 +103,11 @@ export function StatusUpdateDialog({
   };
 
   return (
-    <Dialog
-      open={!!statusToUpdate}
-      onOpenChange={(open) => !open && onClose()}
-    >
+    <Dialog open={!!statusToUpdate} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
-            {statusToUpdate === "cancelled"
-              ? "Cancel Trip"
-              : "Mark as No Show"}
+            {statusToUpdate === "cancelled" ? "Cancel Trip" : "Mark as No Show"}
           </DialogTitle>
         </DialogHeader>
 
@@ -200,7 +195,7 @@ export function EditMileageDialog({
   onConfirm: (miles: number) => void;
 }) {
   const [miles, setMiles] = useState<string>(
-    (trip?.actual_distance_miles || trip?.distance_miles || 0).toString()
+    (trip?.actual_distance_miles || trip?.distance_miles || 0).toString(),
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -264,7 +259,7 @@ export function EditWaitTimeDialog({
   onConfirm: (minutes: number) => void;
 }) {
   const [minutes, setMinutes] = useState<string>(
-    (trip?.total_waiting_minutes || 0).toString()
+    (trip?.total_waiting_minutes || 0).toString(),
   );
 
   const handleSubmit = (e: React.FormEvent) => {

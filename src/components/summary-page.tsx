@@ -42,6 +42,7 @@ export function SummaryPage() {
     selectedReferredBy: [],
     selectedSalStatuses: [],
     selectedTripPurposes: [],
+    selectedTripStatuses: [],
   });
 
   const handleFilterChange = <K extends keyof FilterState>(

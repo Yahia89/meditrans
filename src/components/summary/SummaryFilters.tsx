@@ -66,6 +66,20 @@ const TRIP_PURPOSE_OPTIONS: MultiSelectOption[] = TRIP_TYPES.filter(
   label: t.label,
 }));
 
+// Trip Status options
+const TRIP_STATUS_OPTIONS: MultiSelectOption[] = [
+  { value: "pending", label: "Pending" },
+  { value: "assigned", label: "Assigned" },
+  { value: "accepted", label: "Accepted" },
+  { value: "en_route", label: "En Route" },
+  { value: "arrived", label: "Arrived" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "no_show", label: "No Show" },
+  { value: "waiting", label: "Waiting" },
+];
+
 interface SummaryFiltersProps {
   filters: FilterState;
   onFilterChange: <K extends keyof FilterState>(
@@ -87,7 +101,8 @@ export function SummaryFilters({
     filters.selectedWaiverTypes.length > 0 ||
     filters.selectedReferredBy.length > 0 ||
     filters.selectedSalStatuses.length > 0 ||
-    filters.selectedTripPurposes.length > 0;
+    filters.selectedTripPurposes.length > 0 ||
+    filters.selectedTripStatuses.length > 0;
 
   // Build active filter chips
   const activeFilters: ActiveFilter[] = [];
@@ -117,6 +132,13 @@ export function SummaryFilters({
       key: "tripPurpose",
       label: "Purpose",
       value: TRIP_TYPES.find((t) => t.value === v)?.label || v,
+    }),
+  );
+  filters.selectedTripStatuses.forEach((v) =>
+    activeFilters.push({
+      key: "tripStatus",
+      label: "Status",
+      value: v.charAt(0).toUpperCase() + v.slice(1).replace("_", " "),
     }),
   );
 
@@ -166,6 +188,15 @@ export function SummaryFilters({
         );
         break;
       }
+      case "tripStatus":
+        onFilterChange(
+          "selectedTripStatuses",
+          filters.selectedTripStatuses.filter((v) => {
+            const formatted = v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ");
+            return formatted !== value;
+          }),
+        );
+        break;
     }
   };
 
@@ -175,6 +206,7 @@ export function SummaryFilters({
     onFilterChange("selectedReferredBy", []);
     onFilterChange("selectedSalStatuses", []);
     onFilterChange("selectedTripPurposes", []);
+    onFilterChange("selectedTripStatuses", []);
   };
 
   return (
@@ -289,6 +321,15 @@ export function SummaryFilters({
             selected={filters.selectedTripPurposes}
             onChange={(v) => onFilterChange("selectedTripPurposes", v)}
             placeholder="All trip purposes"
+          />
+
+          <MultiSelect
+            label="Trip Status"
+            icon={ClipboardText}
+            options={TRIP_STATUS_OPTIONS}
+            selected={filters.selectedTripStatuses}
+            onChange={(v) => onFilterChange("selectedTripStatuses", v)}
+            placeholder="All trip statuses"
           />
 
           {/* Active Filter Chips */}

@@ -35,6 +35,7 @@ export interface FilterState {
   selectedReferredBy: string[];
   selectedSalStatuses: string[];
   selectedTripPurposes: string[];
+  selectedTripStatuses: string[];
 }
 
 export interface ActiveFilter {

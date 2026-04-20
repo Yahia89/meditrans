@@ -80,7 +80,8 @@ export function generateSummaryPDF({
     filters.selectedWaiverTypes.length > 0 ||
     filters.selectedReferredBy.length > 0 ||
     filters.selectedSalStatuses.length > 0 ||
-    filters.selectedTripPurposes.length > 0;
+    filters.selectedTripPurposes.length > 0 ||
+    filters.selectedTripStatuses.length > 0;
 
   if (hasFilters) {
     const filterY = periodY + 15;
@@ -107,6 +108,11 @@ export function generateSummaryPDF({
     if (filters.selectedTripPurposes.length > 0) {
       parts.push(
         `Trip Purpose: ${filters.selectedTripPurposes.map((v) => TRIP_TYPES.find((t) => t.value === v)?.label || v).join(", ")}`,
+      );
+    }
+    if (filters.selectedTripStatuses.length > 0) {
+      parts.push(
+        `Trip Status: ${filters.selectedTripStatuses.map((v) => v.charAt(0).toUpperCase() + v.slice(1).replace("_", " ")).join(", ")}`,
       );
     }
     doc.text(parts.join("  |  "), 14, filterY + 4);
@@ -147,6 +153,21 @@ export function generateSummaryPDF({
     ];
   });
 
+  // Calculate totals
+  const totalDistance = trips.reduce((sum, trip) => sum + (trip.actual_distance_miles || trip.distance_miles || 0), 0);
+  const totalDuration = trips.reduce((sum, trip) => sum + (trip.actual_duration_minutes || trip.duration_minutes || 0), 0);
+  const totalCost = trips.reduce((sum, trip) => sum + (trip.billing_details?.total_cost || 0), 0);
+
+  const footerData = [
+    [
+      { content: "TOTALS", colSpan: 6, styles: { halign: "right", fontStyle: "bold" } },
+      { content: `${totalDuration} min`, styles: { fontStyle: "bold" } },
+      { content: `${totalDistance.toFixed(1)} mi`, styles: { fontStyle: "bold" } },
+      { content: `$${totalCost.toFixed(2)}`, styles: { fontStyle: "bold" } },
+      { content: `${trips.length} trips`, colSpan: 4, styles: { fontStyle: "bold" } },
+    ],
+  ];
+
   autoTable(doc, {
     startY: tableStartY,
     head: [
@@ -167,6 +188,7 @@ export function generateSummaryPDF({
       ],
     ],
     body: tableData,
+    foot: footerData as any,
     theme: "striped",
     headStyles: {
       fillColor: primaryColor,
@@ -177,6 +199,12 @@ export function generateSummaryPDF({
     bodyStyles: {
       fontSize: 7,
       cellPadding: 2,
+    },
+    footStyles: {
+      fillColor: [241, 245, 249],
+      textColor: textColor,
+      fontSize: 8,
+      fontStyle: "bold",
     },
     columnStyles: {
       0: { cellWidth: 10 },
