@@ -143,9 +143,6 @@ export function generateSummaryPDF({
         : trip.distance_miles 
           ? `${trip.distance_miles} mi` 
           : "",
-      trip.billing_details?.total_cost
-        ? `$${trip.billing_details.total_cost.toFixed(2)}`
-        : "",
       trip.status.replace("_", " "),
       trip.driver?.full_name || "Unassigned",
       trip.driver?.vehicle_info || "N/A",
@@ -156,15 +153,13 @@ export function generateSummaryPDF({
   // Calculate totals
   const totalDistance = trips.reduce((sum, trip) => sum + (trip.actual_distance_miles || trip.distance_miles || 0), 0);
   const totalDuration = trips.reduce((sum, trip) => sum + (trip.actual_duration_minutes || trip.duration_minutes || 0), 0);
-  const totalCost = trips.reduce((sum, trip) => sum + (trip.billing_details?.total_cost || 0), 0);
 
   const footerData = [
     [
-      { content: "TOTALS", colSpan: 6, styles: { halign: "right", fontStyle: "bold" } },
-      { content: `${totalDuration} min`, styles: { fontStyle: "bold" } },
-      { content: `${totalDistance.toFixed(1)} mi`, styles: { fontStyle: "bold" } },
-      { content: `$${totalCost.toFixed(2)}`, styles: { fontStyle: "bold" } },
-      { content: `${trips.length} trips`, colSpan: 4, styles: { fontStyle: "bold" } },
+      { content: "TOTALS", colSpan: 6, styles: { halign: "center", valign: "middle", fontStyle: "bold" } },
+      { content: `${totalDuration} min`, styles: { halign: "center", valign: "middle", fontStyle: "bold", cellPadding: { left: 1, right: 1 } } },
+      { content: `${totalDistance.toFixed(1)} mi`, styles: { halign: "center", valign: "middle", fontStyle: "bold", cellPadding: { left: 1, right: 1 } } },
+      { content: `${trips.length} trips`, colSpan: 4, styles: { halign: "center", valign: "middle", fontStyle: "bold" } },
     ],
   ];
 
@@ -180,7 +175,6 @@ export function generateSummaryPDF({
         "Dropoff",
         "Duration",
         "Dist",
-        "Cost",
         "Status",
         "Driver",
         "Vehicle",
@@ -195,36 +189,41 @@ export function generateSummaryPDF({
       textColor: [255, 255, 255],
       fontSize: 8,
       fontStyle: "bold",
+      halign: "center",
+      valign: "middle",
     },
     bodyStyles: {
       fontSize: 7,
       cellPadding: 2,
+      halign: "center",
+      valign: "middle",
     },
     footStyles: {
       fillColor: [241, 245, 249],
       textColor: textColor,
       fontSize: 8,
       fontStyle: "bold",
+      halign: "center",
+      valign: "middle",
     },
     columnStyles: {
-      0: { cellWidth: 10 },
-      1: { cellWidth: 15 },
-      2: { cellWidth: 15 },
-      3: { cellWidth: 25 },
-      4: { cellWidth: 35 },
-      5: { cellWidth: 35 },
-      6: { cellWidth: 15 },
-      7: { cellWidth: 12 },
-      8: { cellWidth: 15 },
-      9: { cellWidth: 18 },
-      10: { cellWidth: 25 },
-      11: { cellWidth: 20 },
-      12: { cellWidth: 25 },
+      0: { cellWidth: 8 },
+      1: { cellWidth: 16 },
+      2: { cellWidth: 22 }, // Type
+      3: { cellWidth: 23 }, // Date/Time
+      4: { cellWidth: 36 }, // Pickup
+      5: { cellWidth: 36 }, // Dropoff
+      6: { cellWidth: 16, cellPadding: { left: 0.5, right: 0.5 } }, // Duration
+      7: { cellWidth: 16, cellPadding: { left: 0.5, right: 0.5 } }, // Dist
+      8: { cellWidth: 20 }, // Status
+      9: { cellWidth: 26 }, // Driver
+      10: { cellWidth: 20 }, // Vehicle
+      11: { cellWidth: 28 }, // Patient
     },
     didParseCell: (data) => {
-      if (data.section === "body" && data.column.index === 9) {
+      if (data.section === "body" && data.column.index === 8) {
         const row = data.row.raw as any;
-        const status = row[9] as string;
+        const status = row[8] as string;
         if (status.includes("completed")) {
           data.cell.styles.textColor = [16, 185, 129] as [number, number, number];
           data.cell.styles.fontStyle = "bold";

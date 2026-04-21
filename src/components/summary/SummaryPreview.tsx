@@ -130,16 +130,16 @@ function TripsTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm text-left">
+      <table className="w-full text-sm text-center align-middle">
         <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
           <tr>
-            <th className="px-6 py-4 w-12 text-center">#</th>
-            <th className="px-6 py-4 min-w-[200px]">Patient</th>
-            <th className="px-6 py-4 min-w-[140px]">Pickup Time</th>
-            <th className="px-6 py-4">Purpose</th>
-            <th className="px-6 py-4">Dist</th>
-            <th className="px-6 py-4 text-right">Cost</th>
-            <th className="px-6 py-4 text-right">Status</th>
+            <th className="px-6 py-4 w-12 text-center align-middle">#</th>
+            <th className="px-6 py-4 min-w-[200px] text-center align-middle">Patient</th>
+            <th className="px-6 py-4 min-w-[140px] text-center align-middle">Time</th>
+            <th className="px-6 py-4 text-center align-middle">Type</th>
+            <th className="px-6 py-4 text-center align-middle whitespace-nowrap">Dur</th>
+            <th className="px-6 py-4 text-center align-middle whitespace-nowrap">Dist</th>
+            <th className="px-6 py-4 text-center align-middle">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
@@ -148,11 +148,11 @@ function TripsTable({
               key={trip.id}
               className="hover:bg-slate-50/50 transition-colors"
             >
-              <td className="px-6 py-4 text-slate-400 font-mono text-[10px] text-center border-r border-slate-50">
+              <td className="px-6 py-4 text-slate-400 font-mono text-[10px] text-center align-middle border-r border-slate-50">
                 {index + 1}
               </td>
-              <td className="px-6 py-4">
-                <div className="flex items-center flex-wrap gap-2">
+              <td className="px-6 py-4 text-center align-middle">
+                <div className="flex items-center justify-center flex-wrap gap-2">
                   <span className="font-semibold text-slate-900">
                     {trip.patient?.full_name || "Unknown"}
                   </span>
@@ -163,29 +163,27 @@ function TripsTable({
                   )}
                 </div>
               </td>
-              <td className="px-6 py-4 text-slate-600 font-medium italic">
+              <td className="px-6 py-4 text-slate-600 font-medium italic text-center align-middle">
                 {formatInUserTimezone(
                   trip.pickup_time,
                   timezone,
                   "MMM dd, HH:mm",
                 )}
               </td>
-              <td className="px-6 py-4 text-slate-500 text-xs font-semibold uppercase">
+              <td className="px-6 py-4 text-slate-500 text-xs font-semibold uppercase text-center align-middle">
                 {trip.trip_type || "—"}
               </td>
-              <td className="px-6 py-4 text-slate-500 text-xs">
+              <td className="px-6 py-4 text-slate-500 text-xs text-center align-middle whitespace-nowrap">
+                {trip.actual_duration_minutes || trip.duration_minutes || "—"} min
+              </td>
+              <td className="px-6 py-4 text-slate-500 text-xs text-center align-middle whitespace-nowrap">
                 {trip.actual_distance_miles 
                   ? `${trip.actual_distance_miles} mi` 
                   : trip.distance_miles 
                     ? `${trip.distance_miles} mi` 
                     : "—"}
               </td>
-              <td className="px-6 py-4 text-right text-slate-900 font-semibold">
-                {trip.billing_details?.total_cost
-                  ? `$${trip.billing_details.total_cost.toFixed(2)}`
-                  : "—"}
-              </td>
-              <td className="px-6 py-4 text-right">
+              <td className="px-6 py-4 text-center align-middle">
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
                     trip.status === "completed"
@@ -203,8 +201,8 @@ function TripsTable({
           {trips.length > 15 && (
             <tr>
               <td
-                colSpan={5}
-                className="px-4 py-3 text-center text-slate-400 italic text-xs"
+                colSpan={7}
+                className="px-4 py-3 text-center align-middle text-slate-400 italic text-xs"
               >
                 + {trips.length - 15} more trips...
               </td>
@@ -213,14 +211,14 @@ function TripsTable({
         </tbody>
         <tfoot className="bg-slate-50/50 border-t border-slate-100">
           <tr>
-            <td colSpan={4} className="px-6 py-4 text-right font-bold text-slate-700">TOTALS:</td>
-            <td className="px-6 py-4 font-bold text-slate-900 border-r border-transparent">
+            <td colSpan={4} className="px-6 py-4 text-center align-middle font-bold text-slate-700">TOTALS</td>
+            <td className="px-6 py-4 font-bold text-slate-900 text-center align-middle whitespace-nowrap">
+              {trips.reduce((sum, trip) => sum + (trip.actual_duration_minutes || trip.duration_minutes || 0), 0)} min
+            </td>
+            <td className="px-6 py-4 font-bold text-slate-900 text-center align-middle whitespace-nowrap">
               {trips.reduce((sum, trip) => sum + (trip.actual_distance_miles || trip.distance_miles || 0), 0).toFixed(1)} mi
             </td>
-            <td className="px-6 py-4 text-right font-bold text-slate-900">
-              ${trips.reduce((sum, trip) => sum + (trip.billing_details?.total_cost || 0), 0).toFixed(2)}
-            </td>
-            <td className="px-6 py-4 text-right font-bold text-[#3D5A3D]">
+            <td className="px-6 py-4 text-center align-middle font-bold text-[#3D5A3D]">
               {trips.length} Trips
             </td>
           </tr>
