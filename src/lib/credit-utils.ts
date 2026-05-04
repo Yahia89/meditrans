@@ -180,17 +180,19 @@ export function calculateTripCost(
   const mileageCost = distance * perMileRate;
 
   // Wait time calculation
-  // Business rule: First 45 minutes free, then charge flat $55 if exceeded
+  // Business rule: First N minutes free, then charge the hourly rate
+  // per each started hour beyond the free allowance (block billing).
   const waitMinutes = Number(trip.total_waiting_minutes) || 0;
   const freeMinutes =
     Number(activeFees.wait_time_free_minutes) ||
     DEFAULT_FEES.wait_time_free_minutes;
-  const waitFlatRate =
+  const waitHourlyRate =
     Number(activeFees.wait_time_hourly_rate) ||
     DEFAULT_FEES.wait_time_hourly_rate;
 
-  // If wait exceeds free allowance, charge the flat rate (not pro-rated)
-  const waitCost = waitMinutes > freeMinutes ? waitFlatRate : 0;
+  // Charge per started hour beyond the free allowance (ceil = block billing)
+  const billableWaitMinutes = Math.max(0, waitMinutes - freeMinutes);
+  const waitCost = Math.ceil(billableWaitMinutes / 60) * waitHourlyRate;
 
   // Add custom charges
   let customTotal = 0;
@@ -216,7 +218,9 @@ export function calculateTripCost(
       distance,
       mileageCost,
       waitMinutes,
-      waitExceedsFree: waitMinutes > freeMinutes,
+      freeMinutes,
+      billableWaitMinutes,
+      waitHourlyRate,
       waitCost,
       customTotal,
       total: Math.round(total * 100) / 100,

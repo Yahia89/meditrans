@@ -237,10 +237,11 @@ export function FeeSettingsPage() {
   const previewWaitMinutes = 60;
 
   const calculateEstimate = (base: number, perMile: number) => {
-    // Wait time: flat rate if exceeds free minutes (not pro-rated)
+    // Wait time: per-started-hour block charge beyond the free allowance
     const freeMinutes = watchedValues.wait_time_free_minutes || 45;
-    const waitFlatRate = watchedValues.wait_time_hourly_rate || 55;
-    const waitCharge = previewWaitMinutes > freeMinutes ? waitFlatRate : 0;
+    const waitHourlyRate = watchedValues.wait_time_hourly_rate || 55;
+    const billableWaitMinutes = Math.max(0, previewWaitMinutes - freeMinutes);
+    const waitCharge = Math.ceil(billableWaitMinutes / 60) * waitHourlyRate;
 
     let customChargeTotal = 0;
     if (watchedValues.custom_charges) {
