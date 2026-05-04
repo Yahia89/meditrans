@@ -11,6 +11,7 @@ interface Organization {
   tax_id?: string;
   billing_state?: string;
   billing_enabled?: boolean;
+  brokers_enabled?: boolean;
   timezone: string;
   sftp_enabled?: boolean;
   sftp_host?: string;

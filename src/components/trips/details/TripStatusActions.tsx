@@ -1,4 +1,4 @@
-import type { Trip, TripStatus, TripStatusHistory } from "../types";
+import type { Trip, TripStatus, TripStatusHistory, TripCancellationAudit } from "../types";
 import { Button } from "@/components/ui/button";
 import { HandPointing, Signature, CheckCircle, FilePdf, DownloadSimple } from "@phosphor-icons/react";
 import { Loader2 } from "lucide-react";
@@ -14,6 +14,7 @@ interface TripStatusActionsProps {
   setIsGeneratingPDF: (loading: boolean) => void;
   journeyTrips: Trip[] | undefined;
   history: TripStatusHistory[] | undefined;
+  cancellationAudit?: TripCancellationAudit | null;
   orgName: string | undefined;
   activeTimezone: string;
 }
@@ -28,6 +29,7 @@ export function TripStatusActions({
   setIsGeneratingPDF,
   journeyTrips,
   history,
+  cancellationAudit,
   orgName,
   activeTimezone,
 }: TripStatusActionsProps) {
@@ -116,14 +118,24 @@ export function TripStatusActions({
             </Button>
           )}
 
-          {trip.status === "completed" && (
+          {["completed", "cancelled", "no_show"].includes(trip.status) && (
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-3 px-6 py-2 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-700 font-bold shadow-sm">
-                <CheckCircle
-                  weight="duotone"
-                  className="w-6 h-6 text-emerald-500"
-                />
-                Trip Completed
+              <div
+                className={`flex items-center gap-3 px-6 py-2 rounded-xl border font-bold shadow-sm ${
+                  trip.status === "completed"
+                    ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                    : "bg-red-50 border-red-100 text-red-700"
+                }`}
+              >
+                {trip.status === "completed" ? (
+                  <CheckCircle
+                    weight="duotone"
+                    className="w-6 h-6 text-emerald-500"
+                  />
+                ) : (
+                  <FilePdf weight="duotone" className="w-6 h-6 text-red-500" />
+                )}
+                Trip {trip.status.replace("_", " ").toUpperCase()}
               </div>
 
               <Button
@@ -138,6 +150,7 @@ export function TripStatusActions({
                         history || [],
                         orgName,
                         activeTimezone,
+                        cancellationAudit,
                       );
                     } finally {
                       setIsGeneratingPDF(false);
@@ -154,10 +167,7 @@ export function TripStatusActions({
                   </>
                 ) : (
                   <>
-                    <FilePdf
-                      weight="duotone"
-                      className="w-5 h-5 text-red-500"
-                    />
+                    <FilePdf weight="duotone" className="w-5 h-5 text-red-500" />
                     Download Summary
                     <DownloadSimple
                       weight="bold"

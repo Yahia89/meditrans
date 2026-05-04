@@ -1,24 +1,18 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { Trip, TripStatusHistory } from "@/components/trips/types";
+import type { Trip, TripStatusHistory, TripCancellationAudit } from "@/components/trips/types";
 import { formatInUserTimezone, US_TIMEZONES } from "@/lib/timezone";
+import { getStaticMapImage, type TripMapData } from "./static-map-generator";
 
 /**
  * Optional map image data for trip route visualization.
- * Should be a base64 data URL (e.g., from getStaticMapImage utility)
  */
 export interface TripMapImage {
-  /** Base64 data URL of the map image */
   dataUrl: string;
-  /** Width of the image */
   width: number;
-  /** Height of the image */
   height: number;
 }
 
-/**
- * Helper to get short timezone abbreviation from a timezone string
- */
 const getTimezoneSuffix = (timezone?: string) => {
   if (!timezone) return "";
   const found = US_TIMEZONES.find((tz) => tz.value === timezone);
@@ -35,8 +29,9 @@ export async function generateTripSummaryPDF(
   history: TripStatusHistory[],
   orgName?: string,
   timezone: string = "America/Chicago",
+  cancellationAudit?: TripCancellationAudit | null,
 ) {
-  // Initialize with compression enabled for smaller file sizes
+  // Initialize with compression enabled
   const doc = new jsPDF({
     compress: true,
   });
@@ -195,6 +190,72 @@ export async function generateTripSummaryPDF(
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
   }
+  // --- Map Snippet ---
+  const mapWidth = pageWidth - margin * 2;
+  const mapHeight = 70;
+  
+  if (trip.pickup_lat && trip.pickup_lng && trip.dropoff_lat && trip.dropoff_lng) {
+    // Check if we need a new page for the map
+    if (currentY > doc.internal.pageSize.height - mapHeight - 30) {
+      doc.addPage();
+      currentY = 20;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(30, 41, 59);
+    doc.text("Trip Visualization", margin, currentY);
+    currentY += 8;
+
+    try {
+      let mapParams: TripMapData = {
+        pickupLat: trip.pickup_lat!,
+        pickupLng: trip.pickup_lng!,
+        dropoffLat: trip.dropoff_lat!,
+        dropoffLng: trip.dropoff_lng!,
+      };
+
+      // For cancelled trips, use cancellation location as start marker if available
+      const isCancelled = ["cancelled", "no_show"].includes(trip.status);
+      if (isCancelled && cancellationAudit?.location_lat && cancellationAudit?.location_lng) {
+        mapParams.pickupLat = cancellationAudit.location_lat;
+        mapParams.pickupLng = cancellationAudit.location_lng;
+      }
+
+      const mapImage = await getStaticMapImage(
+        mapParams,
+        Math.round(mapWidth * 3), // Higher density for PDF
+        Math.round(mapHeight * 3)
+      );
+
+      if (mapImage) {
+        doc.addImage(
+          mapImage,
+          "PNG",
+          margin,
+          currentY,
+          mapWidth,
+          mapHeight,
+          undefined,
+          "FAST"
+        );
+        
+        // Add legend/caption
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(100, 116, 139);
+        const caption = isCancelled 
+          ? `Trip ${trip.status.replace("_", " ")} - Map showing location of ${trip.status === "cancelled" ? "cancellation" : "no-show"} (A) and dropoff point (B)`
+          : "Map showing pickup (A) and dropoff (B) points";
+        doc.text(caption, margin, currentY + mapHeight + 5);
+        
+        currentY += mapHeight + 18;
+      }
+    } catch (e) {
+      console.error("Error adding map image to PDF", e);
+      currentY += 5;
+    }
+  }
 
   // --- Activity History Section ---
   if (history && history.length > 0) {
@@ -221,6 +282,11 @@ export async function generateTripSummaryPDF(
       let statusText = item.status.replace(/_/g, " ").toUpperCase();
       if (statusText.startsWith("UPDATED:")) {
         statusText = statusText.replace("UPDATED:", "UPDATED").trim();
+      }
+      
+      // Foundation for coordinates: if they exist, show them
+      if (item.lat && item.lng) {
+        statusText += `\nLoc: ${item.lat.toFixed(6)}, ${item.lng.toFixed(6)}`;
       }
 
       return [`${dateStr}\n${timeStr}`, statusText, item.actor_name];

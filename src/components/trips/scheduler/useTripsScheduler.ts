@@ -82,6 +82,13 @@ const TRIPS_SELECT = `
   signed_by_name,
   cancel_reason,
   cancel_explanation,
+  broker_name,
+  broker_trip_id,
+  broker_reference_number,
+  broker_connection_id,
+  external_status,
+  external_payload_snapshot,
+  synced_at,
   created_at,
   patient:patients(id, full_name, phone, email, created_at, user_id),
   driver:drivers(id, full_name, phone, email, user_id, vehicle_info)
@@ -111,7 +118,7 @@ export function useTripsScheduler({
   // Derive query date range
   const queryDateRange = useMemo(
     () => getQueryDateRange(selectedDate),
-    [selectedDate.getFullYear(), selectedDate.getMonth()]
+    [selectedDate]
   );
 
   // Fetch trips
@@ -206,9 +213,9 @@ export function useTripsScheduler({
           ? getTimezoneLabel(newTimezone)
           : "Organization Default";
         toast.success(`Timezone updated to ${timezoneLabel}`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error updating timezone:", error);
-        toast.error(error.message || "Failed to update timezone");
+        toast.error(error instanceof Error ? error.message : "Failed to update timezone");
       } finally {
         setIsUpdatingTimezone(false);
       }

@@ -66,6 +66,12 @@ enabled = true
 # The maximum length in bytes of HTTP request headers. (default: 4096)
 # max_header_length = 4096
 
+[functions.broker-integrations]
+enabled = true
+# The function validates app sessions manually and also accepts broker webhook
+# calls authenticated by the saved shared secret.
+verify_jwt = false
+
 [studio]
 enabled = true
 # Port to use for Supabase Studio.

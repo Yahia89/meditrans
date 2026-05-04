@@ -16,7 +16,11 @@ export interface Trip {
   patient_id: string;
   driver_id: string | null;
   pickup_location: string;
+  pickup_lat?: number | null;
+  pickup_lng?: number | null;
   dropoff_location: string;
+  dropoff_lat?: number | null;
+  dropoff_lng?: number | null;
   pickup_time: string;
   trip_type: string;
   status: TripStatus;
@@ -55,6 +59,13 @@ export interface Trip {
     total_cost: number;
     service_type: string;
   } | null;
+  broker_name?: string | null;
+  broker_trip_id?: string | null;
+  broker_reference_number?: string | null;
+  broker_connection_id?: string | null;
+  external_status?: string | null;
+  external_payload_snapshot?: Record<string, unknown> | null;
+  synced_at?: string | null;
   patient?: {
     id: string;
     full_name: string;
@@ -79,5 +90,17 @@ export interface TripStatusHistory {
   status: string;
   actor_id: string | null;
   actor_name: string;
+  created_at: string;
+  lat?: number | null;
+  lng?: number | null;
+}
+export interface TripCancellationAudit {
+  id: string;
+  trip_id: string;
+  cancelled_by: string;
+  reason: string | null;
+  explanation: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
   created_at: string;
 }

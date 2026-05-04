@@ -29,7 +29,9 @@ import {
   CircleNotch,
   WarningCircle,
   Calendar,
+  PlugsConnected,
 } from "@phosphor-icons/react";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +70,7 @@ interface Organization {
   created_at: string;
   onboarding_status: "pending" | "accepted";
   accepted_at: string | null;
+  brokers_enabled: boolean;
   org_invites?: {
     id: string;
     accepted_at: string | null;
@@ -129,6 +132,7 @@ export function CompaniesPage({
       operating_state: org.operating_state,
       onboarding_status: org.onboarding_status,
       accepted_at: org.accepted_at,
+      brokers_enabled: org.brokers_enabled,
     });
   };
 
@@ -148,6 +152,7 @@ export function CompaniesPage({
           operating_state: editForm.operating_state,
           onboarding_status: editForm.onboarding_status,
           accepted_at: editForm.accepted_at,
+          brokers_enabled: editForm.brokers_enabled,
         })
         .eq("id", editingOrg.id);
 
@@ -265,6 +270,9 @@ export function CompaniesPage({
                     Operations
                   </TableHead>
                   <TableHead className="font-semibold text-slate-900">
+                    Broker Support
+                  </TableHead>
+                  <TableHead className="font-semibold text-slate-900">
                     Invite Status
                   </TableHead>
                   <TableHead className="font-semibold text-slate-900">
@@ -279,7 +287,7 @@ export function CompaniesPage({
                 {orgs.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="h-32 text-center text-slate-400 font-medium"
                     >
                       No organizations found.
@@ -358,6 +366,20 @@ export function CompaniesPage({
                               />
                               {getTimezoneLabel(org.timezone)}
                             </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <PlugsConnected
+                              className={`w-4 h-4 ${
+                                org.brokers_enabled
+                                  ? "text-emerald-500"
+                                  : "text-slate-300"
+                              }`}
+                            />
+                            <span className="text-xs text-slate-600 font-medium">
+                              {org.brokers_enabled ? "Enabled" : "Disabled"}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -548,6 +570,30 @@ export function CompaniesPage({
                   placeholder="(555) 000-0000"
                   className="rounded-xl bg-slate-50/50 border-slate-200 h-11 focus:bg-white transition-all"
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-slate-700 font-semibold text-xs flex items-center gap-1.5 tracking-wide">
+                  Broker Support
+                </Label>
+                <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl shadow-sm transition-all hover:border-slate-300 hover:shadow-md group">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-slate-800">
+                      Enable Integrations
+                    </span>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Automated broker sync
+                    </p>
+                  </div>
+                  <Switch
+                    checked={editForm.brokers_enabled || false}
+                    onCheckedChange={(checked) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        brokers_enabled: checked,
+                      }))
+                    }
+                  />
+                </div>
               </div>
             </div>
 

@@ -10,10 +10,7 @@ export function NotificationsPage() {
           <Bell className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
-          <p className="text-muted-foreground">
-            Configure how you want to receive alerts and updates.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">SMS Settings</h1>
         </div>
       </div>
       <Separator />

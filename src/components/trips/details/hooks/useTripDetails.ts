@@ -91,6 +91,23 @@ export function useTripDetails({
     placeholderData: keepPreviousData,
   });
 
+  const { data: cancellationAudit } = useQuery({
+    queryKey: ["trip-cancellation-audit", tripId],
+    queryFn: async () => {
+      if (!tripId || !["cancelled", "no_show"].includes(trip?.status || "")) return null;
+      const { data, error } = await supabase
+        .from("trip_cancellation_audits")
+        .select("*")
+        .eq("trip_id", tripId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tripId && ["cancelled", "no_show"].includes(trip?.status || ""),
+    staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
+  });
+
   const { data: org } = useQuery({
     queryKey: ["organization", trip?.org_id],
     queryFn: async () => {
@@ -298,6 +315,7 @@ export function useTripDetails({
       trip,
       history,
       org,
+      cancellationAudit,
       isLoading,
       isHistoryLoading,
       isDeleteDialogOpen,

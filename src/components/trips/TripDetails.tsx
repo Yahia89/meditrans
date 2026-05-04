@@ -112,6 +112,7 @@ export function TripDetails({
             setIsGeneratingPDF={actions.setIsGeneratingPDF}
             journeyTrips={journeyTrips}
             history={state.history}
+            cancellationAudit={state.cancellationAudit}
             orgName={state.org?.name}
             activeTimezone={state.activeTimezone}
           />

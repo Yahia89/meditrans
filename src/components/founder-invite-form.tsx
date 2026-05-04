@@ -13,7 +13,9 @@ import {
   Copy,
   Phone,
   MapPin,
+  PlugsConnected,
 } from "@phosphor-icons/react";
+import { Switch } from "@/components/ui/switch";
 import { TimezoneSelector } from "./timezone-selector";
 import { StateSelector } from "./state-selector";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,7 @@ const founderSchema = z.object({
   owner_email: z.string().email("Invalid email address"),
   owner_name: z.string().min(2, "Owner name must be at least 2 characters"),
   timezone: z.string().min(1, "Please select a timezone"),
+  brokers_enabled: z.boolean(),
 });
 
 type FounderFormData = z.infer<typeof founderSchema>;
@@ -68,6 +71,7 @@ export function FounderInviteForm() {
       owner_email: "",
       owner_name: "",
       timezone: "America/Chicago",
+      brokers_enabled: false,
     },
   });
 
@@ -104,6 +108,7 @@ export function FounderInviteForm() {
           operating_state: data.operating_state,
           billing_email: data.owner_email,
           onboarding_status: "pending",
+          brokers_enabled: data.brokers_enabled,
         })
         .select()
         .single();
@@ -307,6 +312,29 @@ export function FounderInviteForm() {
                   {errors.timezone.message}
                 </p>
               )}
+            </div>
+            <div className="space-y-2 flex flex-col justify-end pb-1">
+              <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl shadow-sm transition-all hover:border-slate-300 hover:shadow-md group">
+                <div className="space-y-0.5">
+                  <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <PlugsConnected weight="duotone" className="w-4 h-4 text-[#3D5A3D]" />
+                    Broker Support
+                  </label>
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    Enable integrations and automated routes.
+                  </p>
+                </div>
+                <Controller
+                  name="brokers_enabled"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
             </div>
           </div>
         </div>

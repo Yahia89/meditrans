@@ -15,6 +15,7 @@ import {
   Broadcast,
   Buildings,
   FilePdf,
+  PlugsConnected,
 } from "@phosphor-icons/react";
 
 import { NavUser } from "@/components/nav-user";
@@ -28,8 +29,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-// Page type must match the pages defined in App.tsx
-import { type Page } from "@/App";
+import { type Page } from "@/lib/pages";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   currentPage: Page;
@@ -47,6 +47,11 @@ const data = {
       title: "Trips",
       url: "trips" as Page,
       icon: MapTrifold,
+    },
+    {
+      title: "Brokers",
+      url: "broker-integrations" as Page,
+      icon: PlugsConnected,
     },
     {
       title: "Live",
@@ -94,6 +99,7 @@ export function AppSidebar({
     isSuperAdmin,
     isDriver,
     isDispatch,
+    isAdmin,
     canViewEmployees,
     canUploadFiles,
     canViewMedicaid,
@@ -113,6 +119,9 @@ export function AppSidebar({
 
     // Summary: only visible to dispatch+ (owner, admin, dispatch)
     if (item.url === "summary" && !isDispatch) return false;
+
+    // Brokers: credential management is admin+ AND enabled for the organization
+    if (item.url === "broker-integrations" && (!isAdmin || !currentOrganization?.brokers_enabled)) return false;
 
     return true;
   });
@@ -190,6 +199,8 @@ export function AppSidebar({
               (item.url === "employees" &&
                 currentPage === "employee-details") ||
               (item.url === "trips" && currentPage === "trip-details") ||
+              (item.url === "broker-integrations" &&
+                currentPage === "broker-integrations") ||
               (item.url === "client-credits" &&
                 currentPage === "client-credits") ||
               (item.url === "client-credits" &&

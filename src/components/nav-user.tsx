@@ -122,7 +122,7 @@ export function NavUser() {
                 {canViewNotifications && (
                   <DropdownMenuItem onClick={() => setPage("notifications")}>
                     <Bell size={16} />
-                    Notifications
+                    SMS Settings
                   </DropdownMenuItem>
                 )}
               </DropdownMenuGroup>

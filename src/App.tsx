@@ -20,36 +20,7 @@ import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
 import { ErrorBoundary } from "./components/error-boundary";
-
-// Define valid page values for type safety
-export const pages = [
-  "dashboard",
-  "patients",
-  "patient-details",
-  "drivers",
-  "driver-details",
-  "employees",
-  "employee-details",
-  "upload",
-  "review_import",
-  "account",
-  "billing",
-  "notifications",
-  "founder",
-  "accept-invite",
-  "trips",
-  "trip-details",
-  "client-credits",
-  "driver-history",
-  "medicaid-billing",
-  "live-tracking",
-  "companies",
-  "reset-password",
-  "fees",
-  "summary",
-] as const;
-
-export type Page = (typeof pages)[number];
+import { pages, type Page } from "@/lib/pages";
 
 // ---------- Lazy-loaded page components ----------
 // Each page becomes its own chunk, loaded on demand.
@@ -74,6 +45,7 @@ const TripsScheduler = lazy(() => import("./components/trips/TripsScheduler").th
 const BulkImportDialog = lazy(() => import("./components/trips/BulkImportDialog").then(m => ({ default: m.BulkImportDialog })));
 const CreateDischargeDialog = lazy(() => import("./components/trips/CreateDischargeDialog").then(m => ({ default: m.CreateDischargeDialog })));
 const ClientCreditsPage = lazy(() => import("./components/client-credits-page").then(m => ({ default: m.ClientCreditsPage })));
+const BrokerIntegrationsPage = lazy(() => import("./components/brokers/BrokerIntegrationsPage").then(m => ({ default: m.BrokerIntegrationsPage })));
 const DriverHistoryPage = lazy(() => import("./components/driver-history-page").then(m => ({ default: m.DriverHistoryPage })));
 const MedicaidBillingPage = lazy(() => import("./components/MedicaidBillingPage").then(m => ({ default: m.MedicaidBillingPage })));
 const LiveTrackingPage = lazy(() => import("./components/live/LiveTrackingPage").then(m => ({ default: m.LiveTrackingPage })));
@@ -122,8 +94,8 @@ function AppContent() {
   const [modalType, setModalType] = useQueryState("modal");
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [fromPage, setFromPage] = useQueryState("from");
-  const [_, setSection] = useQueryState("section");
-  const [__, setDate] = useQueryState("date");
+  const [, setSection] = useQueryState("section");
+  const [, setDate] = useQueryState("date");
 
   // Centralized Access Control and Redirection
   useEffect(() => {
@@ -148,6 +120,7 @@ function AppContent() {
         "notifications",
         "founder",
         "client-credits",
+        "broker-integrations",
         "medicaid-billing",
         "live-tracking",
         "summary",
@@ -159,6 +132,7 @@ function AppContent() {
         "live-tracking",
         "summary",
         "client-credits",
+        "broker-integrations",
       ],
       // Dispatch: No employees, no upload, no billing, no notifications, no medicaid
       dispatch: [
@@ -170,6 +144,7 @@ function AppContent() {
         "notifications",
         "medicaid-billing",
         "client-credits",
+        "broker-integrations",
       ],
       admin: ["founder"],
       owner: ["founder"],
@@ -183,7 +158,7 @@ function AppContent() {
       const fallbackPage = isDriver ? "trips" : "dashboard";
       setCurrentPage(fallbackPage);
     }
-  }, [loading, user, userRole, currentPage, isDriver, setCurrentPage]);
+  }, [loading, user, userRole, currentPage, isDriver, isSuperAdmin, setCurrentPage]);
 
   // Show loading state while checking auth
   if (loading) {
@@ -493,6 +468,12 @@ function AppContent() {
         return (
           <DashboardPage title="Client Credits">
             <ClientCreditsPage />
+          </DashboardPage>
+        );
+      case "broker-integrations":
+        return (
+          <DashboardPage title="Broker Integrations">
+            <BrokerIntegrationsPage />
           </DashboardPage>
         );
       case "driver-history":
