@@ -99,16 +99,16 @@ export function TripStatusActions({
             </Button>
           )}
 
-          {trip.status === "arrived" && (
+          {(trip.status === "arrived" || trip.status === "in_pickup_circle") && (
             <Button
-              onClick={() => handleStatusUpdate("in_progress")}
+              onClick={() => handleStatusUpdate("loaded")}
               className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-8 rounded-xl"
             >
               Pickup Patient
             </Button>
           )}
 
-          {trip.status === "in_progress" && (
+          {(trip.status === "in_progress" || trip.status === "loaded" || trip.status === "in_dropoff_circle") && (
             <Button
               onClick={() => setShowSignatureDialog(true)}
               className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-8 rounded-xl transition-all duration-300"
@@ -135,7 +135,7 @@ export function TripStatusActions({
                 ) : (
                   <FilePdf weight="duotone" className="w-6 h-6 text-red-500" />
                 )}
-                Trip {trip.status.replace("_", " ").toUpperCase()}
+                Trip {trip.status.replace(/_/g, " ").toUpperCase()}
               </div>
 
               <Button

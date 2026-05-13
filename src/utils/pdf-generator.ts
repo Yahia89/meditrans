@@ -140,7 +140,7 @@ export async function generateTripSummaryPDF(
         index + 1,
         time,
         route,
-        leg.status.replace("_", " ").toUpperCase(),
+        leg.status.replace(/_/g, " ").toUpperCase(),
         distance,
       ];
     });
@@ -181,6 +181,10 @@ export async function generateTripSummaryPDF(
             data.cell.styles.textColor = [16, 185, 129];
           } else if (status === "CANCELLED" || status === "NO SHOW") {
             data.cell.styles.textColor = [239, 68, 68];
+          } else if (status.includes("CIRCLE")) {
+            data.cell.styles.textColor = [147, 51, 234]; // Purple
+          } else if (status === "LOADED") {
+            data.cell.styles.textColor = [14, 165, 233]; // Sky
           } else {
             data.cell.styles.textColor = [59, 130, 246];
           }
@@ -245,7 +249,7 @@ export async function generateTripSummaryPDF(
         doc.setFont("helvetica", "italic");
         doc.setTextColor(100, 116, 139);
         const caption = isCancelled 
-          ? `Trip ${trip.status.replace("_", " ")} - Map showing location of ${trip.status === "cancelled" ? "cancellation" : "no-show"} (A) and dropoff point (B)`
+          ? `Trip ${trip.status.replace(/_/g, " ")} - Map showing location of ${trip.status === "cancelled" ? "cancellation" : "no-show"} (A) and dropoff point (B)`
           : "Map showing pickup (A) and dropoff (B) points";
         doc.text(caption, margin, currentY + mapHeight + 5);
         
@@ -284,18 +288,17 @@ export async function generateTripSummaryPDF(
         statusText = statusText.replace("UPDATED:", "UPDATED").trim();
       }
       
-      // Foundation for coordinates: if they exist, show them
-      if (item.lat && item.lng) {
-        statusText += `\nLoc: ${item.lat.toFixed(6)}, ${item.lng.toFixed(6)}`;
-      }
+      const coordinates = (item.latitude && item.longitude) 
+        ? `${item.latitude.toFixed(6)},\n${item.longitude.toFixed(6)}`
+        : "N/A";
 
-      return [`${dateStr}\n${timeStr}`, statusText, item.actor_name];
+      return [`${dateStr}\n${timeStr}`, statusText, item.actor_name, coordinates];
     });
 
     // @ts-ignore
     autoTable(doc, {
       startY: currentY,
-      head: [["Date/Time", "Activity", "Performed By"]],
+      head: [["Date/Time", "Activity", "Performed By", "Coordinates"]],
       body: historyData,
       theme: "plain",
       styles: {
@@ -312,9 +315,10 @@ export async function generateTripSummaryPDF(
         fontSize: 7,
       },
       columnStyles: {
-        0: { cellWidth: 32, halign: "center" }, // Increased width for time + suffix
-        1: { cellWidth: "auto", fontStyle: "bold" },
-        2: { cellWidth: 40, halign: "center" },
+        0: { cellWidth: 32, halign: "center" }, // Date/Time
+        1: { cellWidth: "auto", fontStyle: "bold" }, // Activity
+        2: { cellWidth: 40, halign: "center" }, // Actor
+        3: { cellWidth: 28, halign: "center", fontSize: 7, textColor: [100, 116, 139] }, // Coordinates
       },
       didParseCell: (data) => {
         if (data.section === "body" && data.column.index === 1) {
@@ -327,6 +331,10 @@ export async function generateTripSummaryPDF(
             data.cell.styles.textColor = [147, 51, 234];
           else if (text.includes("ASSIGNED"))
             data.cell.styles.textColor = [59, 130, 246];
+          else if (text.includes("CIRCLE"))
+            data.cell.styles.textColor = [147, 51, 234]; // Purple for circle statuses
+          else if (text.includes("LOADED"))
+            data.cell.styles.textColor = [14, 165, 233]; // Sky blue for loaded
         }
       },
     });
@@ -344,8 +352,11 @@ export async function generateTripSummaryPDF(
   // Status Indicator for the selected trip
   let statusColor = [100, 116, 139]; // Default Slate
   if (trip.status === "completed") statusColor = [16, 185, 129];
-  else if (trip.status === "cancelled") statusColor = [239, 68, 68];
+  else if (trip.status === "cancelled" || trip.status === "no_show") statusColor = [239, 68, 68];
   else if (trip.status === "in_progress") statusColor = [59, 130, 246];
+  else if (trip.status === "loaded") statusColor = [14, 165, 233]; // Sky
+  else if (trip.status === "in_pickup_circle" || trip.status === "in_dropoff_circle") statusColor = [147, 51, 234]; // Purple
+  else if (trip.status === "en_route") statusColor = [147, 51, 234]; // Purple
 
   doc.setDrawColor(statusColor[0], statusColor[1], statusColor[2]);
   doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
@@ -355,7 +366,7 @@ export async function generateTripSummaryPDF(
   doc.setFontSize(11);
   doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
   doc.text(
-    trip.status.toUpperCase().replace("_", " "),
+    trip.status.toUpperCase().replace(/_/g, " "),
     margin + 5,
     currentY + 7,
   );

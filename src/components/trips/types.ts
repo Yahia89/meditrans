@@ -5,6 +5,9 @@ export type TripStatus =
   | "en_route"
   | "arrived"
   | "in_progress"
+  | "loaded"
+  | "in_pickup_circle"
+  | "in_dropoff_circle"
   | "completed"
   | "cancelled"
   | "no_show"
@@ -81,6 +84,8 @@ export interface Trip {
     email: string | null;
     user_id: string | null;
     vehicle_info: string | null;
+    current_lat?: number | null;
+    current_lng?: number | null;
   };
 }
 
@@ -91,8 +96,10 @@ export interface TripStatusHistory {
   actor_id: string | null;
   actor_name: string;
   created_at: string;
-  lat?: number | null;
-  lng?: number | null;
+  /** GPS latitude at time of status change (DB column: latitude) */
+  latitude?: number | null;
+  /** GPS longitude at time of status change (DB column: longitude) */
+  longitude?: number | null;
 }
 export interface TripCancellationAudit {
   id: string;

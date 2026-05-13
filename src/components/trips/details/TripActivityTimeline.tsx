@@ -11,6 +11,8 @@ import {
   Calendar,
   ArrowsClockwise,
   Path,
+  MapPin,
+  Users,
 } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +36,8 @@ export function TripActivityTimeline({
       status: string;
       actor_name: string;
       created_at: string;
+      latitude?: number | null;
+      longitude?: number | null;
     }> = [];
 
     // Add real history events first
@@ -44,6 +48,8 @@ export function TripActivityTimeline({
           status: item.status,
           actor_name: item.actor_name,
           created_at: item.created_at,
+          latitude: item.latitude,
+          longitude: item.longitude,
         });
       });
     }
@@ -112,6 +118,9 @@ export function TripActivityTimeline({
           const isSignature = item.status
             .toLowerCase()
             .includes("signature");
+          const isCircle = item.status.toLowerCase().includes("circle");
+          const isEnRoute = item.status.toLowerCase() === "en_route";
+          const isLoaded = item.status.toLowerCase() === "loaded" || item.status.toLowerCase() === "in_progress";
 
           // Extract distance from update message if present
           const distanceMatch = item.status.match(
@@ -149,9 +158,13 @@ export function TripActivityTimeline({
                             ? "bg-slate-50 border-slate-200"
                             : isSignature
                               ? "bg-indigo-50 border-indigo-200"
-                              : isCreated
-                                ? "bg-slate-50 border-slate-200"
-                                : "bg-slate-50 border-slate-150",
+                              : isCircle
+                                ? "bg-purple-50 border-purple-200"
+                                : isLoaded
+                                  ? "bg-sky-50 border-sky-200"
+                                  : isCreated
+                                    ? "bg-slate-50 border-slate-200"
+                                    : "bg-slate-50 border-slate-150",
                 )}
               >
                 {isCompleted ? (
@@ -169,7 +182,7 @@ export function TripActivityTimeline({
                     weight="duotone"
                     className="w-4 h-4 text-amber-500"
                   />
-                ) : isAssigned ? (
+                ) : isAssigned || isEnRoute ? (
                   <Car
                     weight="duotone"
                     className="w-4 h-4 text-blue-500"
@@ -183,6 +196,16 @@ export function TripActivityTimeline({
                   <Signature
                     weight="duotone"
                     className="w-4 h-4 text-indigo-500"
+                  />
+                ) : isCircle ? (
+                  <MapPin
+                    weight="duotone"
+                    className="w-4 h-4 text-purple-500"
+                  />
+                ) : isLoaded ? (
+                  <Users
+                    weight="duotone"
+                    className="w-4 h-4 text-sky-600"
                   />
                 ) : isCreated ? (
                   <Calendar
@@ -244,17 +267,31 @@ export function TripActivityTimeline({
                               ? "text-red-600"
                               : isRequest
                                 ? "text-amber-600"
-                                : "text-slate-800",
+                                : isCircle
+                                  ? "text-purple-700"
+                                  : isLoaded
+                                    ? "text-sky-700"
+                                    : isEnRoute
+                                      ? "text-blue-700"
+                                      : "text-slate-800",
                         )}
                       >
-                        {displayStatus}
+                        {displayStatus === "LOADED" ? "LOADED / IN PROGRESS" : displayStatus}
                       </p>
                     )}
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      by{" "}
-                      <span className="font-semibold text-slate-600">
-                        {item.actor_name}
+                    <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                      <span>
+                        by{" "}
+                        <span className="font-semibold text-slate-600">
+                          {item.actor_name}
+                        </span>
                       </span>
+                      {item.latitude && item.longitude && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-100 rounded-[4px] text-[9px] font-medium text-slate-500 border border-slate-200/50">
+                          <MapPin weight="bold" className="w-2.5 h-2.5 text-slate-400" />
+                          {item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <time className="text-[10px] font-semibold text-slate-400 whitespace-nowrap shrink-0">

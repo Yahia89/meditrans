@@ -59,7 +59,7 @@ export function useTripDetails({
         .select(`
             *,
             patient:patients(id, full_name, phone, email, created_at, user_id),
-            driver:drivers(id, full_name, phone, email, user_id, vehicle_info)
+            driver:drivers(id, full_name, phone, email, user_id, vehicle_info, current_lat, current_lng)
         `)
         .eq("id", tripId)
         .single();
@@ -153,6 +153,8 @@ export function useTripDetails({
         status: status,
         actor_id: user?.id,
         actor_name: authProfile?.full_name || user?.email || "System",
+        latitude: (user?.id === trip?.driver?.user_id) ? trip?.driver?.current_lat : null,
+        longitude: (user?.id === trip?.driver?.user_id) ? trip?.driver?.current_lng : null,
       });
     },
     onSuccess: () => {
@@ -279,6 +281,8 @@ export function useTripDetails({
         status: declined ? "COMPLETED (Signature Declined)" : "COMPLETED WITH SIGNATURE",
         actor_id: user?.id,
         actor_name: authProfile?.full_name || user?.email || "Driver",
+        latitude: (user?.id === trip?.driver?.user_id) ? trip?.driver?.current_lat : null,
+        longitude: (user?.id === trip?.driver?.user_id) ? trip?.driver?.current_lng : null,
       });
     },
     onSuccess: () => {
