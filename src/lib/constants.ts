@@ -7,6 +7,7 @@ export const SERVICE_TYPES = [
   "Clinics",
   "Methadone Clinics",
   "Dialysis",
+  "Pharmacy",
   "Regular Transportation",
   "Other",
 ] as const;

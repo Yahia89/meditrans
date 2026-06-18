@@ -39,6 +39,7 @@ export const TRIP_TYPES = [
   { value: "CLINICS", label: "Clinics" },
   { value: "METHADONE CLINICS", label: "Methadone Clinics" },
   { value: "DIALYSIS", label: "Dialysis" },
+  { value: "PHARMACY", label: "Pharmacy" },
   { value: "REGULAR TRANSPORTATION", label: "Regular Transportation" },
   { value: "WILL CALL", label: "Will Call" },
   { value: "OTHER", label: "Other" },
