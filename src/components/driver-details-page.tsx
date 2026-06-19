@@ -33,6 +33,11 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatInUserTimezone } from "@/lib/timezone";
 import { generateProfilePDF } from "@/utils/profile-pdf-generator";
+import { useCanManageUserAccess } from "@/hooks/useCanManageUserAccess";
+import {
+  AccessStatusBadge,
+  UserAccessToggleButton,
+} from "@/components/user-access-control";
 import { 
   IdentificationCard,
   Files,
@@ -77,6 +82,9 @@ interface Driver {
   created_at: string;
   custom_fields: Record<string, any> | null;
   user_id: string | null;
+  active: boolean;
+  disabled_at: string | null;
+  disabled_by: string | null;
   umpi: string | null;
   npi: string | null;
 }
@@ -123,6 +131,7 @@ export function DriverDetailsPage({
   const { currentOrganization } = useOrganization();
   const activeTimezone = useTimezone();
   const queryClient = useQueryClient();
+  const canManageUserAccess = useCanManageUserAccess();
 
   const canManageDrivers = canEditDrivers || canDeleteDrivers;
 
@@ -320,6 +329,7 @@ export function DriverDetailsPage({
   }
 
   const statusInfo = getStatusConfig(driver.status);
+  const accessDisabled = driver.active === false;
 
   return (
     <div className="space-y-6">
@@ -345,6 +355,7 @@ export function DriverDetailsPage({
               >
                 {statusInfo.label}
               </span>
+              <AccessStatusBadge disabled={accessDisabled} />
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-slate-500">
@@ -370,7 +381,7 @@ export function DriverDetailsPage({
             <Printer size={16} />
             Print Out
           </Button>
-          {canManageDrivers && (
+          {(canManageDrivers || canManageUserAccess) && (
             <>
               {canEditDrivers && (
                 <>
@@ -411,6 +422,20 @@ export function DriverDetailsPage({
                   </Button>
                 </>
               )}
+              <UserAccessToggleButton
+                targetType="driver"
+                recordId={driver.id}
+                subjectName={driver.full_name}
+                disabled={accessDisabled}
+                canManage={canManageUserAccess}
+                isDemoMode={isDemoMode}
+                onSuccess={() => {
+                  queryClient.invalidateQueries({ queryKey: ["driver", id] });
+                  queryClient.invalidateQueries({
+                    queryKey: ["drivers", currentOrganization?.id],
+                  });
+                }}
+              />
               {canDeleteDrivers && (
                 <Button
                   variant="outline"

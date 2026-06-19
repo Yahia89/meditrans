@@ -54,6 +54,11 @@ import {
   parseZonedTime,
 } from "@/lib/timezone";
 import { generateProfilePDF } from "@/utils/profile-pdf-generator";
+import { useCanManageUserAccess } from "@/hooks/useCanManageUserAccess";
+import {
+  AccessStatusBadge,
+  UserAccessToggleButton,
+} from "@/components/user-access-control";
 
 interface PatientDetailsPageProps {
   id: string;
@@ -89,6 +94,10 @@ interface Patient {
   sal_effective_date: string | null;
   sal_through_date: string | null;
   sal_pending_reason: string | null;
+  user_id: string | null;
+  disabled: boolean;
+  disabled_at: string | null;
+  disabled_by: string | null;
 }
 
 interface SalHistoryEntry {
@@ -156,6 +165,7 @@ export function PatientDetailsPage({
   const { canEditPatients, canDeletePatients } = usePermissions();
   const { isDemoMode } = useOnboarding();
   const queryClient = useQueryClient();
+  const canManageUserAccess = useCanManageUserAccess();
 
   const activeTimezone = useMemo(
     () => getActiveTimezone(profile, currentOrganization),
@@ -356,6 +366,8 @@ export function PatientDetailsPage({
     );
   }
 
+  const accessDisabled = patient.disabled === true;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -372,9 +384,10 @@ export function PatientDetailsPage({
               {patient.full_name}
             </h1>
             <div className="flex items-center gap-2 mt-1">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                Active Patient
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                Client Profile
               </span>
+              <AccessStatusBadge disabled={accessDisabled} />
               <span className="text-xs text-slate-500">
                 ID: {patient.id.substring(0, 8)}
               </span>
@@ -398,7 +411,7 @@ export function PatientDetailsPage({
             <Printer size={16} />
             Print Out
           </Button>
-          {canManagePatients && (
+          {(canManagePatients || canManageUserAccess) && (
             <>
               {canEditPatients && (
                 <Button
@@ -410,6 +423,20 @@ export function PatientDetailsPage({
                   Edit Details
                 </Button>
               )}
+              <UserAccessToggleButton
+                targetType="patient"
+                recordId={patient.id}
+                subjectName={patient.full_name}
+                disabled={accessDisabled}
+                canManage={canManageUserAccess}
+                isDemoMode={isDemoMode}
+                onSuccess={() => {
+                  queryClient.invalidateQueries({ queryKey: ["patient", id] });
+                  queryClient.invalidateQueries({
+                    queryKey: ["patients", currentOrganization?.id],
+                  });
+                }}
+              />
               {canDeletePatients && (
                 <Button
                   variant="outline"

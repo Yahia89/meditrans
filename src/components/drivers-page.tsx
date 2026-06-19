@@ -22,9 +22,17 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useCanManageUserAccess } from "@/hooks/useCanManageUserAccess";
 import { DriversEmptyState } from "@/components/ui/empty-state";
 import { DriverForm } from "@/components/forms/driver-form";
-import { Loader2, Pencil, Trash, Check } from "lucide-react";
+import {
+  Loader2,
+  Pencil,
+  Trash,
+  Check,
+  LockKeyhole,
+  ShieldCheck,
+} from "lucide-react";
 import { exportToExcel } from "@/lib/export";
 import {
   DropdownMenu,
@@ -45,6 +53,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AccessStatusBadge,
+  type AccessTargetType,
+  UserAccessConfirmDialog,
+} from "@/components/user-access-control";
 
 interface Driver {
   id: string;
@@ -78,6 +91,14 @@ interface Driver {
   notes?: string;
   umpi?: string;
   npi?: string;
+  active?: boolean;
+}
+
+interface AccessDialogTarget {
+  targetType: AccessTargetType;
+  recordId: string;
+  subjectName: string;
+  disabled: boolean;
 }
 
 // Demo data for preview mode
@@ -202,10 +223,14 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
     canEditDrivers, 
     canDeleteDrivers 
   } = usePermissions();
+  const canManageUserAccess = useCanManageUserAccess();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [accessTarget, setAccessTarget] = useState<AccessDialogTarget | null>(
+    null,
+  );
 
   // Use permission flag for driver management (admin+ only)
   const canManageDrivers = canEditDrivers || canCreateDrivers || canDeleteDrivers;
@@ -304,6 +329,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             notes: d.notes || "",
             umpi: d.umpi || "",
             npi: d.npi || "",
+            active: d.active !== false,
           }) as Driver,
       );
     },
@@ -794,22 +820,25 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                     </span>
                   </div>
                 </div>
-                <span
-                  className={cn(
-                    "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                    driver.status === "available" &&
-                      "bg-[#E8F5E9] text-[#2E7D32]",
-                    driver.status === "on-trip" &&
-                      "bg-[#E3F2FD] text-[#1976D2]",
-                    driver.status === "offline" &&
-                      "bg-slate-100 text-slate-600",
-                  )}
-                >
-                  {driver.status === "on-trip"
-                    ? "On Trip"
-                    : driver.status.charAt(0).toUpperCase() +
-                      driver.status.slice(1)}
-                </span>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                      driver.status === "available" &&
+                        "bg-[#E8F5E9] text-[#2E7D32]",
+                      driver.status === "on-trip" &&
+                        "bg-[#E3F2FD] text-[#1976D2]",
+                      driver.status === "offline" &&
+                        "bg-slate-100 text-slate-600",
+                    )}
+                  >
+                    {driver.status === "on-trip"
+                      ? "On Trip"
+                      : driver.status.charAt(0).toUpperCase() +
+                        driver.status.slice(1)}
+                  </span>
+                  {driver.active === false && <AccessStatusBadge disabled />}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -907,6 +936,34 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                       >
                         <Trash className="h-4 w-4" />
                         Delete
+                      </DropdownMenuItem>
+                    )}
+                    {canManageUserAccess && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAccessTarget({
+                            targetType: "driver",
+                            recordId: driver.id,
+                            subjectName: driver.name,
+                            disabled: driver.active === false,
+                          });
+                        }}
+                        className={cn(
+                          "gap-2",
+                          driver.active === false
+                            ? "text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                            : "text-red-600 focus:text-red-600 focus:bg-red-50",
+                        )}
+                      >
+                        {driver.active === false ? (
+                          <ShieldCheck className="h-4 w-4" />
+                        ) : (
+                          <LockKeyhole className="h-4 w-4" />
+                        )}
+                        {driver.active === false
+                          ? "Enable Access"
+                          : "Disable Access"}
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -1032,22 +1089,27 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                       <span className="text-xs text-slate-500 ml-1">trips</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={cn(
-                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                          driver.status === "available" &&
-                            "bg-[#E8F5E9] text-[#2E7D32]",
-                          driver.status === "on-trip" &&
-                            "bg-[#E3F2FD] text-[#1976D2]",
-                          driver.status === "offline" &&
-                            "bg-slate-100 text-slate-600",
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                            driver.status === "available" &&
+                              "bg-[#E8F5E9] text-[#2E7D32]",
+                            driver.status === "on-trip" &&
+                              "bg-[#E3F2FD] text-[#1976D2]",
+                            driver.status === "offline" &&
+                              "bg-slate-100 text-slate-600",
+                          )}
+                        >
+                          {driver.status === "on-trip"
+                            ? "On Trip"
+                            : driver.status.charAt(0).toUpperCase() +
+                              driver.status.slice(1)}
+                        </span>
+                        {driver.active === false && (
+                          <AccessStatusBadge disabled />
                         )}
-                      >
-                        {driver.status === "on-trip"
-                          ? "On Trip"
-                          : driver.status.charAt(0).toUpperCase() +
-                            driver.status.slice(1)}
-                      </span>
+                      </div>
                     </td>
                     <td
                       className="px-6 py-4 whitespace-nowrap"
@@ -1090,6 +1152,34 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                             >
                               <Trash className="h-4 w-4" />
                               Delete
+                            </DropdownMenuItem>
+                          )}
+                          {canManageUserAccess && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAccessTarget({
+                                  targetType: "driver",
+                                  recordId: driver.id,
+                                  subjectName: driver.name,
+                                  disabled: driver.active === false,
+                                });
+                              }}
+                              className={cn(
+                                "gap-2",
+                                driver.active === false
+                                  ? "text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                                  : "text-red-600 focus:text-red-600 focus:bg-red-50",
+                              )}
+                            >
+                              {driver.active === false ? (
+                                <ShieldCheck className="h-4 w-4" />
+                              ) : (
+                                <LockKeyhole className="h-4 w-4" />
+                              )}
+                              {driver.active === false
+                                ? "Enable Access"
+                                : "Disable Access"}
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
@@ -1184,6 +1274,26 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
         itemName={`${selectedIds.size} drivers`}
         isDeleting={isDeleting}
       />
+
+      {accessTarget && (
+        <UserAccessConfirmDialog
+          targetType={accessTarget.targetType}
+          recordId={accessTarget.recordId}
+          subjectName={accessTarget.subjectName}
+          disabled={accessTarget.disabled}
+          canManage={canManageUserAccess}
+          isDemoMode={isDemoMode}
+          open={!!accessTarget}
+          onOpenChange={(open) => {
+            if (!open) setAccessTarget(null);
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({
+              queryKey: ["drivers", currentOrganization?.id],
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

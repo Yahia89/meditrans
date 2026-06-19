@@ -22,9 +22,17 @@ import { cn, formatPhoneNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useCanManageUserAccess } from "@/hooks/useCanManageUserAccess";
 import { PatientsEmptyState } from "@/components/ui/empty-state";
 import { PatientForm } from "@/components/forms/patient-form";
-import { Loader2, Pencil, Trash, Check } from "lucide-react";
+import {
+  Loader2,
+  Pencil,
+  Trash,
+  Check,
+  LockKeyhole,
+  ShieldCheck,
+} from "lucide-react";
 import { exportToExcel } from "@/lib/export";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
@@ -44,6 +52,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AccessStatusBadge,
+  type AccessTargetType,
+  UserAccessConfirmDialog,
+} from "@/components/user-access-control";
 
 interface Patient {
   id: string;
@@ -74,6 +87,14 @@ interface Patient {
   sal_effective_date?: string | null;
   sal_through_date?: string | null;
   sal_pending_reason?: string | null;
+  disabled?: boolean;
+}
+
+interface AccessDialogTarget {
+  targetType: AccessTargetType;
+  recordId: string;
+  subjectName: string;
+  disabled: boolean;
 }
 
 // Demo data for preview mode
@@ -187,12 +208,16 @@ export function PatientsPage({
     canDeletePatients,
     canViewPatients
   } = usePermissions();
+  const canManageUserAccess = useCanManageUserAccess();
 
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [accessTarget, setAccessTarget] = useState<AccessDialogTarget | null>(
+    null,
+  );
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0 || isDemoMode) return;
@@ -296,6 +321,7 @@ export function PatientsPage({
           sal_effective_date: p.sal_effective_date,
           sal_through_date: p.sal_through_date,
           sal_pending_reason: p.sal_pending_reason,
+          disabled: p.disabled === true,
         } as Patient;
       });
     },
@@ -821,20 +847,26 @@ export function PatientsPage({
                     </div>
                   </div>
                 </div>
-                <span
-                  className={cn(
-                    "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                    patient.status === "approved"
-                      ? "bg-[#E8F5E9] text-[#2E7D32]"
-                      : patient.status === "pending"
-                      ? "bg-amber-50 text-amber-700"
-                      : patient.status === "expired"
-                      ? "bg-red-50 text-red-700"
-                      : "bg-slate-100 text-slate-700",
-                  )}
-                >
-                  {patient.status === "n/a" ? "N/A" : patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}
-                </span>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                      patient.status === "approved"
+                        ? "bg-[#E8F5E9] text-[#2E7D32]"
+                        : patient.status === "pending"
+                        ? "bg-amber-50 text-amber-700"
+                        : patient.status === "expired"
+                        ? "bg-red-50 text-red-700"
+                        : "bg-slate-100 text-slate-700",
+                    )}
+                  >
+                    {patient.status === "n/a"
+                      ? "N/A"
+                      : patient.status.charAt(0).toUpperCase() +
+                        patient.status.slice(1)}
+                  </span>
+                  {patient.disabled && <AccessStatusBadge disabled />}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -927,6 +959,32 @@ export function PatientsPage({
                         >
                           <Trash className="h-4 w-4" />
                           Delete
+                        </DropdownMenuItem>
+                      )}
+                      {canManageUserAccess && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAccessTarget({
+                              targetType: "patient",
+                              recordId: patient.id,
+                              subjectName: patient.name,
+                              disabled: patient.disabled === true,
+                            });
+                          }}
+                          className={cn(
+                            "gap-2",
+                            patient.disabled
+                              ? "text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                              : "text-red-600 focus:text-red-600 focus:bg-red-50",
+                          )}
+                        >
+                          {patient.disabled ? (
+                            <ShieldCheck className="h-4 w-4" />
+                          ) : (
+                            <LockKeyhole className="h-4 w-4" />
+                          )}
+                          {patient.disabled ? "Enable Access" : "Disable Access"}
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
@@ -1051,20 +1109,26 @@ export function PatientsPage({
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={cn(
-                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
-                          patient.status === "approved"
-                            ? "bg-[#E8F5E9] text-[#2E7D32]"
-                            : patient.status === "pending"
-                            ? "bg-amber-50 text-amber-700"
-                            : patient.status === "expired"
-                            ? "bg-red-50 text-red-700"
-                            : "bg-slate-100 text-slate-700",
-                        )}
-                      >
-                        {patient.status === "n/a" ? "N/A" : patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold",
+                            patient.status === "approved"
+                              ? "bg-[#E8F5E9] text-[#2E7D32]"
+                              : patient.status === "pending"
+                              ? "bg-amber-50 text-amber-700"
+                              : patient.status === "expired"
+                              ? "bg-red-50 text-red-700"
+                              : "bg-slate-100 text-slate-700",
+                          )}
+                        >
+                          {patient.status === "n/a"
+                            ? "N/A"
+                            : patient.status.charAt(0).toUpperCase() +
+                              patient.status.slice(1)}
+                        </span>
+                        {patient.disabled && <AccessStatusBadge disabled />}
+                      </div>
                     </td>
                     <td
                       className="px-6 py-4 whitespace-nowrap"
@@ -1117,6 +1181,34 @@ export function PatientsPage({
                               >
                                 <Trash className="h-4 w-4" />
                                 Delete
+                              </DropdownMenuItem>
+                            )}
+                            {canManageUserAccess && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setAccessTarget({
+                                    targetType: "patient",
+                                    recordId: patient.id,
+                                    subjectName: patient.name,
+                                    disabled: patient.disabled === true,
+                                  });
+                                }}
+                                className={cn(
+                                  "gap-2",
+                                  patient.disabled
+                                    ? "text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                                    : "text-red-600 focus:text-red-600 focus:bg-red-50",
+                                )}
+                              >
+                                {patient.disabled ? (
+                                  <ShieldCheck className="h-4 w-4" />
+                                ) : (
+                                  <LockKeyhole className="h-4 w-4" />
+                                )}
+                                {patient.disabled
+                                  ? "Enable Access"
+                                  : "Disable Access"}
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -1212,6 +1304,26 @@ export function PatientsPage({
         itemName={`${selectedIds.size} clients`}
         isDeleting={isDeleting}
       />
+
+      {accessTarget && (
+        <UserAccessConfirmDialog
+          targetType={accessTarget.targetType}
+          recordId={accessTarget.recordId}
+          subjectName={accessTarget.subjectName}
+          disabled={accessTarget.disabled}
+          canManage={canManageUserAccess}
+          isDemoMode={isDemoMode}
+          open={!!accessTarget}
+          onOpenChange={(open) => {
+            if (!open) setAccessTarget(null);
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({
+              queryKey: ["patients", currentOrganization?.id],
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

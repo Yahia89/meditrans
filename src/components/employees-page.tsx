@@ -22,10 +22,11 @@ import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { EmployeeForm } from "@/components/forms/employee-form";
-import { Loader2, Pencil, Trash, Check } from "lucide-react";
+import { Loader2, Pencil, Trash, Check, LockKeyhole, ShieldCheck } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useCanManageUserAccess } from "@/hooks/useCanManageUserAccess";
 import { EmployeesEmptyState } from "@/components/ui/empty-state";
 import {
   useOrganizationMembers,
@@ -53,6 +54,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AccessStatusBadge,
+  type AccessTargetType,
+  UserAccessConfirmDialog,
+} from "@/components/user-access-control";
 
 interface Employee {
   id: string;
@@ -68,6 +74,14 @@ interface Employee {
   custom_fields?: Record<string, string> | null;
   system_role?: string | null; // Synced from organization_memberships via trigger
   user_id?: string | null;
+  disabled?: boolean;
+}
+
+interface AccessDialogTarget {
+  targetType: AccessTargetType;
+  recordId: string;
+  subjectName: string;
+  disabled: boolean;
 }
 
 // Demo data for preview mode
@@ -248,8 +262,12 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   const { isDemoMode, navigateTo } = useOnboarding();
   const { currentOrganization } = useOrganization();
   const { isAdmin } = usePermissions();
+  const canManageUserAccess = useCanManageUserAccess();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [accessTarget, setAccessTarget] = useState<AccessDialogTarget | null>(
+    null,
+  );
   const activeTimezone = useTimezone();
   const queryClient = useQueryClient();
 
@@ -356,6 +374,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
             custom_fields: e.custom_fields,
             system_role: e.system_role, // Synced from organization_memberships
             user_id: e.user_id,
+            disabled: e.disabled === true,
           }) as Employee,
       );
     },
@@ -902,6 +921,9 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                     </h3>
                     <div className="flex items-center gap-2 mt-1.5">
                       <RoleBadge employee={employee} />
+                      {employee.disabled && (
+                        <AccessStatusBadge disabled={employee.disabled} />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -988,30 +1010,60 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={isDemoMode || !isAdmin}
+                      disabled={isDemoMode || (!isAdmin && !canManageUserAccess)}
                       className="rounded-lg border-slate-200 hover:bg-slate-50"
                     >
                       <DotsThreeVertical size={16} weight="bold" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem
-                      onClick={() => setEditingEmployee(employee)}
-                      className="gap-2"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      Edit Employee
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteId(employee.id);
-                      }}
-                      className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
-                    >
-                      <Trash className="h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => setEditingEmployee(employee)}
+                          className="gap-2"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit Employee
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteId(employee.id);
+                          }}
+                          className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                        >
+                          <Trash className="h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {canManageUserAccess && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAccessTarget({
+                            targetType: "employee",
+                            recordId: employee.id,
+                            subjectName: employee.name,
+                            disabled: employee.disabled === true,
+                          });
+                        }}
+                        className={cn(
+                          "gap-2",
+                          employee.disabled
+                            ? "text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                            : "text-red-600 focus:text-red-600 focus:bg-red-50",
+                        )}
+                      >
+                        {employee.disabled ? (
+                          <ShieldCheck className="h-4 w-4" />
+                        ) : (
+                          <LockKeyhole className="h-4 w-4" />
+                        )}
+                        {employee.disabled ? "Enable Access" : "Disable Access"}
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -1118,7 +1170,12 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <RoleBadge employee={employee} />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <RoleBadge employee={employee} />
+                          {employee.disabled && (
+                            <AccessStatusBadge disabled={employee.disabled} />
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         {(() => {
@@ -1146,30 +1203,64 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                disabled={isDemoMode || !isAdmin}
+                                disabled={
+                                  isDemoMode || (!isAdmin && !canManageUserAccess)
+                                }
                                 className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
                               >
                                 <DotsThreeVertical size={16} />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => setEditingEmployee(employee)}
-                                className="gap-2"
-                              >
-                                <Pencil className="h-4 w-4" />
-                                Edit Employee
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteId(employee.id);
-                                }}
-                                className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
-                              >
-                                <Trash className="h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
+                              {isAdmin && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => setEditingEmployee(employee)}
+                                    className="gap-2"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                    Edit Employee
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeleteId(employee.id);
+                                    }}
+                                    className="gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {canManageUserAccess && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAccessTarget({
+                                      targetType: "employee",
+                                      recordId: employee.id,
+                                      subjectName: employee.name,
+                                      disabled: employee.disabled === true,
+                                    });
+                                  }}
+                                  className={cn(
+                                    "gap-2",
+                                    employee.disabled
+                                      ? "text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                                      : "text-red-600 focus:text-red-600 focus:bg-red-50",
+                                  )}
+                                >
+                                  {employee.disabled ? (
+                                    <ShieldCheck className="h-4 w-4" />
+                                  ) : (
+                                    <LockKeyhole className="h-4 w-4" />
+                                  )}
+                                  {employee.disabled
+                                    ? "Enable Access"
+                                    : "Disable Access"}
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -1273,6 +1364,26 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
         itemName={`${selectedIds.size} employees`}
         isDeleting={isDeleting}
       />
+
+      {accessTarget && (
+        <UserAccessConfirmDialog
+          targetType={accessTarget.targetType}
+          recordId={accessTarget.recordId}
+          subjectName={accessTarget.subjectName}
+          disabled={accessTarget.disabled}
+          canManage={canManageUserAccess}
+          isDemoMode={isDemoMode}
+          open={!!accessTarget}
+          onOpenChange={(open) => {
+            if (!open) setAccessTarget(null);
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({
+              queryKey: ["employees", currentOrganization?.id],
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

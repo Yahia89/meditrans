@@ -41,7 +41,8 @@ export type MembershipRole =
   | "admin"
   | "dispatch"
   | "employee"
-  | "driver";
+  | "driver"
+  | "patient";
 
 export interface Database {
   public: {
@@ -184,6 +185,11 @@ export interface Database {
           phone: string | null;
           license_number: string | null;
           vehicle_info: string | null;
+          user_id: string | null;
+          active: boolean;
+          disabled_at: string | null;
+          disabled_by: string | null;
+          disabled_reason: string | null;
           status: string;
           custom_fields: Json;
           created_at: string;
@@ -197,6 +203,11 @@ export interface Database {
           phone?: string | null;
           license_number?: string | null;
           vehicle_info?: string | null;
+          user_id?: string | null;
+          active?: boolean;
+          disabled_at?: string | null;
+          disabled_by?: string | null;
+          disabled_reason?: string | null;
           status?: string;
           custom_fields?: Json;
           created_at?: string;
@@ -210,6 +221,11 @@ export interface Database {
           phone?: string | null;
           license_number?: string | null;
           vehicle_info?: string | null;
+          user_id?: string | null;
+          active?: boolean;
+          disabled_at?: string | null;
+          disabled_by?: string | null;
+          disabled_reason?: string | null;
           status?: string;
           custom_fields?: Json;
           created_at?: string;
@@ -230,6 +246,10 @@ export interface Database {
           notes: string | null;
           custom_fields: Json;
           user_id: string | null;
+          disabled: boolean;
+          disabled_at: string | null;
+          disabled_by: string | null;
+          disabled_reason: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -246,6 +266,10 @@ export interface Database {
           notes?: string | null;
           custom_fields?: Json;
           user_id?: string | null;
+          disabled?: boolean;
+          disabled_at?: string | null;
+          disabled_by?: string | null;
+          disabled_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -262,6 +286,10 @@ export interface Database {
           notes?: string | null;
           custom_fields?: Json;
           user_id?: string | null;
+          disabled?: boolean;
+          disabled_at?: string | null;
+          disabled_by?: string | null;
+          disabled_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -282,6 +310,11 @@ export interface Database {
           referral_expiration_date: string | null;
           status: string;
           custom_fields: Json;
+          user_id: string | null;
+          disabled: boolean;
+          disabled_at: string | null;
+          disabled_by: string | null;
+          disabled_reason: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -300,6 +333,11 @@ export interface Database {
           referral_expiration_date?: string | null;
           status?: string;
           custom_fields?: Json;
+          user_id?: string | null;
+          disabled?: boolean;
+          disabled_at?: string | null;
+          disabled_by?: string | null;
+          disabled_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -318,6 +356,11 @@ export interface Database {
           referral_expiration_date?: string | null;
           status?: string;
           custom_fields?: Json;
+          user_id?: string | null;
+          disabled?: boolean;
+          disabled_at?: string | null;
+          disabled_by?: string | null;
+          disabled_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };

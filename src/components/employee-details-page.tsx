@@ -33,6 +33,11 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatInUserTimezone } from "@/lib/timezone";
 import { generateProfilePDF } from "@/utils/profile-pdf-generator";
+import { useCanManageUserAccess } from "@/hooks/useCanManageUserAccess";
+import {
+  AccessStatusBadge,
+  UserAccessToggleButton,
+} from "@/components/user-access-control";
 
 interface EmployeeDetailsPageProps {
   id: string;
@@ -54,6 +59,9 @@ interface Employee {
   created_at: string;
   custom_fields: Record<string, any> | null;
   user_id: string | null;
+  disabled: boolean;
+  disabled_at: string | null;
+  disabled_by: string | null;
 }
 
 function formatDate(dateStr: string | null, timezone: string) {
@@ -124,6 +132,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
   const { currentOrganization } = useOrganization();
   const activeTimezone = useTimezone();
   const queryClient = useQueryClient();
+  const canManageUserAccess = useCanManageUserAccess();
 
   const canManageEmployees = isAdmin || isOwner;
 
@@ -310,6 +319,8 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
     );
   }
 
+  const accessDisabled = employee.disabled === true;
+
   const workEvents = [
     {
       date: employee.hire_date,
@@ -362,6 +373,7 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
               >
                 {employee.status.replace("_", " ")}
               </span>
+              <AccessStatusBadge disabled={accessDisabled} />
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-slate-500">
@@ -387,52 +399,72 @@ export function EmployeeDetailsPage({ id, onBack }: EmployeeDetailsPageProps) {
             <Printer size={16} />
             Print Out
           </Button>
-          {canManageEmployees && (
+          {(canManageEmployees || canManageUserAccess) && (
             <>
-              <Button
-                variant="outline"
-                onClick={() => setIsEditing(true)}
-                className="inline-flex items-center gap-2 rounded-xl"
-              >
-                <Pencil size={16} />
-                Edit Details
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => sendInviteMutation.mutate()}
-                disabled={
-                  inviteButtonConfig.disabled ||
-                  isDemoMode ||
-                  sendInviteMutation.isPending
-                }
-                title={inviteButtonConfig.tooltip}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl",
-                  inviteButtonConfig.disabled
-                    ? "text-slate-400"
-                    : inviteStatus?.accepted_at
-                      ? "text-green-600 border-green-100"
-                      : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700",
-                )}
-              >
-                {sendInviteMutation.isPending ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <inviteButtonConfig.icon size={16} />
-                )}
-                {sendInviteMutation.isPending
-                  ? "Sending..."
-                  : inviteButtonConfig.label}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isDemoMode}
-                className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
-              >
-                <Trash size={16} />
-                Delete Employee
-              </Button>
+              {canManageEmployees && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="inline-flex items-center gap-2 rounded-xl"
+                  >
+                    <Pencil size={16} />
+                    Edit Details
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => sendInviteMutation.mutate()}
+                    disabled={
+                      inviteButtonConfig.disabled ||
+                      isDemoMode ||
+                      sendInviteMutation.isPending
+                    }
+                    title={inviteButtonConfig.tooltip}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-xl",
+                      inviteButtonConfig.disabled
+                        ? "text-slate-400"
+                        : inviteStatus?.accepted_at
+                          ? "text-green-600 border-green-100"
+                          : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700",
+                    )}
+                  >
+                    {sendInviteMutation.isPending ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <inviteButtonConfig.icon size={16} />
+                    )}
+                    {sendInviteMutation.isPending
+                      ? "Sending..."
+                      : inviteButtonConfig.label}
+                  </Button>
+                </>
+              )}
+              <UserAccessToggleButton
+                targetType="employee"
+                recordId={employee.id}
+                subjectName={employee.full_name}
+                disabled={accessDisabled}
+                canManage={canManageUserAccess}
+                isDemoMode={isDemoMode}
+                onSuccess={() => {
+                  queryClient.invalidateQueries({ queryKey: ["employee", id] });
+                  queryClient.invalidateQueries({
+                    queryKey: ["employees", currentOrganization?.id],
+                  });
+                }}
+              />
+              {canManageEmployees && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={isDemoMode}
+                  className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
+                >
+                  <Trash size={16} />
+                  Delete Employee
+                </Button>
+              )}
             </>
           )}
         </div>
