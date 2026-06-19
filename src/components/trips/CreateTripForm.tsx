@@ -319,7 +319,9 @@ export function CreateTripForm({
       // 1. Fetch patients
       const { data: patients, error: patientsError } = await supabase
         .from("patients")
-        .select("id, full_name, vehicle_type_need, monthly_credit, service_type")
+        .select(
+          "id, full_name, vehicle_type_need, monthly_credit, service_type, disabled",
+        )
         .eq("org_id", currentOrganization.id)
         .order("full_name");
 
@@ -381,7 +383,7 @@ export function CreateTripForm({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("drivers")
-        .select("id, full_name, email, phone, vehicle_type")
+        .select("id, full_name, email, phone, vehicle_type, active")
         .eq("org_id", currentOrganization?.id)
         .order("full_name");
       if (error) throw error;
@@ -472,6 +474,28 @@ export function CreateTripForm({
 
       // Check for conflicts
       for (const leg of tripLegs) {
+        const selectedPatient = patients?.find((p) => p.id === leg.patient_id);
+        if (selectedPatient?.disabled) {
+          setConflictError(
+            `${selectedPatient.full_name} has disabled access and cannot be booked for a ride.`,
+          );
+          setActiveLegId(leg.id);
+          toggleLoading(false);
+          return;
+        }
+
+        const selectedDriver = allPotentialDrivers.find(
+          (d) => d.id === leg.driver_id,
+        );
+        if (selectedDriver?.active === false) {
+          setConflictError(
+            `${selectedDriver.full_name} has disabled access and cannot be assigned to a trip.`,
+          );
+          setActiveLegId(leg.id);
+          toggleLoading(false);
+          return;
+        }
+
         // Create a proper Date object and get ISO string for consistent DB comparison
         // Default to 00:00 for Will Call if time is missing
         const timeToUse =
@@ -886,7 +910,7 @@ export function CreateTripForm({
                   );
 
                   let autoServiceType = currentLeg.service_type;
-                  
+
                   if (selectedPatient?.vehicle_type_need) {
                     const mapping: Record<string, string> = {
                       "COMMON CARRIER": "Ambulatory",
@@ -908,16 +932,19 @@ export function CreateTripForm({
               >
                 <option value="">Select Patient</option>
                 {patients?.map((p) => {
+                  const accessDisabled = p.disabled === true;
                   const hasNoCredit =
                     p.monthly_credit === null ||
                     p.monthly_credit === undefined ||
                     p.monthly_credit === 0;
                   const isLow = p.creditInfo.status === "low";
-                  const isDisabled = hasNoCredit || isLow;
+                  const isDisabled = accessDisabled || hasNoCredit || isLow;
                   const pct = p.creditInfo.percentage.toFixed(0);
 
                   let statusText = "";
-                  if (hasNoCredit) {
+                  if (accessDisabled) {
+                    statusText = "- ACCESS DISABLED";
+                  } else if (hasNoCredit) {
                     statusText = "- NO CREDITS ASSIGNED (Discharge)";
                   } else if (isLow) {
                     statusText = "- INSUFFICIENT CREDIT";
@@ -930,6 +957,7 @@ export function CreateTripForm({
                       disabled={isDisabled}
                       className={cn(
                         isDisabled && "text-slate-400 bg-slate-50",
+                        accessDisabled && "text-red-400",
                         !hasNoCredit && isLow && "text-red-400",
                         p.creditInfo.status === "mid" && "text-amber-600",
                       )}
@@ -955,8 +983,16 @@ export function CreateTripForm({
               >
                 <option value="">Unassigned</option>
                 {compatibleDrivers.map((d) => (
-                  <option key={d.id} value={d.id}>
+                  <option
+                    key={d.id}
+                    value={d.id}
+                    disabled={d.active === false}
+                    className={cn(
+                      d.active === false && "text-slate-400 bg-slate-50",
+                    )}
+                  >
                     {d.full_name}
+                    {d.active === false ? " - ACCESS DISABLED" : ""}
                   </option>
                 ))}
               </select>

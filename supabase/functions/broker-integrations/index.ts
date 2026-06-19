@@ -712,14 +712,22 @@ async function resolvePatient(
   const name = trip.memberName || `Broker rider ${trip.brokerTripId}`;
   const { data: existing } = await admin
     .from("patients")
-    .select("id")
+    .select("id, full_name, disabled")
     .eq("org_id", orgId)
     .ilike("full_name", name)
     .limit(1)
     .maybeSingle();
 
   const existingObject = asObject(existing);
-  if (existingObject.id) return asString(existingObject.id);
+  if (existingObject.id) {
+    if (existingObject.disabled === true) {
+      throw new HttpError(
+        400,
+        `${asString(existingObject.full_name) || name} has disabled access and cannot be booked for a ride.`,
+      );
+    }
+    return asString(existingObject.id);
+  }
 
   const { data, error } = await admin
     .from("patients")

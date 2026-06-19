@@ -115,12 +115,12 @@ export function CreateDischargeDialog({
 
   // Fetch Drivers
   const { data: drivers } = useQuery({
-    queryKey: ["drivers", currentOrganization?.id],
+    queryKey: ["drivers-discharge-form", currentOrganization?.id],
     queryFn: async () => {
       if (!currentOrganization?.id) return [];
       const { data, error } = await supabase
         .from("drivers")
-        .select("id, full_name")
+        .select("id, full_name, active")
         .eq("org_id", currentOrganization.id);
       if (error) throw error;
       return data;
@@ -218,7 +218,7 @@ export function CreateDischargeDialog({
       // 1. Create or Find Patient
       const { data: existingPatients } = await supabase
         .from("patients")
-        .select("id")
+        .select("id, full_name, disabled")
         .eq("org_id", currentOrganization.id)
         .ilike(
           "full_name",
@@ -228,6 +228,11 @@ export function CreateDischargeDialog({
 
       let patientId;
       if (existingPatients && existingPatients.length > 0) {
+        if (existingPatients[0].disabled) {
+          throw new Error(
+            `${existingPatients[0].full_name} has disabled access and cannot be booked for a ride.`,
+          );
+        }
         patientId = existingPatients[0].id;
       } else {
         const { data: newPatient, error: pError } = await supabase
@@ -240,6 +245,15 @@ export function CreateDischargeDialog({
           .single();
         if (pError) throw pError;
         patientId = newPatient.id;
+      }
+
+      const selectedDriver = drivers?.find(
+        (driver) => driver.id === formData.driverId,
+      );
+      if (selectedDriver?.active === false) {
+        throw new Error(
+          `${selectedDriver.full_name} has disabled access and cannot be assigned to a trip.`,
+        );
       }
 
       // 2. Insert Trip
@@ -559,8 +573,20 @@ export function CreateDischargeDialog({
                           >
                             <option value="">Unassigned</option>
                             {drivers?.map((driver: any) => (
-                              <option key={driver.id} value={driver.id}>
+                              <option
+                                key={driver.id}
+                                value={driver.id}
+                                disabled={driver.active === false}
+                                className={
+                                  driver.active === false
+                                    ? "text-slate-400 bg-slate-50"
+                                    : undefined
+                                }
+                              >
                                 {driver.full_name}
+                                {driver.active === false
+                                  ? " - ACCESS DISABLED"
+                                  : ""}
                               </option>
                             ))}
                           </select>

@@ -89,13 +89,13 @@ export function QuickAddLegDialog({
   const [distanceMiles, setDistanceMiles] = useState<number | null>(null);
   const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
 
-  // Fetch Patient preference if no first trip
+  // Fetch patient access state and preference if no first trip
   const { data: patientDetails } = useQuery({
     queryKey: ["patient-pref", patientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
-        .select("vehicle_type_need")
+        .select("full_name, vehicle_type_need, disabled")
         .eq("id", patientId)
         .single();
       if (error) return null;
@@ -203,7 +203,7 @@ export function QuickAddLegDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("drivers")
-        .select("id, full_name, email, phone, vehicle_type")
+        .select("id, full_name, email, phone, vehicle_type, active")
         .eq("org_id", currentOrganization?.id)
         .order("full_name");
       if (error) throw error;
@@ -215,6 +215,21 @@ export function QuickAddLegDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentOrganization || !user) return;
+
+    if (patientDetails?.disabled) {
+      setError(
+        `${patientDetails.full_name || patientName} has disabled access and cannot be booked for a ride.`,
+      );
+      return;
+    }
+
+    const selectedDriver = drivers?.find((driver) => driver.id === driverId);
+    if (selectedDriver?.active === false) {
+      setError(
+        `${selectedDriver.full_name} has disabled access and cannot be assigned to a trip.`,
+      );
+      return;
+    }
 
     if (!pickupTime || !pickupLocation || !dropoffLocation) {
       setError("Please fill in all required fields.");
@@ -314,6 +329,13 @@ export function QuickAddLegDialog({
                 <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
                   {error}
+                </div>
+              )}
+              {patientDetails?.disabled && !error && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                  {patientDetails.full_name || patientName} has disabled access
+                  and cannot be booked for a ride.
                 </div>
               )}
 
@@ -457,8 +479,18 @@ export function QuickAddLegDialog({
                   >
                     <option value="">Unassigned</option>
                     {drivers?.map((driver) => (
-                      <option key={driver.id} value={driver.id}>
+                      <option
+                        key={driver.id}
+                        value={driver.id}
+                        disabled={driver.active === false}
+                        className={
+                          driver.active === false
+                            ? "text-slate-400 bg-slate-50"
+                            : undefined
+                        }
+                      >
                         {driver.full_name}
+                        {driver.active === false ? " - ACCESS DISABLED" : ""}
                       </option>
                     ))}
                   </select>
@@ -491,7 +523,7 @@ export function QuickAddLegDialog({
             </Button>
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || patientDetails?.disabled}
               className="bg-[#3D5A3D] hover:bg-[#2E4A2E] text-white rounded-xl h-11 px-8 font-bold shadow-lg shadow-[#3D5A3D]/10"
             >
               {loading ? (

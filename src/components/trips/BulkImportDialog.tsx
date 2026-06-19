@@ -175,13 +175,18 @@ export function BulkImportDialog({
           // Check if patient exists
           const { data: existingPatients } = await supabase
             .from("patients")
-            .select("id")
+            .select("id, full_name, disabled")
             .eq("org_id", currentOrganization.id)
             .ilike("first_name", firstName)
             .ilike("last_name", lastName)
             .limit(1);
 
           if (existingPatients && existingPatients.length > 0) {
+            if (existingPatients[0].disabled) {
+              throw new Error(
+                `${existingPatients[0].full_name || `${firstName} ${lastName}`} has disabled access and cannot be booked for a ride.`,
+              );
+            }
             patientId = existingPatients[0].id;
           } else {
             // Create new patient
