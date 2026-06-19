@@ -21,11 +21,12 @@ export function usePermissions() {
       return !restrictedActions.includes(action);
     }
 
-    // Dispatch: Dashboard + Trips (view/create/edit), Patients/Drivers (view only), NO employees/uploads/billing/medicaid/deletions
+    // Dispatch: Dashboard + Trips (view/create/edit), Patients (view/edit), Drivers (view only), NO employees/uploads/billing/medicaid/deletions
     if (userRole === "dispatch") {
       const allowedActions = [
         "view_dashboard",
         "view_patients",
+        "edit_patients",
         "view_drivers",
         "view_trips",
         "create_trips",
@@ -78,7 +79,7 @@ export function usePermissions() {
   const canViewBilling = isAdmin; // Only admin+ can see billing
   const canViewMedicaid = isAdmin; // Only admin+ can see medicaid
   const canViewNotifications = isAdmin; // Only admin+ can see notifications
-  const canEditPatients = isAdmin; // Only admin+ can edit patients
+  const canEditPatients = isDispatch; // Dispatch+ can edit patients
   const canEditDrivers = isAdmin; // Only admin+ can edit drivers
   const canDeletePatients = isAdmin; // Only admin+ can delete patients
   const canDeleteDrivers = isAdmin; // Only admin+ can delete drivers
