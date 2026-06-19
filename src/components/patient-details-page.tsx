@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   History,
   MinusCircle,
+  Printer,
 } from "lucide-react";
 import {
   CaretLeft,
@@ -52,6 +53,7 @@ import {
   formatInUserTimezone,
   parseZonedTime,
 } from "@/lib/timezone";
+import { generateProfilePDF } from "@/utils/profile-pdf-generator";
 
 interface PatientDetailsPageProps {
   id: string;
@@ -111,6 +113,9 @@ const statusColors: Record<TripStatus, string> = {
   cancelled: "bg-red-50 text-red-700 border-red-100",
   no_show: "bg-orange-50 text-orange-700 border-orange-100",
   waiting: "bg-amber-100 text-amber-800 border-amber-200",
+  loaded: "bg-purple-50 text-purple-700 border-purple-100",
+  in_pickup_circle: "bg-cyan-50 text-cyan-700 border-cyan-100",
+  in_dropoff_circle: "bg-pink-50 text-pink-700 border-pink-100",
 };
 
 function formatDate(dateStr: string | null, timezone: string = "UTC") {
@@ -140,7 +145,8 @@ export function PatientDetailsPage({
   >("section", {
     defaultValue: "overview",
     parse: (value) =>
-      (value as "overview" | "documents" | "trips" | "credits" | "summary") || "overview",
+      (value as "overview" | "documents" | "trips" | "credits" | "summary") ||
+      "overview",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -376,31 +382,48 @@ export function PatientDetailsPage({
           </div>
         </div>
 
-        {canManagePatients && (
-          <div className="flex gap-2">
-            {canEditPatients && (
-              <Button
-                variant="outline"
-                onClick={() => setIsEditing(true)}
-                className="inline-flex items-center gap-2 rounded-xl"
-              >
-                <Pencil size={16} />
-                Edit Details
-              </Button>
-            )}
-            {canDeletePatients && (
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isDemoMode}
-                className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
-              >
-                <Trash size={16} />
-                Delete Patient
-              </Button>
-            )}
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() =>
+              generateProfilePDF(
+                "patient",
+                patient,
+                currentOrganization?.name || "",
+                activeTimezone,
+              )
+            }
+            className="inline-flex items-center gap-2 rounded-xl"
+          >
+            <Printer size={16} />
+            Print Out
+          </Button>
+          {canManagePatients && (
+            <>
+              {canEditPatients && (
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditing(true)}
+                  className="inline-flex items-center gap-2 rounded-xl"
+                >
+                  <Pencil size={16} />
+                  Edit Details
+                </Button>
+              )}
+              {canDeletePatients && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={isDemoMode}
+                  className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
+                >
+                  <Trash size={16} />
+                  Delete Patient
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -415,7 +438,11 @@ export function PatientDetailsPage({
                 : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
             )}
           >
-            <IdentificationCard size={16} weight="duotone" className="text-[#3D5A3D]" />
+            <IdentificationCard
+              size={16}
+              weight="duotone"
+              className="text-[#3D5A3D]"
+            />
             Overview
           </button>
           <button
@@ -764,13 +791,18 @@ export function PatientDetailsPage({
             </div>
 
             {/* SAL Status Card */}
-            <div className={cn(
-              "rounded-2xl border p-6 shadow-sm",
-              patient.sal_status === "approved" && "bg-emerald-50/50 border-emerald-200",
-              patient.sal_status === "pending" && "bg-amber-50/50 border-amber-200",
-              patient.sal_status === "expired" && "bg-red-50/50 border-red-200",
-              !patient.sal_status && "bg-white border-slate-200",
-            )}>
+            <div
+              className={cn(
+                "rounded-2xl border p-6 shadow-sm",
+                patient.sal_status === "approved" &&
+                  "bg-emerald-50/50 border-emerald-200",
+                patient.sal_status === "pending" &&
+                  "bg-amber-50/50 border-amber-200",
+                patient.sal_status === "expired" &&
+                  "bg-red-50/50 border-red-200",
+                !patient.sal_status && "bg-white border-slate-200",
+              )}
+            >
               <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <ClipboardCheck className="w-4 h-4 text-slate-400" />
                 SAL Status
@@ -785,13 +817,21 @@ export function PatientDetailsPage({
                         <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-emerald-700">Approved</p>
+                        <p className="text-sm font-semibold text-emerald-700">
+                          Approved
+                        </p>
                         {patient.sal_effective_date && (
                           <p className="text-xs text-slate-500">
-                            {formatDate(patient.sal_effective_date, activeTimezone)}
+                            {formatDate(
+                              patient.sal_effective_date,
+                              activeTimezone,
+                            )}
                             <span className="mx-1">→</span>
                             {patient.sal_through_date
-                              ? formatDate(patient.sal_through_date, activeTimezone)
+                              ? formatDate(
+                                  patient.sal_through_date,
+                                  activeTimezone,
+                                )
                               : "No end date"}
                           </p>
                         )}
@@ -804,7 +844,9 @@ export function PatientDetailsPage({
                         <Clock className="w-4 h-4 text-amber-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-amber-700">Pending</p>
+                        <p className="text-sm font-semibold text-amber-700">
+                          Pending
+                        </p>
                         {patient.sal_pending_reason && (
                           <p className="text-xs text-slate-500 line-clamp-2">
                             {patient.sal_pending_reason}
@@ -819,8 +861,12 @@ export function PatientDetailsPage({
                         <XCircle className="w-4 h-4 text-red-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-red-600">Expired</p>
-                        <p className="text-xs text-slate-500">Needs recertification</p>
+                        <p className="text-sm font-semibold text-red-600">
+                          Expired
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Needs recertification
+                        </p>
                       </div>
                     </>
                   )}
@@ -830,8 +876,12 @@ export function PatientDetailsPage({
                         <MinusCircle className="w-4 h-4 text-slate-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-600">N/A</p>
-                        <p className="text-xs text-slate-500">Not applicable to this client</p>
+                        <p className="text-sm font-semibold text-slate-600">
+                          N/A
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Not applicable to this client
+                        </p>
                       </div>
                     </>
                   )}
@@ -841,8 +891,12 @@ export function PatientDetailsPage({
                         <ClipboardCheck className="w-4 h-4 text-slate-400" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-slate-500">Not Set</p>
-                        <p className="text-xs text-slate-400">No SAL status recorded</p>
+                        <p className="text-sm font-medium text-slate-500">
+                          Not Set
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          No SAL status recorded
+                        </p>
                       </div>
                     </>
                   )}
@@ -866,47 +920,80 @@ export function PatientDetailsPage({
                             entry.status === "n/a" && "bg-slate-50",
                           )}
                         >
-                          <div className={cn(
-                            "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                            entry.status === "approved" && "bg-emerald-100",
-                            entry.status === "pending" && "bg-amber-100",
-                            entry.status === "expired" && "bg-red-100",
-                            entry.status === "n/a" && "bg-slate-200",
-                          )}>
-                            {entry.status === "approved" && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-                            {entry.status === "pending" && <Clock className="w-3 h-3 text-amber-600" />}
-                            {entry.status === "expired" && <XCircle className="w-3 h-3 text-red-500" />}
-                            {entry.status === "n/a" && <MinusCircle className="w-3 h-3 text-slate-500" />}
+                          <div
+                            className={cn(
+                              "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                              entry.status === "approved" && "bg-emerald-100",
+                              entry.status === "pending" && "bg-amber-100",
+                              entry.status === "expired" && "bg-red-100",
+                              entry.status === "n/a" && "bg-slate-200",
+                            )}
+                          >
+                            {entry.status === "approved" && (
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            )}
+                            {entry.status === "pending" && (
+                              <Clock className="w-3 h-3 text-amber-600" />
+                            )}
+                            {entry.status === "expired" && (
+                              <XCircle className="w-3 h-3 text-red-500" />
+                            )}
+                            {entry.status === "n/a" && (
+                              <MinusCircle className="w-3 h-3 text-slate-500" />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
-                              <span className={cn(
-                                "font-semibold capitalize",
-                                entry.status === "approved" && "text-emerald-700",
-                                entry.status === "pending" && "text-amber-700",
-                                entry.status === "expired" && "text-red-600",
-                                entry.status === "n/a" && "text-slate-600",
-                              )}>
+                              <span
+                                className={cn(
+                                  "font-semibold capitalize",
+                                  entry.status === "approved" &&
+                                    "text-emerald-700",
+                                  entry.status === "pending" &&
+                                    "text-amber-700",
+                                  entry.status === "expired" && "text-red-600",
+                                  entry.status === "n/a" && "text-slate-600",
+                                )}
+                              >
                                 {entry.status === "n/a" ? "N/A" : entry.status}
                               </span>
                               <span className="text-slate-400 shrink-0">
-                                {new Date(entry.created_at).toLocaleDateString("en-US", {
-                                  month: "short", day: "numeric", year: "2-digit",
-                                })}
+                                {new Date(entry.created_at).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "2-digit",
+                                  },
+                                )}
                               </span>
                             </div>
-                            {entry.status === "approved" && entry.effective_date && (
-                              <p className="text-slate-500">
-                                {new Date(entry.effective_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                <span className="mx-1">→</span>
-                                {entry.through_date
-                                  ? new Date(entry.through_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                                  : "—"}
-                              </p>
-                            )}
-                            {entry.status === "pending" && entry.pending_reason && (
-                              <p className="text-slate-500 line-clamp-1">{entry.pending_reason}</p>
-                            )}
+                            {entry.status === "approved" &&
+                              entry.effective_date && (
+                                <p className="text-slate-500">
+                                  {new Date(
+                                    entry.effective_date + "T00:00:00",
+                                  ).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
+                                  <span className="mx-1">→</span>
+                                  {entry.through_date
+                                    ? new Date(
+                                        entry.through_date + "T00:00:00",
+                                      ).toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                      })
+                                    : "—"}
+                                </p>
+                              )}
+                            {entry.status === "pending" &&
+                              entry.pending_reason && (
+                                <p className="text-slate-500 line-clamp-1">
+                                  {entry.pending_reason}
+                                </p>
+                              )}
                           </div>
                         </div>
                       ))}

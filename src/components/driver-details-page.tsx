@@ -17,6 +17,7 @@ import {
   CheckCircle,
   Clock,
   RefreshCw,
+  Printer,
 } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -31,6 +32,7 @@ import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatInUserTimezone } from "@/lib/timezone";
+import { generateProfilePDF } from "@/utils/profile-pdf-generator";
 import { 
   IdentificationCard,
   Files,
@@ -352,60 +354,77 @@ export function DriverDetailsPage({
           </div>
         </div>
 
-        {canManageDrivers && (
-          <div className="flex gap-2 flex-wrap">
-            {canEditDrivers && (
-              <>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() =>
+              generateProfilePDF(
+                "driver",
+                driver,
+                currentOrganization?.name || "",
+                activeTimezone,
+              )
+            }
+            className="inline-flex items-center gap-2 rounded-xl"
+          >
+            <Printer size={16} />
+            Print Out
+          </Button>
+          {canManageDrivers && (
+            <>
+              {canEditDrivers && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="inline-flex items-center gap-2 rounded-xl"
+                  >
+                    <Pencil size={16} />
+                    Edit Details
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => sendInviteMutation.mutate()}
+                    disabled={
+                      inviteButtonConfig.disabled ||
+                      isDemoMode ||
+                      sendInviteMutation.isPending
+                    }
+                    title={inviteButtonConfig.tooltip}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-xl",
+                      inviteButtonConfig.disabled
+                        ? "text-slate-400"
+                        : inviteStatus?.accepted_at
+                          ? "text-green-600 border-green-100"
+                          : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700",
+                    )}
+                  >
+                    {sendInviteMutation.isPending ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <inviteButtonConfig.icon size={16} />
+                    )}
+                    {sendInviteMutation.isPending
+                      ? "Sending..."
+                      : inviteButtonConfig.label}
+                  </Button>
+                </>
+              )}
+              {canDeleteDrivers && (
                 <Button
                   variant="outline"
-                  onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center gap-2 rounded-xl"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={isDemoMode}
+                  className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
                 >
-                  <Pencil size={16} />
-                  Edit Details
+                  <Trash size={16} />
+                  Delete Driver
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => sendInviteMutation.mutate()}
-                  disabled={
-                    inviteButtonConfig.disabled ||
-                    isDemoMode ||
-                    sendInviteMutation.isPending
-                  }
-                  title={inviteButtonConfig.tooltip}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-xl",
-                    inviteButtonConfig.disabled
-                      ? "text-slate-400"
-                      : inviteStatus?.accepted_at
-                        ? "text-green-600 border-green-100"
-                        : "text-blue-600 border-blue-100 hover:bg-blue-50 hover:text-blue-700",
-                  )}
-                >
-                  {sendInviteMutation.isPending ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <inviteButtonConfig.icon size={16} />
-                  )}
-                  {sendInviteMutation.isPending
-                    ? "Sending..."
-                    : inviteButtonConfig.label}
-                </Button>
-              </>
-            )}
-            {canDeleteDrivers && (
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isDemoMode}
-                className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
-              >
-                <Trash size={16} />
-                Delete Driver
-              </Button>
-            )}
-          </div>
-        )}
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Navigation Tabs */}
