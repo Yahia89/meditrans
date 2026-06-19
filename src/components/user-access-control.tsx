@@ -39,6 +39,26 @@ interface UserAccessConfirmDialogProps extends UserAccessToggleButtonProps {
   onOpenChange: (open: boolean) => void;
 }
 
+async function getFunctionErrorMessage(error: unknown) {
+  if (
+    error &&
+    typeof error === "object" &&
+    "context" in error &&
+    error.context instanceof Response
+  ) {
+    try {
+      const body = await error.context.clone().json();
+      if (body && typeof body.error === "string") return body.error;
+      if (body && typeof body.message === "string") return body.message;
+    } catch {
+      const text = await error.context.clone().text();
+      if (text) return text;
+    }
+  }
+
+  return error instanceof Error ? error.message : "Please try again.";
+}
+
 export function AccessStatusBadge({ disabled }: { disabled: boolean }) {
   return (
     <span
@@ -91,9 +111,10 @@ export function UserAccessConfirmDialog({
           : "Record updated. No linked auth account was found.",
       });
     },
-    onError: (error) => {
+    onError: async (error) => {
+      const message = await getFunctionErrorMessage(error);
       toast.error("Unable to update access", {
-        description: error instanceof Error ? error.message : "Please try again.",
+        description: message,
       });
     },
   });
@@ -169,7 +190,7 @@ export function UserAccessToggleButton(props: UserAccessToggleButtonProps) {
         onClick={() => setOpen(true)}
         disabled={props.isDemoMode}
         className={cn(
-          "inline-flex items-center gap-2 rounded-xl",
+          "w-full items-center justify-center gap-2 rounded-xl 2xl:w-auto",
           props.disabled
             ? "text-emerald-700 border-emerald-100 hover:bg-emerald-50"
             : "text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700",

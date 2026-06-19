@@ -74,19 +74,27 @@ function adminClient() {
   return createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
 }
 
-async function requireUser(req: Request) {
+function decodeBase64Url(value: string) {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+  return atob(padded);
+}
+
+function requireUser(req: Request) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) throw new HttpError(401, "Missing authorization header.");
 
-  const userClient = createClient(
-    requireEnv("SUPABASE_URL"),
-    requireEnv("SUPABASE_ANON_KEY"),
-    { global: { headers: { Authorization: authHeader } } },
-  );
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const [, payloadSegment] = token.split(".");
+  if (!payloadSegment) throw new HttpError(401, "Invalid session.");
 
-  const { data, error } = await userClient.auth.getUser();
-  if (error || !data.user) throw new HttpError(401, "Invalid session.");
-  return data.user;
+  const payload = JSON.parse(decodeBase64Url(payloadSegment)) as {
+    sub?: string;
+    email?: string;
+  };
+
+  if (!payload.sub) throw new HttpError(401, "Invalid session.");
+  return { id: payload.sub, email: payload.email };
 }
 
 function normalizeOrgName(name: string) {

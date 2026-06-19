@@ -371,19 +371,19 @@ export function PatientDetailsPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
           <button
             onClick={onBack}
             className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
           >
             <ArrowLeft size={20} className="text-slate-500" />
           </button>
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">
+          <div className="min-w-0">
+            <h1 className="min-w-0 break-words text-2xl font-semibold text-slate-900">
               {patient.full_name}
             </h1>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-2 mt-1">
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
                 Client Profile
               </span>
@@ -395,7 +395,7 @@ export function PatientDetailsPage({
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:flex 2xl:w-auto 2xl:flex-wrap 2xl:justify-end">
           <Button
             variant="outline"
             onClick={() =>
@@ -406,7 +406,7 @@ export function PatientDetailsPage({
                 activeTimezone,
               )
             }
-            className="inline-flex items-center gap-2 rounded-xl"
+            className="w-full items-center justify-center gap-2 rounded-xl 2xl:w-auto"
           >
             <Printer size={16} />
             Print Out
@@ -417,7 +417,7 @@ export function PatientDetailsPage({
                 <Button
                   variant="outline"
                   onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center gap-2 rounded-xl"
+                  className="w-full items-center justify-center gap-2 rounded-xl 2xl:w-auto"
                 >
                   <Pencil size={16} />
                   Edit Details
@@ -442,7 +442,7 @@ export function PatientDetailsPage({
                   variant="outline"
                   onClick={() => setShowDeleteDialog(true)}
                   disabled={isDemoMode}
-                  className="inline-flex items-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700"
+                  className="w-full items-center justify-center gap-2 rounded-xl text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700 2xl:w-auto"
                 >
                   <Trash size={16} />
                   Delete Patient
