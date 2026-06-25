@@ -277,7 +277,10 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
 
       const { data, error } = await supabase
         .from("drivers")
-        .select("*")
+        .select(`
+          *,
+          trips:trips(count)
+        `)
         .eq("org_id", currentOrganization.id)
         .order("created_at", { ascending: false });
 
@@ -301,7 +304,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                   .join(" ")
               : d.vehicle_info || "Unknown",
             licensePlate: d.license_plate || "Unknown",
-            totalTrips: 0, // Mock for now
+            totalTrips: (d as any).trips?.[0]?.count || 0,
             status: (d.status || "available").toLowerCase() as
               | "available"
               | "on-trip"
