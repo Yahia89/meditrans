@@ -76,7 +76,11 @@ export function CreateDischargeDialog({
     tripDate: format(new Date(), "yyyy-MM-dd"),
     tripTime: format(new Date(), "HH:mm"),
     pickupLocation: "",
+    pickupLat: null as number | null,
+    pickupLng: null as number | null,
     dropoffLocation: "",
+    dropoffLat: null as number | null,
+    dropoffLng: null as number | null,
     requesterFirstName: "",
     requesterLastName: "",
     requesterTitle: "",
@@ -178,7 +182,13 @@ export function CreateDischargeDialog({
     place: google.maps.places.PlaceResult,
   ) => {
     const value = place.formatted_address || "";
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    const lat = place.geometry?.location?.lat() ?? null;
+    const lng = place.geometry?.location?.lng() ?? null;
+
+    const coordFields = field === "pickupLocation"
+      ? { pickupLat: lat, pickupLng: lng }
+      : { dropoffLat: lat, dropoffLng: lng };
+    setFormData((prev) => ({ ...prev, [field]: value, ...coordFields }));
 
     const otherField =
       field === "pickupLocation" ? "dropoffLocation" : "pickupLocation";
@@ -262,7 +272,11 @@ export function CreateDischargeDialog({
         patient_id: patientId,
         driver_id: formData.driverId || null,
         pickup_location: formData.pickupLocation,
+        pickup_lat: formData.pickupLat,
+        pickup_lng: formData.pickupLng,
         dropoff_location: formData.dropoffLocation,
+        dropoff_lat: formData.dropoffLat,
+        dropoff_lng: formData.dropoffLng,
         pickup_time: new Date(
           `${formData.tripDate}T${formData.tripTime}`,
         ).toISOString(),

@@ -61,7 +61,11 @@ interface TripDraft {
   patient_id: string;
   driver_id: string;
   pickup_location: string;
+  pickup_lat?: number | null;
+  pickup_lng?: number | null;
   dropoff_location: string;
+  dropoff_lat?: number | null;
+  dropoff_lng?: number | null;
   pickup_date: string;
   pickup_time: string;
   trip_type: string;
@@ -110,7 +114,11 @@ export function CreateTripForm({
     patient_id: "",
     driver_id: "",
     pickup_location: "",
+    pickup_lat: null,
+    pickup_lng: null,
     dropoff_location: "",
+    dropoff_lat: null,
+    dropoff_lng: null,
     pickup_date: formatInUserTimezone(new Date(), activeTimezone, "yyyy-MM-dd"),
     pickup_time: "",
     trip_type: "MEDICAL APPOINTMENT",
@@ -168,19 +176,28 @@ export function CreateTripForm({
   const handleLocationSelect = async (
     field: "pickup_location" | "dropoff_location",
     value: string,
+    lat?: number | null,
+    lng?: number | null,
   ) => {
     if (!value) {
-      // Manual clear or typing
+      // Manual clear or typing — also clear coordinates
+      const coordClear = field === "pickup_location"
+        ? { pickup_lat: null, pickup_lng: null }
+        : { dropoff_lat: null, dropoff_lng: null };
       updateActiveLeg({
         [field]: value,
+        ...coordClear,
         distance_miles: null,
         duration_minutes: null,
       });
       return;
     }
 
-    // Update the field immediately
-    updateActiveLeg({ [field]: value });
+    // Update the field and coordinates immediately
+    const coordUpdate = field === "pickup_location"
+      ? { pickup_lat: lat ?? null, pickup_lng: lng ?? null }
+      : { dropoff_lat: lat ?? null, dropoff_lng: lng ?? null };
+    updateActiveLeg({ [field]: value, ...coordUpdate });
 
     // Get the other field's current value
     const otherValue =
@@ -207,10 +224,18 @@ export function CreateTripForm({
     if (!currentLeg) return;
     const oldPickup = currentLeg.pickup_location;
     const oldDropoff = currentLeg.dropoff_location;
+    const oldPickupLat = currentLeg.pickup_lat;
+    const oldPickupLng = currentLeg.pickup_lng;
+    const oldDropoffLat = currentLeg.dropoff_lat;
+    const oldDropoffLng = currentLeg.dropoff_lng;
 
     updateActiveLeg({
       pickup_location: oldDropoff,
+      pickup_lat: oldDropoffLat,
+      pickup_lng: oldDropoffLng,
       dropoff_location: oldPickup,
+      dropoff_lat: oldPickupLat,
+      dropoff_lng: oldPickupLng,
     });
 
     // Re-calculate route metrics if both locations are present
@@ -254,7 +279,11 @@ export function CreateTripForm({
             patient_id: existingTrip.patient_id,
             driver_id: existingTrip.driver_id || "",
             pickup_location: existingTrip.pickup_location || "",
+            pickup_lat: existingTrip.pickup_lat ?? null,
+            pickup_lng: existingTrip.pickup_lng ?? null,
             dropoff_location: existingTrip.dropoff_location || "",
+            dropoff_lat: existingTrip.dropoff_lat ?? null,
+            dropoff_lng: existingTrip.dropoff_lng ?? null,
             pickup_date: formatInUserTimezone(
               existingTrip.pickup_time,
               activeTimezone,
@@ -408,10 +437,14 @@ export function CreateTripForm({
     const lastLeg = tripLegs[tripLegs.length - 1];
     const newLeg = createEmptyLeg();
 
-    // Auto-fill return details
+    // Auto-fill return details (swap pickup/dropoff with their coordinates)
     newLeg.patient_id = lastLeg.patient_id;
     newLeg.pickup_location = lastLeg.dropoff_location;
+    newLeg.pickup_lat = lastLeg.dropoff_lat;
+    newLeg.pickup_lng = lastLeg.dropoff_lng;
     newLeg.dropoff_location = lastLeg.pickup_location;
+    newLeg.dropoff_lat = lastLeg.pickup_lat;
+    newLeg.dropoff_lng = lastLeg.pickup_lng;
     newLeg.pickup_date = lastLeg.pickup_date;
     newLeg.trip_type = lastLeg.trip_type; // Usually return trip has same billing type
     newLeg.service_type = lastLeg.service_type; // Inherit service type
@@ -424,9 +457,11 @@ export function CreateTripForm({
     const lastLeg = tripLegs[tripLegs.length - 1];
     const newLeg = createEmptyLeg();
 
-    // Auto-fill continuation details
+    // Auto-fill continuation details (carry forward dropoff as new pickup)
     newLeg.patient_id = lastLeg.patient_id;
     newLeg.pickup_location = lastLeg.dropoff_location; // Start where we left off
+    newLeg.pickup_lat = lastLeg.dropoff_lat;
+    newLeg.pickup_lng = lastLeg.dropoff_lng;
     newLeg.pickup_date = lastLeg.pickup_date;
     newLeg.service_type = lastLeg.service_type; // Inherit service type
 
@@ -612,7 +647,11 @@ export function CreateTripForm({
           patient_id: leg.patient_id,
           driver_id: finalDriverId || null,
           pickup_location: leg.pickup_location,
+          pickup_lat: leg.pickup_lat ?? null,
+          pickup_lng: leg.pickup_lng ?? null,
           dropoff_location: leg.dropoff_location,
+          dropoff_lat: leg.dropoff_lat ?? null,
+          dropoff_lng: leg.dropoff_lng ?? null,
           pickup_time: pickupDateTime.toISOString(),
           trip_type:
             leg.trip_type === "OTHER" ? leg.other_trip_type : leg.trip_type,
@@ -1036,7 +1075,9 @@ export function CreateTripForm({
                     onAddressSelect={(place) => {
                       const address =
                         place.formatted_address || place.name || "";
-                      handleLocationSelect("pickup_location", address);
+                      const lat = place.geometry?.location?.lat();
+                      const lng = place.geometry?.location?.lng();
+                      handleLocationSelect("pickup_location", address, lat, lng);
                     }}
                     className="w-full rounded-md border border-slate-200 bg-white h-11 px-4 text-sm focus:ring-2 focus:ring-red-500/20 shadow-sm"
                   />
@@ -1082,7 +1123,9 @@ export function CreateTripForm({
                     onAddressSelect={(place) => {
                       const address =
                         place.formatted_address || place.name || "";
-                      handleLocationSelect("dropoff_location", address);
+                      const lat = place.geometry?.location?.lat();
+                      const lng = place.geometry?.location?.lng();
+                      handleLocationSelect("dropoff_location", address, lat, lng);
                     }}
                     className="w-full rounded-md border border-slate-200 bg-white h-11 px-4 text-sm focus:ring-2 focus:ring-blue-500/20 shadow-sm"
                   />

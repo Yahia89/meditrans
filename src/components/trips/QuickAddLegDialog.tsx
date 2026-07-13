@@ -79,7 +79,11 @@ export function QuickAddLegDialog({
 
   // Form State
   const [pickupLocation, setPickupLocation] = useState("");
+  const [pickupLat, setPickupLat] = useState<number | null>(null);
+  const [pickupLng, setPickupLng] = useState<number | null>(null);
   const [dropoffLocation, setDropoffLocation] = useState("");
+  const [dropoffLat, setDropoffLat] = useState<number | null>(null);
+  const [dropoffLng, setDropoffLng] = useState<number | null>(null);
   const [pickupTime, setPickupTime] = useState("");
   const [tripType, setTripType] = useState("MEDICAL APPOINTMENT");
   const [otherTripType, setOtherTripType] = useState("");
@@ -144,6 +148,8 @@ export function QuickAddLegDialog({
       if (existingTrips && existingTrips.length > 0) {
         const lastTrip = existingTrips[existingTrips.length - 1];
         setPickupLocation(lastTrip.dropoff_location);
+        setPickupLat(lastTrip.dropoff_lat ?? null);
+        setPickupLng(lastTrip.dropoff_lng ?? null);
         setTripType(lastTrip.trip_type || "MEDICAL APPOINTMENT");
         setServiceType(lastTrip.billing_details?.service_type || "Ambulatory");
       } else if (patientDetails?.vehicle_type_need) {
@@ -182,17 +188,34 @@ export function QuickAddLegDialog({
   const swapLocations = () => {
     const oldP = pickupLocation;
     const oldD = dropoffLocation;
+    const oldPLat = pickupLat;
+    const oldPLng = pickupLng;
+    const oldDLat = dropoffLat;
+    const oldDLng = dropoffLng;
     setPickupLocation(oldD);
+    setPickupLat(oldDLat);
+    setPickupLng(oldDLng);
     setDropoffLocation(oldP);
+    setDropoffLat(oldPLat);
+    setDropoffLng(oldPLng);
     if (oldD && oldP) calculateRoute(oldD, oldP);
   };
 
-  const handleLocationChange = (field: "pickup" | "dropoff", value: string) => {
+  const handleLocationChange = (
+    field: "pickup" | "dropoff",
+    value: string,
+    lat?: number | null,
+    lng?: number | null,
+  ) => {
     if (field === "pickup") {
       setPickupLocation(value);
+      setPickupLat(lat ?? null);
+      setPickupLng(lng ?? null);
       if (value && dropoffLocation) calculateRoute(value, dropoffLocation);
     } else {
       setDropoffLocation(value);
+      setDropoffLat(lat ?? null);
+      setDropoffLng(lng ?? null);
       if (value && pickupLocation) calculateRoute(pickupLocation, value);
     }
   };
@@ -252,7 +275,11 @@ export function QuickAddLegDialog({
         patient_id: patientId,
         driver_id: driverId || null,
         pickup_location: pickupLocation,
+        pickup_lat: pickupLat,
+        pickup_lng: pickupLng,
         dropoff_location: dropoffLocation,
+        dropoff_lat: dropoffLat,
+        dropoff_lng: dropoffLng,
         pickup_time: pickupDateTime.toISOString(),
         trip_type: tripType === "OTHER" ? otherTripType : tripType,
         notes: notes,
@@ -294,7 +321,11 @@ export function QuickAddLegDialog({
 
   const resetForm = () => {
     setPickupLocation("");
+    setPickupLat(null);
+    setPickupLng(null);
     setDropoffLocation("");
+    setDropoffLat(null);
+    setDropoffLng(null);
     setPickupTime("");
     setTripType("MEDICAL APPOINTMENT");
     setOtherTripType("");
@@ -353,7 +384,9 @@ export function QuickAddLegDialog({
                       onChange={(val) => setPickupLocation(val)}
                       onAddressSelect={(place) => {
                         const address = place.formatted_address || place.name || "";
-                        handleLocationChange("pickup", address);
+                        const lat = place.geometry?.location?.lat();
+                        const lng = place.geometry?.location?.lng();
+                        handleLocationChange("pickup", address, lat, lng);
                       }}
                       className="w-full rounded-xl border-slate-200 h-11 px-3 text-sm focus:ring-2 focus:ring-[#3D5A3D]/20 shadow-sm"
                     />
@@ -393,7 +426,9 @@ export function QuickAddLegDialog({
                       onChange={(val) => setDropoffLocation(val)}
                       onAddressSelect={(place) => {
                         const address = place.formatted_address || place.name || "";
-                        handleLocationChange("dropoff", address);
+                        const lat = place.geometry?.location?.lat();
+                        const lng = place.geometry?.location?.lng();
+                        handleLocationChange("dropoff", address, lat, lng);
                       }}
                       className="w-full rounded-xl border-slate-200 h-11 px-3 text-sm focus:ring-2 focus:ring-[#3D5A3D]/20 shadow-sm"
                     />

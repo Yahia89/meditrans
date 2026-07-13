@@ -216,7 +216,19 @@ export function BulkImportDialog({
           org_id: currentOrganization.id,
           patient_id: patientId,
           pickup_location: row.pickup_address || "",
+          pickup_lat: row.pickup_latitude
+            ? parseFloat(row.pickup_latitude)
+            : null,
+          pickup_lng: row.pickup_longitude
+            ? parseFloat(row.pickup_longitude)
+            : null,
           dropoff_location: row.dropoff_address || "",
+          dropoff_lat: row.dropoff_latitude
+            ? parseFloat(row.dropoff_latitude)
+            : null,
+          dropoff_lng: row.dropoff_longitude
+            ? parseFloat(row.dropoff_longitude)
+            : null,
           scheduled_time:
             row.trip_date && row.pickup_time
               ? new Date(`${row.trip_date}T${row.pickup_time}`).toISOString()
