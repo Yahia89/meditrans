@@ -23,6 +23,8 @@ import {
   Car,
   ArrowsLeftRight,
   CircleNotch,
+  CalendarCheck,
+  WarningCircle,
 } from "@phosphor-icons/react";
 import { TimePicker, TRIP_TYPES } from "./trip-utils";
 import type { Trip } from "./types";
@@ -34,6 +36,10 @@ import {
   formatInUserTimezone,
 } from "@/lib/timezone";
 import { TRANSPORT_SERVICE_TYPES } from "@/lib/constants";
+import {
+  calculateCreditStatus,
+  calculateTripCost,
+} from "@/lib/credit-utils";
 
 // Libraries must be defined outside component to avoid re-loading
 const GOOGLE_MAPS_LIBRARIES: (
@@ -99,13 +105,70 @@ export function QuickAddLegDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
-        .select("full_name, vehicle_type_need, disabled")
+        .select("full_name, vehicle_type_need, disabled, monthly_credit")
         .eq("id", patientId)
         .single();
       if (error) return null;
       return data;
     },
     enabled: open && !!patientId,
+  });
+
+  // Determine the credit-reference month from the date prop
+  const creditMonthKey = useMemo(() => {
+    return formatInUserTimezone(date, activeTimezone, "yyyy-MM");
+  }, [date, activeTimezone]);
+
+  const isFutureMonth = useMemo(() => {
+    const currentMonthKey = formatInUserTimezone(new Date(), activeTimezone, "yyyy-MM");
+    return creditMonthKey > currentMonthKey;
+  }, [creditMonthKey, activeTimezone]);
+
+  // Fetch organization fees for credit calculation
+  const { data: orgFees } = useQuery({
+    queryKey: ["organization_fees", currentOrganization?.id],
+    queryFn: async () => {
+      if (!currentOrganization?.id) return null;
+      const { data, error } = await supabase
+        .from("organization_fees")
+        .select("*")
+        .eq("org_id", currentOrganization.id)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: open && !!currentOrganization?.id,
+  });
+
+  // Fetch credit status for the target month
+  const { data: patientCreditInfo } = useQuery({
+    queryKey: ["patient-credit-quick-leg", patientId, creditMonthKey, currentOrganization?.id],
+    queryFn: async () => {
+      if (!currentOrganization?.id || !patientDetails) return null;
+
+      const [yearStr, monthStr] = creditMonthKey.split("-");
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10) - 1;
+      const startOfMonth = new Date(year, month, 1).toISOString();
+      const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
+      const { data: tripData } = await supabase
+        .from("trips")
+        .select("patient_id, status, trip_type, actual_distance_miles, distance_miles, total_waiting_minutes")
+        .eq("org_id", currentOrganization.id)
+        .eq("patient_id", patientId)
+        .eq("status", "completed")
+        .gte("pickup_time", startOfMonth)
+        .lte("pickup_time", endOfMonth);
+
+      const totalSpend = (tripData || []).reduce(
+        (sum, trip) => sum + calculateTripCost(trip, orgFees || null),
+        0,
+      );
+
+      return calculateCreditStatus(patientDetails.monthly_credit, totalSpend);
+    },
+    enabled: open && !!currentOrganization?.id && !!patientDetails,
   });
 
   // Fetch existing trips for this patient on this day to pre-fill pickup
@@ -368,6 +431,34 @@ export function QuickAddLegDialog({
                   {patientDetails.full_name || patientName} has disabled access
                   and cannot be booked for a ride.
                 </div>
+              )}
+
+              {/* Credit status info for the target month */}
+              {!patientDetails?.disabled && patientCreditInfo && (
+                <>
+                  {isFutureMonth && patientCreditInfo.status === "low" && patientDetails?.monthly_credit ? (
+                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-blue-700 text-sm flex items-center gap-2">
+                      <CalendarCheck weight="duotone" className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span>
+                        <strong>Future month — credits reset.</strong> {patientName}'s credit will be fully available.
+                      </span>
+                    </div>
+                  ) : patientCreditInfo.status === "low" ? (
+                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-sm flex items-center gap-2">
+                      <WarningCircle weight="duotone" className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>
+                        <strong>Low credit warning:</strong> {patientName} has {patientCreditInfo.percentage.toFixed(0)}% credit remaining this month.
+                      </span>
+                    </div>
+                  ) : patientCreditInfo.status === "mid" ? (
+                    <div className="p-3 rounded-lg bg-amber-50/50 border border-amber-100 text-amber-600 text-sm flex items-center gap-2">
+                      <WarningCircle weight="duotone" className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>
+                        {patientName} has {patientCreditInfo.percentage.toFixed(0)}% credit remaining for this month.
+                      </span>
+                    </div>
+                  ) : null}
+                </>
               )}
 
               <div className="relative space-y-4 p-5 bg-slate-50/50 rounded-xl border border-slate-100">

@@ -25,6 +25,7 @@ import {
   Trash,
   CheckCircle,
   CircleNotch,
+  CalendarCheck,
 } from "@phosphor-icons/react";
 import type { TripStatus } from "./types";
 import { cn } from "@/lib/utils";
@@ -132,6 +133,21 @@ export function CreateTripForm({
 
   const [tripLegs, setTripLegs] = useState<TripDraft[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Derive the credit-reference month from the first leg's pickup date.
+  // Format: "YYYY-MM" — used to determine which month's credit to check.
+  const creditMonthKey = useMemo(() => {
+    const firstLeg = tripLegs[0];
+    if (!firstLeg?.pickup_date) return formatInUserTimezone(new Date(), activeTimezone, "yyyy-MM");
+    // pickup_date is already "yyyy-MM-dd"
+    return firstLeg.pickup_date.substring(0, 7); // "YYYY-MM"
+  }, [tripLegs[0]?.pickup_date, activeTimezone]);
+
+  // Determine if the credit month is different from the current month
+  const isFutureMonth = useMemo(() => {
+    const currentMonthKey = formatInUserTimezone(new Date(), activeTimezone, "yyyy-MM");
+    return creditMonthKey > currentMonthKey;
+  }, [creditMonthKey, activeTimezone]);
 
   // Helper to update the currently active leg
   const updateActiveLeg = (updates: Partial<TripDraft>) => {
@@ -341,7 +357,7 @@ export function CreateTripForm({
   });
 
   const { data: patientsData } = useQuery({
-    queryKey: ["patients-form-with-credits", currentOrganization?.id],
+    queryKey: ["patients-form-with-credits", currentOrganization?.id, creditMonthKey],
     queryFn: async () => {
       if (!currentOrganization?.id) return [];
 
@@ -356,21 +372,13 @@ export function CreateTripForm({
 
       if (patientsError) throw patientsError;
 
-      // 2. Fetch completed trip counts for this month
-      const now = new Date();
-      const startOfMonth = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        1,
-      ).toISOString();
-      const endOfMonth = new Date(
-        now.getFullYear(),
-        now.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-      ).toISOString();
+      // 2. Fetch completed trips for the credit-reference month
+      //    (the month of the selected pickup date, not necessarily the current month)
+      const [yearStr, monthStr] = creditMonthKey.split("-");
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10) - 1; // JS months are 0-based
+      const startOfMonth = new Date(year, month, 1).toISOString();
+      const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
 
       const { data: tripData, error: tripsError } = await supabase
         .from("trips")
@@ -933,6 +941,14 @@ export function CreateTripForm({
           )}
 
           {/* Patient & Driver Section */}
+          {isFutureMonth && (
+            <div className="flex items-center gap-2.5 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm animate-in fade-in slide-in-from-top-2">
+              <CalendarCheck weight="duotone" className="w-5 h-5 text-blue-600 shrink-0" />
+              <span>
+                <strong>Scheduling for a future month</strong> — Patient credits will be fully reset. Previously blocked patients are now available.
+              </span>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-slate-700 font-medium text-sm">
@@ -977,7 +993,12 @@ export function CreateTripForm({
                     p.monthly_credit === undefined ||
                     p.monthly_credit === 0;
                   const isLow = p.creditInfo.status === "low";
-                  const isDisabled = accessDisabled || hasNoCredit || isLow;
+
+                  // For future months, patients with allocated credit get
+                  // a fresh balance (credits reset monthly during SAL).
+                  // Only access-disabled and discharged (no credit) patients stay blocked.
+                  const futureMonthUnlocked = isFutureMonth && !hasNoCredit && isLow;
+                  const isDisabled = accessDisabled || hasNoCredit || (isLow && !isFutureMonth);
                   const pct = p.creditInfo.percentage.toFixed(0);
 
                   let statusText = "";
@@ -985,6 +1006,8 @@ export function CreateTripForm({
                     statusText = "- ACCESS DISABLED";
                   } else if (hasNoCredit) {
                     statusText = "- NO CREDITS ASSIGNED (Discharge)";
+                  } else if (futureMonthUnlocked) {
+                    statusText = "- ✓ Credits reset next month";
                   } else if (isLow) {
                     statusText = "- INSUFFICIENT CREDIT";
                   }
@@ -997,11 +1020,12 @@ export function CreateTripForm({
                       className={cn(
                         isDisabled && "text-slate-400 bg-slate-50",
                         accessDisabled && "text-red-400",
-                        !hasNoCredit && isLow && "text-red-400",
+                        !hasNoCredit && isLow && !isFutureMonth && "text-red-400",
+                        futureMonthUnlocked && "text-blue-600",
                         p.creditInfo.status === "mid" && "text-amber-600",
                       )}
                     >
-                      {p.full_name} {p.monthly_credit ? `(${pct}% credit)` : ""}{" "}
+                      {p.full_name} {p.monthly_credit ? `(${futureMonthUnlocked ? "100" : pct}% credit)` : ""}{" "}
                       {statusText}
                     </option>
                   );

@@ -156,6 +156,24 @@ export function useTripDetails({
         latitude: (user?.id === trip?.driver?.user_id) ? trip?.driver?.current_lat : null,
         longitude: (user?.id === trip?.driver?.user_id) ? trip?.driver?.current_lng : null,
       });
+
+      if (status === "en_route") {
+        supabase.functions
+          .invoke("send_eta_sms", {
+            body: {
+              trip_id: tripId,
+              source: "web-status-update",
+            },
+          })
+          .then((result) => {
+            if (result.error) {
+              console.error("Immediate ETA SMS check failed:", result.error);
+            }
+          })
+          .catch((error) => {
+            console.error("Immediate ETA SMS check failed:", error);
+          });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
