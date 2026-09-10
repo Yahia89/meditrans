@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
+import { planBrokerLocalStatus } from "./broker-status-policy.ts";
 
 type JsonObject = Record<string, unknown>;
 type BrokerType = "mtm_link";
@@ -686,13 +687,6 @@ async function testConnection(
   }
 }
 
-function normalizeInternalStatus(externalStatus?: string) {
-  const value = (externalStatus || "").toLowerCase();
-  if (value.includes("cancel")) return "cancelled";
-  if (value.includes("complete")) return "completed";
-  return "pending";
-}
-
 function brokerNotes(trip: NormalizedBrokerTrip) {
   return [
     trip.notes,
@@ -789,6 +783,7 @@ async function syncOneTrip(
   const normalized = args.adapter.normalizeTrip(args.payload);
   const patientId = await resolvePatient(admin, args.orgId, normalized);
   const now = new Date().toISOString();
+  const localStatusPlan = planBrokerLocalStatus(normalized.externalStatus);
   const tripPayload = {
     org_id: args.orgId,
     patient_id: patientId,
@@ -797,7 +792,6 @@ async function syncOneTrip(
     scheduled_time: normalized.pickupTime,
     pickup_time: normalized.pickupTime,
     trip_type: normalized.tripType,
-    status: normalizeInternalStatus(normalized.externalStatus),
     notes: brokerNotes(normalized),
     broker_name: args.adapter.displayName,
     broker_trip_id: normalized.brokerTripId,
@@ -823,12 +817,22 @@ async function syncOneTrip(
   if (existingTripId) {
     const { error } = await admin
       .from("trips")
-      .update(tripPayload)
+      .update({
+        ...tripPayload,
+        ...localStatusPlan.existingTripPatch,
+      })
       .eq("id", existingTripId)
       .eq("org_id", args.orgId);
     if (error) throw new HttpError(400, error.message);
   } else {
-    const { data, error } = await admin.from("trips").insert(tripPayload).select("id").single();
+    const { data, error } = await admin
+      .from("trips")
+      .insert({
+        ...tripPayload,
+        status: localStatusPlan.newTripStatus,
+      })
+      .select("id")
+      .single();
     if (error || !data) throw new HttpError(400, error?.message || "Unable to import broker trip.");
     tripId = asString(asObject(data).id);
   }

@@ -24,6 +24,67 @@ interface ActivityTimelineProps {
   isHistoryLoading?: boolean;
 }
 
+type TimelineEvent = {
+  id: string;
+  status: string;
+  actor_name: string;
+  created_at: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  trigger_kind?: TripStatusHistory["trigger_kind"];
+  source_surface?: TripStatusHistory["source_surface"];
+  client_platform?: TripStatusHistory["client_platform"];
+  location_source?: TripStatusHistory["location_source"];
+  location_captured_at?: string | null;
+  location_accuracy_m?: number | null;
+  is_synthesized_current_state?: boolean;
+};
+
+const SOURCE_SURFACE_LABELS: Record<
+  NonNullable<TripStatusHistory["source_surface"]>,
+  string
+> = {
+  trip_list: "Trip list",
+  trip_detail: "Trip detail",
+  map_view: "Map",
+  web_crm: "Web CRM",
+  system: "System",
+};
+
+const LOCATION_SOURCE_LABELS: Record<
+  NonNullable<TripStatusHistory["location_source"]>,
+  string
+> = {
+  bg_live: "Live GPS",
+  navigation_sdk: "Navigation SDK",
+  bg_cache: "Cached GPS",
+  browser_geolocation: "Browser geolocation",
+};
+
+const PLATFORM_LABELS: Record<
+  NonNullable<TripStatusHistory["client_platform"]>,
+  string
+> = {
+  ios: "iOS",
+  android: "Android",
+  web: "Web",
+};
+
+function hasValidCoordinatePair(event: TimelineEvent) {
+  const { latitude, longitude } = event;
+  return (
+    typeof latitude === "number" &&
+    Number.isFinite(latitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    typeof longitude === "number" &&
+    Number.isFinite(longitude) &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    !(latitude === 0 && longitude === 0)
+  );
+}
+
 export function TripActivityTimeline({ 
   trip, 
   history, 
@@ -31,14 +92,7 @@ export function TripActivityTimeline({
   isHistoryLoading,
 }: ActivityTimelineProps) {
   const timelineEvents = useMemo(() => {
-    const events: Array<{
-      id: string;
-      status: string;
-      actor_name: string;
-      created_at: string;
-      latitude?: number | null;
-      longitude?: number | null;
-    }> = [];
+    const events: TimelineEvent[] = [];
 
     // Add real history events first
     if (history && history.length > 0) {
@@ -50,6 +104,12 @@ export function TripActivityTimeline({
           created_at: item.created_at,
           latitude: item.latitude,
           longitude: item.longitude,
+          trigger_kind: item.trigger_kind,
+          source_surface: item.source_surface,
+          client_platform: item.client_platform,
+          location_source: item.location_source,
+          location_captured_at: item.location_captured_at,
+          location_accuracy_m: item.location_accuracy_m,
         });
       });
     }
@@ -62,8 +122,9 @@ export function TripActivityTimeline({
       events.push({
         id: `current-${trip.status}`,
         status: trip.status.toUpperCase(),
-        actor_name: trip.driver?.full_name || "System",
+        actor_name: "Not recorded",
         created_at: trip.updated_at || trip.created_at,
+        is_synthesized_current_state: true,
       });
     }
 
@@ -129,6 +190,42 @@ export function TripActivityTimeline({
           const distance = distanceMatch
             ? parseFloat(distanceMatch[1])
             : null;
+          const hasCoordinates = hasValidCoordinatePair(item);
+          const provenanceParts = [
+            item.is_synthesized_current_state
+              ? "Current state only - no history event"
+              : null,
+            item.trigger_kind === "automatic"
+              ? "Automatic"
+              : item.trigger_kind === "manual"
+                ? "Manual"
+                : null,
+            item.source_surface
+              ? SOURCE_SURFACE_LABELS[item.source_surface]
+              : null,
+            item.client_platform
+              ? PLATFORM_LABELS[item.client_platform]
+              : null,
+          ].filter((part): part is string => Boolean(part));
+          const hasAccuracy =
+            typeof item.location_accuracy_m === "number" &&
+            Number.isFinite(item.location_accuracy_m) &&
+            item.location_accuracy_m >= 0;
+          const locationEvidenceParts = [
+            item.location_source
+              ? LOCATION_SOURCE_LABELS[item.location_source]
+              : null,
+            hasAccuracy
+              ? `Accuracy +/-${Math.round(item.location_accuracy_m!)} m`
+              : null,
+            item.location_captured_at
+              ? `Captured ${formatInUserTimezone(
+                  item.location_captured_at,
+                  activeTimezone,
+                  "MM/dd/yyyy h:mm:ss a",
+                )}`
+              : null,
+          ].filter((part): part is string => Boolean(part));
 
           // Clean up the status text for display
           let displayStatus = item.status.replace(/_/g, " ");
@@ -281,18 +378,41 @@ export function TripActivityTimeline({
                     )}
                     <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
                       <span>
-                        by{" "}
-                        <span className="font-semibold text-slate-600">
-                          {item.actor_name}
-                        </span>
+                        {item.is_synthesized_current_state ? (
+                          <span className="font-semibold text-amber-700">
+                            actor not recorded
+                          </span>
+                        ) : (
+                          <>
+                            by{" "}
+                            <span className="font-semibold text-slate-600">
+                              {item.actor_name}
+                            </span>
+                          </>
+                        )}
                       </span>
-                      {item.latitude && item.longitude && (
+                      {hasCoordinates && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-100 rounded-[4px] text-[9px] font-medium text-slate-500 border border-slate-200/50">
                           <MapPin weight="bold" className="w-2.5 h-2.5 text-slate-400" />
-                          {item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}
+                          {item.latitude!.toFixed(5)}, {item.longitude!.toFixed(5)}
                         </span>
                       )}
                     </p>
+                    {(provenanceParts.length > 0 ||
+                      locationEvidenceParts.length > 0) && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5 text-[9px] font-medium text-slate-500">
+                        {provenanceParts.length > 0 && (
+                          <span className="inline-flex items-center rounded-[4px] border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-blue-700">
+                            {provenanceParts.join(" / ")}
+                          </span>
+                        )}
+                        {locationEvidenceParts.length > 0 && (
+                          <span className="inline-flex items-center rounded-[4px] border border-slate-200 bg-slate-50 px-1.5 py-0.5">
+                            {locationEvidenceParts.join(" / ")}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <time className="text-[10px] font-semibold text-slate-400 whitespace-nowrap shrink-0">
                     {formatInUserTimezone(

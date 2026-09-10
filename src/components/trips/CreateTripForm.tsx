@@ -54,6 +54,28 @@ const GOOGLE_MAPS_LIBRARIES: (
   | "visualization"
 )[] = ["places"];
 
+const EDITABLE_PRE_TRIP_STATUSES = [
+  "pending",
+  "assigned",
+  "accepted",
+] as const satisfies readonly TripStatus[];
+
+type EditablePreTripStatus = (typeof EDITABLE_PRE_TRIP_STATUSES)[number];
+
+function isEditablePreTripStatus(
+  status: unknown,
+): status is EditablePreTripStatus {
+  return EDITABLE_PRE_TRIP_STATUSES.includes(
+    status as EditablePreTripStatus,
+  );
+}
+
+function formatTripStatus(status: string) {
+  return status
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 // Vehicle type compatibility matrix
 
 interface TripDraft {
@@ -76,7 +98,7 @@ interface TripDraft {
   distance_miles?: number | null;
   duration_minutes?: number | null;
   service_type: string; // Transport service type (Ambulatory, Wheelchair, etc.)
-  status?: string; // Trip status (for editing existing trips)
+  status?: TripStatus; // Pre-trip status only; physical/terminal changes use dedicated actions.
 }
 
 interface CreateTripFormProps {
@@ -603,7 +625,7 @@ export function CreateTripForm({
 
               // Get the names of other patients for the conflict message
               const otherPatientNames = realDriverConflicts
-                .map((c: any) => c.patients?.full_name || "another patient")
+                .map((c) => c.patients?.full_name || "another patient")
                 .join(", ");
 
               setConflictError(
@@ -633,21 +655,41 @@ export function CreateTripForm({
         const finalDriverId = leg.driver_id;
         // Logic for employee -> driver conversion removed. Driver must be selected from drivers list.
 
-        // Default status for new/edited trips
+        // New trips can only begin in a pre-trip status. Existing physical or
+        // terminal statuses are intentionally preserved by this generic editor;
+        // those transitions require the dedicated GPS/signature/RPC actions.
         let finalStatus: TripStatus = "pending";
         if (finalDriverId) {
           finalStatus = "assigned";
         }
 
-        // If editing an existing trip, use the user-selected status from the form
+        let shouldWriteStatus = !leg.db_id;
+
         if (leg.db_id && existingTrip) {
-          // Use the status from the form if it was set (user edited it)
-          if (leg.status) {
-            finalStatus = leg.status as TripStatus;
-          } else if (!["pending", "assigned"].includes(existingTrip.status)) {
-            // Fallback: keep existing status if it's already past "pending/assigned"
-            finalStatus = existingTrip.status;
+          if (isEditablePreTripStatus(existingTrip.status)) {
+            if (!isEditablePreTripStatus(leg.status)) {
+              throw new Error(
+                "Only pending, assigned, or accepted can be changed in Edit Trip. Use Trip Details for driver milestones, completion, cancellation, or no-show.",
+              );
+            }
+            finalStatus = leg.status;
+            shouldWriteStatus = true;
+          } else {
+            // Do not include status in the UPDATE at all. Preserving the value
+            // in component state is not sufficient because a stale or tampered
+            // form could otherwise overwrite an audited physical transition.
+            finalStatus = existingTrip.status as TripStatus;
+            shouldWriteStatus = false;
           }
+        }
+
+        if (
+          (finalStatus === "assigned" || finalStatus === "accepted") &&
+          !finalDriverId
+        ) {
+          throw new Error(
+            `${formatTripStatus(finalStatus)} trips must have an assigned driver.`,
+          );
         }
 
         const payload = {
@@ -664,7 +706,7 @@ export function CreateTripForm({
           trip_type:
             leg.trip_type === "OTHER" ? leg.other_trip_type : leg.trip_type,
           notes: leg.notes,
-          status: finalStatus,
+          ...(shouldWriteStatus ? { status: finalStatus } : {}),
           distance_miles: leg.distance_miles,
           duration_minutes: leg.duration_minutes,
           billing_details: {
@@ -697,7 +739,11 @@ export function CreateTripForm({
               changes.push(`Distance: ${payload.distance_miles} miles`);
             }
             // Track status changes
-            if (existingTrip.status !== payload.status) {
+            if (
+              shouldWriteStatus &&
+              "status" in payload &&
+              existingTrip.status !== payload.status
+            ) {
               changes.push(
                 `Status: ${existingTrip.status} → ${payload.status}`,
               );
@@ -710,11 +756,21 @@ export function CreateTripForm({
             }
           }
 
-          const { error } = await supabase
+          const { data: updatedTrip, error } = await supabase
             .from("trips")
             .update(payload)
-            .eq("id", leg.db_id);
+            .eq("id", leg.db_id)
+            // Prevent a stale editor from overwriting fields after a driver or
+            // another dispatcher advances the trip while the dialog is open.
+            .eq("status", existingTrip?.status ?? finalStatus)
+            .select("id, status")
+            .maybeSingle();
           if (error) throw error;
+          if (!updatedTrip) {
+            throw new Error(
+              "Trip status changed while this form was open. Refresh the trip and try again.",
+            );
+          }
 
           // Log history with detailed changes
           await supabase.from("trip_status_history").insert({
@@ -1330,7 +1386,7 @@ export function CreateTripForm({
               </p>
             </div>
 
-            {/* Status - only shown in edit mode */}
+            {/* Status - physical and terminal transitions live in Trip Details. */}
             {tripId && currentLeg.status && (
               <div className="space-y-2.5">
                 <Label className="flex items-center gap-2 text-slate-700 font-semibold">
@@ -1340,24 +1396,32 @@ export function CreateTripForm({
                   />
                   Trip Status
                 </Label>
-                <select
-                  value={currentLeg.status}
-                  onChange={(e) => updateActiveLeg({ status: e.target.value })}
-                  className="w-full rounded-md border border-slate-200 bg-slate-50 h-11 px-3 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-colors"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="assigned">Assigned</option>
-                  <option value="accepted">Accepted</option>
-                  <option value="en_route">En Route</option>
-                  <option value="arrived">Arrived</option>
-                  <option value="waiting">Waiting</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="no_show">No Show</option>
-                </select>
+                {isEditablePreTripStatus(currentLeg.status) ? (
+                  <select
+                    value={currentLeg.status}
+                    onChange={(event) => {
+                      const nextStatus = event.target.value;
+                      if (isEditablePreTripStatus(nextStatus)) {
+                        updateActiveLeg({ status: nextStatus });
+                      }
+                    }}
+                    className="w-full rounded-md border border-slate-200 bg-slate-50 h-11 px-3 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-colors"
+                  >
+                    {EDITABLE_PRE_TRIP_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {formatTripStatus(status)}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full rounded-md border border-slate-200 bg-slate-100 min-h-11 px-3 py-2.5 text-sm font-medium text-slate-700">
+                    {formatTripStatus(currentLeg.status)}
+                  </div>
+                )}
                 <p className="text-xs text-slate-500">
-                  Update trip status to correct any issues
+                  {isEditablePreTripStatus(currentLeg.status)
+                    ? "Only pre-trip scheduling statuses can be changed here."
+                    : "Use the dedicated actions in Trip Details for driver milestones, completion, cancellation, or no-show."}
                 </p>
               </div>
             )}

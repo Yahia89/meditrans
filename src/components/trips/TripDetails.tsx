@@ -111,10 +111,8 @@ export function TripDetails({
             isGeneratingPDF={state.isGeneratingPDF}
             setIsGeneratingPDF={actions.setIsGeneratingPDF}
             journeyTrips={journeyTrips}
-            history={state.history}
-            cancellationAudit={state.cancellationAudit}
-            orgName={state.org?.name}
             activeTimezone={state.activeTimezone}
+            refreshPdfData={actions.refreshPdfData}
           />
         </div>
 

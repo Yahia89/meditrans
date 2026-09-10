@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { HandPointing, Signature, CheckCircle, FilePdf, DownloadSimple } from "@phosphor-icons/react";
 import { Loader2 } from "lucide-react";
 import { generateTripSummaryPDF } from "@/utils/pdf-generator";
+import { toast } from "sonner";
 
 interface TripStatusActionsProps {
   trip: Trip;
@@ -13,10 +14,13 @@ interface TripStatusActionsProps {
   isGeneratingPDF: boolean;
   setIsGeneratingPDF: (loading: boolean) => void;
   journeyTrips: Trip[] | undefined;
-  history: TripStatusHistory[] | undefined;
-  cancellationAudit?: TripCancellationAudit | null;
-  orgName: string | undefined;
   activeTimezone: string;
+  refreshPdfData: () => Promise<{
+    trip: Trip;
+    history: TripStatusHistory[];
+    cancellationAudit: TripCancellationAudit | null;
+    orgName?: string;
+  }>;
 }
 
 export function TripStatusActions({
@@ -28,10 +32,8 @@ export function TripStatusActions({
   isGeneratingPDF,
   setIsGeneratingPDF,
   journeyTrips,
-  history,
-  cancellationAudit,
-  orgName,
   activeTimezone,
+  refreshPdfData,
 }: TripStatusActionsProps) {
   if (!isDesignatedDriver && !canManage) return null;
 
@@ -52,7 +54,9 @@ export function TripStatusActions({
                 : "Trip Management"}
             </h3>
             <p className="text-sm text-slate-600">
-              Manage the current state of this trip.
+              {isDesignatedDriver
+                ? "Driver milestones require a live event-time location."
+                : "Driver milestones are recorded by the assigned driver; dispatch can manage exceptions here."}
             </p>
           </div>
         </div>
@@ -80,8 +84,8 @@ export function TripStatusActions({
           )}
 
           {/* Status Flow */}
-          {(trip.status === "assigned" ||
-            trip.status === "accepted") && (
+          {isDesignatedDriver &&
+            (trip.status === "assigned" || trip.status === "accepted") && (
             <Button
               onClick={() => handleStatusUpdate("en_route")}
               className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700 text-white font-bold h-11 px-8 rounded-xl"
@@ -90,7 +94,7 @@ export function TripStatusActions({
             </Button>
           )}
 
-          {trip.status === "en_route" && (
+          {isDesignatedDriver && trip.status === "en_route" && (
             <Button
               onClick={() => handleStatusUpdate("arrived")}
               className="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white font-bold h-11 px-8 rounded-xl"
@@ -99,7 +103,9 @@ export function TripStatusActions({
             </Button>
           )}
 
-          {(trip.status === "arrived" || trip.status === "in_pickup_circle") && (
+          {isDesignatedDriver &&
+            (trip.status === "arrived" ||
+              trip.status === "in_pickup_circle") && (
             <Button
               onClick={() => handleStatusUpdate("loaded")}
               className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-8 rounded-xl"
@@ -108,7 +114,10 @@ export function TripStatusActions({
             </Button>
           )}
 
-          {(trip.status === "in_progress" || trip.status === "loaded" || trip.status === "in_dropoff_circle") && (
+          {isDesignatedDriver &&
+            (trip.status === "in_progress" ||
+              trip.status === "loaded" ||
+              trip.status === "in_dropoff_circle") && (
             <Button
               onClick={() => setShowSignatureDialog(true)}
               className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-8 rounded-xl transition-all duration-300"
@@ -144,13 +153,20 @@ export function TripStatusActions({
                   setIsGeneratingPDF(true);
                   setTimeout(async () => {
                     try {
+                      const fresh = await refreshPdfData();
                       await generateTripSummaryPDF(
-                        trip,
+                        fresh.trip,
                         journeyTrips || [],
-                        history || [],
-                        orgName,
+                        fresh.history,
+                        fresh.orgName,
                         activeTimezone,
-                        cancellationAudit,
+                        fresh.cancellationAudit,
+                      );
+                    } catch (error) {
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : "Unable to generate the trip summary",
                       );
                     } finally {
                       setIsGeneratingPDF(false);

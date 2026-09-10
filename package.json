@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:browser-event-location": "node --test src/components/trips/details/browserEventLocation.test.mjs",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "sh -c 'echo nemt.futrans.us > dist/CNAME && gh-pages -d dist'"

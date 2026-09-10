@@ -83,7 +83,13 @@ export interface Trip {
     phone: string | null;
     email: string | null;
     user_id: string | null;
+    id_number?: string | null;
+    license_number?: string | null;
     vehicle_info: string | null;
+    vehicle_type?: string | null;
+    vehicle_make?: string | null;
+    vehicle_model?: string | null;
+    license_plate?: string | null;
     current_lat?: number | null;
     current_lng?: number | null;
   };
@@ -100,6 +106,24 @@ export interface TripStatusHistory {
   latitude?: number | null;
   /** GPS longitude at time of status change (DB column: longitude) */
   longitude?: number | null;
+  status_code?: string | null;
+  trigger_kind?: "manual" | "automatic" | null;
+  source_surface?:
+    | "trip_list"
+    | "trip_detail"
+    | "map_view"
+    | "web_crm"
+    | "system"
+    | null;
+  client_platform?: "ios" | "android" | "web" | null;
+  location_source?:
+    | "bg_live"
+    | "navigation_sdk"
+    | "bg_cache"
+    | "browser_geolocation"
+    | null;
+  location_captured_at?: string | null;
+  location_accuracy_m?: number | null;
 }
 export interface TripCancellationAudit {
   id: string;

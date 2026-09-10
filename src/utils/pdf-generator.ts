@@ -1,539 +1,670 @@
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { Trip, TripStatusHistory, TripCancellationAudit } from "@/components/trips/types";
-import { formatInUserTimezone, US_TIMEZONES } from "@/lib/timezone";
-import { getStaticMapImage, type TripMapData } from "./static-map-generator";
+import type {
+  Trip,
+  TripCancellationAudit,
+  TripStatusHistory,
+} from "../components/trips/types.ts";
+import { formatInUserTimezone } from "../lib/timezone.ts";
+import {
+  buildFixedPdfMilestoneRows,
+  formatPdfCoordinate,
+  SAMPLE_DRIVER_ATTESTATION,
+} from "./pdf-trip-summary-model.ts";
+import { getStaticMapImage, type TripMapData } from "./static-map-generator.ts";
 
-/**
- * Optional map image data for trip route visualization.
- */
-export interface TripMapImage {
-  dataUrl: string;
-  width: number;
-  height: number;
+type Color = [number, number, number];
+
+interface MapRenderResult {
+  image: string | null;
+  caption: string;
+  unavailableReason: string | null;
 }
 
-const getTimezoneSuffix = (timezone?: string) => {
-  if (!timezone) return "";
-  const found = US_TIMEZONES.find((tz) => tz.value === timezone);
-  if (found) {
-    const match = found.label.match(/\(([^)]+)\)/);
-    return match ? ` (${match[1]})` : ` (${timezone})`;
+interface TripSummaryRenderAssets {
+  logoImage?: string | null;
+  mapResult?: MapRenderResult;
+}
+
+interface AutoTableDocument extends jsPDF {
+  lastAutoTable: {
+    finalY: number;
+  };
+}
+
+const COLORS = {
+  ink: [48, 48, 48] as Color,
+  muted: [94, 94, 94] as Color,
+  rule: [224, 224, 224] as Color,
+  shade: [239, 239, 239] as Color,
+  alternate: [249, 249, 249] as Color,
+  brand: [52, 64, 101] as Color,
+  warning: [155, 81, 0] as Color,
+};
+
+const cleanText = (value: string | null | undefined) =>
+  (value || "")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\u2192/g, " to ")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+const normalizeCoordinatePair = (
+  latitude: unknown,
+  longitude: unknown,
+): { latitude: number | null; longitude: number | null } => {
+  const validLatitude =
+    isFiniteNumber(latitude) && latitude >= -90 && latitude <= 90;
+  const validLongitude =
+    isFiniteNumber(longitude) && longitude >= -180 && longitude <= 180;
+
+  if (latitude === 0 && longitude === 0) {
+    return { latitude: null, longitude: null };
   }
-  return ` (${timezone})`;
+
+  return {
+    latitude: validLatitude ? latitude : null,
+    longitude: validLongitude ? longitude : null,
+  };
+};
+
+const setTextColor = (doc: jsPDF, color: Color) => {
+  doc.setTextColor(color[0], color[1], color[2]);
+};
+
+const setFillColor = (doc: jsPDF, color: Color) => {
+  doc.setFillColor(color[0], color[1], color[2]);
+};
+
+const setDrawColor = (doc: jsPDF, color: Color) => {
+  doc.setDrawColor(color[0], color[1], color[2]);
+};
+
+const fitLines = (
+  doc: jsPDF,
+  value: string,
+  maxWidth: number,
+  maxLines: number,
+) => {
+  const normalized = cleanText(value) || "Not recorded";
+  const lines = doc.splitTextToSize(normalized, maxWidth) as string[];
+  if (lines.length <= maxLines) return lines;
+
+  const visible = lines.slice(0, maxLines);
+  visible[maxLines - 1] = `${visible[maxLines - 1].replace(/[.\s]+$/, "")}...`;
+  return visible;
+};
+
+const safeFormat = (
+  value: string | Date | null | undefined,
+  timezone: string,
+  pattern: string,
+) => {
+  if (!value || !Number.isFinite(new Date(value).getTime())) {
+    return "Not recorded";
+  }
+  return formatInUserTimezone(value, timezone, pattern);
+};
+
+const blobToDataUrl = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
+const loadBrandLogo = async (): Promise<string | null> => {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const response = await fetch(`${import.meta.env.BASE_URL}logo.png`);
+    if (!response.ok) return null;
+    return await blobToDataUrl(await response.blob());
+  } catch (error) {
+    console.warn("[TripSummaryPDF] Company logo unavailable", error);
+    return null;
+  }
+};
+
+const loadTripMap = async (
+  trip: Trip,
+  cancellationAudit?: TripCancellationAudit | null,
+): Promise<MapRenderResult> => {
+  const pickup = normalizeCoordinatePair(trip.pickup_lat, trip.pickup_lng);
+  const dropoff = normalizeCoordinatePair(trip.dropoff_lat, trip.dropoff_lng);
+
+  if (
+    pickup.latitude === null ||
+    pickup.longitude === null ||
+    dropoff.latitude === null ||
+    dropoff.longitude === null
+  ) {
+    return {
+      image: null,
+      caption: "Pickup (A) and drop-off (B)",
+      unavailableReason: "Pickup or drop-off coordinates were not recorded.",
+    };
+  }
+
+  const isCancelled = ["cancelled", "no_show"].includes(trip.status);
+  const cancellation = normalizeCoordinatePair(
+    cancellationAudit?.location_lat,
+    cancellationAudit?.location_lng,
+  );
+  const useCancellationCoordinates =
+    isCancelled &&
+    cancellation.latitude !== null &&
+    cancellation.longitude !== null;
+
+  const mapData: TripMapData = {
+    pickupLat: useCancellationCoordinates
+      ? cancellation.latitude!
+      : pickup.latitude,
+    pickupLng: useCancellationCoordinates
+      ? cancellation.longitude!
+      : pickup.longitude,
+    dropoffLat: dropoff.latitude,
+    dropoffLng: dropoff.longitude,
+  };
+  const image = await getStaticMapImage(mapData, 600, 600);
+
+  return {
+    image,
+    caption: useCancellationCoordinates
+      ? "Cancellation location (A) and drop-off (B)"
+      : "Pickup (A) and drop-off (B)",
+    unavailableReason: image
+      ? null
+      : "Static route map could not be loaded at generation time.",
+  };
+};
+
+const drawShadedRow = (
+  doc: jsPDF,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  text: string,
+  alternate = false,
+) => {
+  setFillColor(doc, alternate ? COLORS.alternate : COLORS.shade);
+  doc.roundedRect(x, y, width, height, 0.8, 0.8, "F");
+  doc.setFont("times", "normal");
+  doc.setFontSize(7.5);
+  setTextColor(doc, COLORS.ink);
+  doc.text(fitLines(doc, text, width - 5, 1), x + 2.5, y + height / 2 + 1);
+};
+
+const drawContainedImage = (
+  doc: jsPDF,
+  image: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) => {
+  const properties = doc.getImageProperties(image);
+  const imageRatio = properties.width / properties.height;
+  const boxRatio = width / height;
+  const renderedWidth = boxRatio > imageRatio ? height * imageRatio : width;
+  const renderedHeight = boxRatio > imageRatio ? height : width / imageRatio;
+
+  doc.addImage(
+    image,
+    "PNG",
+    x + (width - renderedWidth) / 2,
+    y + (height - renderedHeight) / 2,
+    renderedWidth,
+    renderedHeight,
+    undefined,
+    "FAST",
+  );
+};
+
+const drawClientSignature = (
+  doc: jsPDF,
+  trip: Trip,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  timezone: string,
+) => {
+  setDrawColor(doc, COLORS.rule);
+  doc.rect(x, y, width, height);
+
+  if (trip.signature_declined) {
+    doc.setFont("times", "bold");
+    doc.setFontSize(8);
+    setTextColor(doc, COLORS.warning);
+    doc.text("Signature declined", x + width / 2, y + 13, { align: "center" });
+    if (trip.signature_declined_reason) {
+      doc.setFont("times", "normal");
+      doc.setFontSize(6.5);
+      const reason = fitLines(
+        doc,
+        `Reason: ${trip.signature_declined_reason}`,
+        width - 10,
+        2,
+      );
+      doc.text(reason, x + width / 2, y + 18, { align: "center" });
+    }
+    return;
+  }
+
+  if (!trip.signature_data) {
+    doc.setFont("times", "normal");
+    doc.setFontSize(8);
+    setTextColor(doc, COLORS.muted);
+    doc.text("Not recorded", x + width / 2, y + height / 2, {
+      align: "center",
+    });
+    return;
+  }
+
+  try {
+    drawContainedImage(doc, trip.signature_data, x + 5, y + 2, width - 10, height - 10);
+    const signedBy = cleanText(trip.signed_by_name);
+    const capturedAt = safeFormat(
+      trip.signature_captured_at,
+      timezone,
+      "MM/dd/yyyy HH:mm",
+    );
+    const details = [signedBy ? `Signed by: ${signedBy}` : "", `Captured: ${capturedAt}`]
+      .filter(Boolean)
+      .join(" | ");
+    doc.setFont("times", "normal");
+    doc.setFontSize(5.8);
+    setTextColor(doc, COLORS.muted);
+    doc.text(fitLines(doc, details, width - 5, 1), x + width / 2, y + height - 2, {
+      align: "center",
+    });
+  } catch (error) {
+    console.error("[TripSummaryPDF] Failed to render client signature", error);
+    doc.setFont("times", "normal");
+    doc.setFontSize(7.5);
+    setTextColor(doc, COLORS.warning);
+    doc.text("Signature image unavailable", x + width / 2, y + height / 2, {
+      align: "center",
+    });
+  }
+};
+
+/**
+ * Creates the document without saving it so the fixed A4 layout can be tested.
+ * The report is deliberately one selected service leg and one physical page.
+ */
+export const createTripSummaryPDFDocument = (
+  trip: Trip,
+  history: TripStatusHistory[],
+  orgName?: string,
+  timezone: string = "America/Chicago",
+  assets: TripSummaryRenderAssets = {},
+) => {
+  const doc = new jsPDF({
+    compress: true,
+    format: "a4",
+    orientation: "portrait",
+    unit: "mm",
+  });
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  const margin = 9;
+  const contentWidth = pageWidth - margin * 2;
+  const organizationName = cleanText(orgName) || "Future Transportation";
+  const milestoneRows = buildFixedPdfMilestoneRows(history);
+  const provenance = milestoneRows
+    .filter((row) => row.createdAt)
+    .map((row) => `${row.label}: ${row.origin}`)
+    .join("; ");
+
+  doc.setProperties({
+    title: `${organizationName} Trip Summary`,
+    subject: `Internal trip ${trip.id} service summary`,
+    author: organizationName,
+    keywords: `medical transportation, trip summary, GPS milestones${
+      provenance ? `, ${provenance}` : ""
+    }`,
+  });
+
+  // Company header and truthful internal identifier.
+  if (assets.logoImage) {
+    try {
+      drawContainedImage(doc, assets.logoImage, margin, 8, 17, 17);
+    } catch (error) {
+      console.warn("[TripSummaryPDF] Failed to render company logo", error);
+      setFillColor(doc, COLORS.brand);
+      doc.roundedRect(margin, 8, 17, 17, 2, 2, "F");
+    }
+  } else {
+    setFillColor(doc, COLORS.brand);
+    doc.roundedRect(margin, 8, 17, 17, 2, 2, "F");
+    doc.setFont("times", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.text("FT", margin + 8.5, 18.5, { align: "center" });
+  }
+
+  doc.setFont("times", "bold");
+  doc.setFontSize(13);
+  setTextColor(doc, COLORS.ink);
+  doc.text(fitLines(doc, organizationName, 103, 1), margin + 22, 14);
+  doc.setFont("times", "normal");
+  doc.setFontSize(10);
+  doc.text("Medical Transportation", margin + 22, 21);
+
+  const headerRightX = pageWidth - margin;
+  doc.setFont("times", "normal");
+  doc.setFontSize(8);
+  const orderLines = fitLines(doc, `Internal Order ID: ${trip.id}`, 70, 2);
+  doc.text(orderLines, headerRightX, 13, { align: "right" });
+  doc.text(
+    `Date: ${safeFormat(trip.pickup_time, timezone, "MM/dd/yyyy")}`,
+    headerRightX,
+    23,
+    { align: "right" },
+  );
+
+  // Pickup and drop-off bars mirror the sample and remain fixed-height.
+  const routeY = 31;
+  const routeWidth = 134;
+  const scheduledWidth = contentWidth - routeWidth;
+  setFillColor(doc, COLORS.shade);
+  doc.roundedRect(margin, routeY, contentWidth, 12, 0.8, 0.8, "F");
+  setDrawColor(doc, COLORS.rule);
+  doc.line(margin + routeWidth, routeY, margin + routeWidth, routeY + 12);
+  doc.setFont("times", "normal");
+  doc.setFontSize(8);
+  setTextColor(doc, COLORS.ink);
+  doc.text(
+    fitLines(doc, `PU Address: ${trip.pickup_location}`, routeWidth - 5, 2),
+    margin + 2.5,
+    routeY + 5,
+  );
+  doc.text(
+    fitLines(
+      doc,
+      `Scheduled PU: ${safeFormat(trip.pickup_time, timezone, "HH:mm")}`,
+      scheduledWidth - 5,
+      1,
+    ),
+    margin + routeWidth + 2.5,
+    routeY + 7,
+  );
+
+  setFillColor(doc, COLORS.alternate);
+  doc.roundedRect(margin, routeY + 13, contentWidth, 12, 0.8, 0.8, "F");
+  doc.text(
+    fitLines(doc, `DO Address: ${trip.dropoff_location}`, contentWidth - 5, 2),
+    margin + 2.5,
+    routeY + 18,
+  );
+
+  const mainTop = 63;
+  const mainBottom = 215;
+  const columnGap = 8;
+  const leftWidth = 92;
+  const rightX = margin + leftWidth + columnGap;
+  const rightWidth = contentWidth - leftWidth - columnGap;
+
+  // Left: static route map only. Provider attribution inside the map image is
+  // left intact; the report itself adds no third-party logo or endorsement.
+  doc.setFont("times", "bold");
+  doc.setFontSize(8);
+  setTextColor(doc, COLORS.ink);
+  doc.text("Trip Map", margin, mainTop);
+  setDrawColor(doc, COLORS.rule);
+  doc.rect(margin, mainTop + 4, leftWidth, mainBottom - mainTop - 4);
+
+  if (assets.mapResult?.image) {
+    try {
+      drawContainedImage(
+        doc,
+        assets.mapResult.image,
+        margin + 1,
+        mainTop + 5,
+        leftWidth - 2,
+        mainBottom - mainTop - 12,
+      );
+    } catch (error) {
+      console.warn("[TripSummaryPDF] Failed to render static route map", error);
+    }
+  }
+
+  if (!assets.mapResult?.image) {
+    setFillColor(doc, COLORS.alternate);
+    doc.rect(
+      margin + 0.2,
+      mainTop + 4.2,
+      leftWidth - 0.4,
+      mainBottom - mainTop - 4.4,
+      "F",
+    );
+    doc.setFont("times", "bold");
+    doc.setFontSize(9);
+    setTextColor(doc, COLORS.ink);
+    doc.text("Map unavailable", margin + leftWidth / 2, 133, {
+      align: "center",
+    });
+    doc.setFont("times", "normal");
+    doc.setFontSize(6.5);
+    setTextColor(doc, COLORS.muted);
+    const unavailableReason = fitLines(
+      doc,
+      assets.mapResult?.unavailableReason || "Static route map was not recorded.",
+      leftWidth - 14,
+      3,
+    );
+    doc.text(unavailableReason, margin + leftWidth / 2, 139, {
+      align: "center",
+    });
+  }
+
+  doc.setFont("times", "normal");
+  doc.setFontSize(6);
+  setTextColor(doc, COLORS.muted);
+  doc.text(
+    assets.mapResult?.caption || "Pickup (A) and drop-off (B)",
+    margin + leftWidth / 2,
+    mainBottom - 2,
+    { align: "center" },
+  );
+
+  // Right: client signature, then the separate driver evidence block.
+  doc.setFont("times", "bold");
+  doc.setFontSize(8.5);
+  setTextColor(doc, COLORS.ink);
+  doc.text(
+    fitLines(
+      doc,
+      `Client - ${trip.patient?.full_name || "Not recorded"}`,
+      rightWidth,
+      1,
+    ),
+    rightX,
+    mainTop,
+  );
+  doc.setFont("times", "normal");
+  doc.setFontSize(8);
+  doc.text("DO Sign.:", rightX, mainTop + 7);
+  drawClientSignature(doc, trip, rightX, mainTop + 10, rightWidth, 37, timezone);
+
+  const driver = trip.driver;
+  const driverName = cleanText(driver?.full_name) || "Not recorded";
+  const driverLicense = cleanText(driver?.license_number) || "Not recorded";
+  const vehicleType = cleanText(driver?.vehicle_type) || "Not recorded";
+  const vehicleModel =
+    cleanText([driver?.vehicle_make, driver?.vehicle_model].filter(Boolean).join(" ")) ||
+    cleanText(driver?.vehicle_info) ||
+    "Not recorded";
+  const licensePlate = cleanText(driver?.license_plate) || "Not recorded";
+
+  const driverTop = 115;
+  doc.setFont("times", "bold");
+  doc.setFontSize(8.5);
+  setTextColor(doc, COLORS.ink);
+  doc.text(fitLines(doc, `Driver - ${driverName}`, rightWidth, 1), rightX, driverTop);
+  drawShadedRow(
+    doc,
+    rightX,
+    driverTop + 3,
+    rightWidth,
+    8,
+    `Driver License: ${driverLicense}`,
+  );
+
+  setFillColor(doc, COLORS.shade);
+  doc.roundedRect(rightX, driverTop + 12, rightWidth, 35, 0.8, 0.8, "F");
+  doc.setFont("times", "normal");
+  doc.setFontSize(6.4);
+  setTextColor(doc, COLORS.ink);
+  doc.text(
+    fitLines(doc, SAMPLE_DRIVER_ATTESTATION, rightWidth - 5, 8),
+    rightX + 2.5,
+    driverTop + 17,
+  );
+  doc.setFont("times", "bold");
+  doc.setFontSize(6.6);
+  doc.text("Attestation acceptance: Not recorded", rightX + 2.5, driverTop + 44);
+
+  doc.setFont("times", "normal");
+  doc.setFontSize(8);
+  doc.text("Driver Sign.: Not recorded", rightX, driverTop + 54);
+
+  const vehicleTop = 177;
+  doc.setFont("times", "bold");
+  doc.setFontSize(8.5);
+  doc.text("Vehicle", rightX, vehicleTop);
+  drawShadedRow(
+    doc,
+    rightX,
+    vehicleTop + 3,
+    rightWidth,
+    8,
+    "Internal Vehicle ID: Not recorded",
+  );
+  drawShadedRow(
+    doc,
+    rightX,
+    vehicleTop + 12,
+    rightWidth,
+    8,
+    `Vehicle Type: ${vehicleType}    Model: ${vehicleModel}`,
+    true,
+  );
+  drawShadedRow(
+    doc,
+    rightX,
+    vehicleTop + 21,
+    rightWidth,
+    8,
+    `Plate: ${licensePlate}    VIN: Not recorded`,
+  );
+
+  // The visible table intentionally matches the sample's fixed four columns.
+  const tableRows = milestoneRows.map((row) => [
+    row.label,
+    safeFormat(row.createdAt, timezone, "MM/dd/yyyy HH:mm"),
+    formatPdfCoordinate(row.latitude),
+    formatPdfCoordinate(row.longitude),
+  ]);
+  autoTable(doc, {
+    startY: 225,
+    head: [["Status", "Time", "Latitude", "Longitude"]],
+    body: tableRows,
+    theme: "plain",
+    pageBreak: "avoid",
+    rowPageBreak: "avoid",
+    margin: { left: margin, right: margin, bottom: 20 },
+    styles: {
+      font: "times",
+      fontSize: 7.4,
+      cellPadding: { top: 1.7, right: 1.2, bottom: 1.7, left: 1.2 },
+      textColor: COLORS.ink,
+      valign: "middle",
+      overflow: "ellipsize",
+    },
+    headStyles: {
+      fillColor: [255, 255, 255],
+      textColor: COLORS.ink,
+      fontStyle: "bold",
+      lineWidth: 0,
+    },
+    alternateRowStyles: { fillColor: COLORS.alternate },
+    bodyStyles: { fillColor: COLORS.shade },
+    columnStyles: {
+      0: { cellWidth: 35, fontStyle: "bold" },
+      1: { cellWidth: 47 },
+      2: { cellWidth: 55 },
+      3: { cellWidth: 55 },
+    },
+    didParseCell: (cell) => {
+      if (cell.section === "body" && cell.cell.raw === "Not recorded") {
+        cell.cell.styles.textColor = COLORS.warning;
+      }
+    },
+  });
+
+  if (doc.getNumberOfPages() !== 1) {
+    throw new Error("Trip summary exceeded its required one-page A4 layout.");
+  }
+
+  const tableEndY = (doc as AutoTableDocument).lastAutoTable.finalY;
+  doc.setFont("times", "normal");
+  doc.setFontSize(5.8);
+  setTextColor(doc, COLORS.muted);
+  doc.text(
+    "Not recorded means no qualifying stored event or coordinate evidence was available; values were not inferred.",
+    margin,
+    Math.min(tableEndY + 4, 279),
+  );
+
+  setDrawColor(doc, COLORS.rule);
+  doc.setLineWidth(0.25);
+  doc.line(margin, pageHeight - 13, pageWidth - margin, pageHeight - 13);
+  doc.setFont("times", "normal");
+  doc.setFontSize(6.2);
+  setTextColor(doc, COLORS.muted);
+  doc.text(organizationName, margin, pageHeight - 8);
+  doc.text("Page 1 of 1", pageWidth / 2, pageHeight - 8, { align: "center" });
+  doc.text(
+    `Generation date ${safeFormat(new Date(), timezone, "MM/dd/yyyy HH:mm")}`,
+    pageWidth - margin,
+    pageHeight - 8,
+    { align: "right" },
+  );
+
+  return doc;
 };
 
 export async function generateTripSummaryPDF(
   trip: Trip,
-  journeyTrips: Trip[],
+  _journeyTrips: Trip[],
   history: TripStatusHistory[],
   orgName?: string,
   timezone: string = "America/Chicago",
   cancellationAudit?: TripCancellationAudit | null,
 ) {
-  // Initialize with compression enabled
-  const doc = new jsPDF({
-    compress: true,
+  // The UI still uses journeyTrips for navigation. A compliance report is one
+  // selected service leg, matching the attached sample rather than combining legs.
+  void _journeyTrips;
+
+  const [logoImage, mapResult] = await Promise.all([
+    loadBrandLogo(),
+    loadTripMap(trip, cancellationAudit),
+  ]);
+  const doc = createTripSummaryPDFDocument(trip, history, orgName, timezone, {
+    logoImage,
+    mapResult,
   });
-
-  const pageWidth = doc.internal.pageSize.width;
-  const margin = 14;
-  const tzSuffix = getTimezoneSuffix(timezone);
-
-  // --- Header ---
-  if (orgName) {
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(51, 65, 85); // Slate 700
-    doc.text(orgName.toUpperCase(), margin, 18);
-    doc.setFontSize(22);
-    doc.text("Journal Summary Report", margin, 28);
-  } else {
-    doc.setFontSize(22);
-    doc.setTextColor(30, 41, 59); // Slate 800
-    doc.text("Journal Summary Report", margin, 20);
-  }
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 116, 139); // Slate 500
-  const headerY = orgName ? 34 : 26;
-  doc.text(
-    `Generated on: ${formatInUserTimezone(new Date(), timezone, "MMM d, yyyy h:mm a")}${tzSuffix}`,
-    margin,
-    headerY,
-  );
-  doc.text(`Trip ID: ${trip.id}`, margin, headerY + 5);
-
-  if (trip.eta_sms_sent_at) {
-    doc.setTextColor(30, 64, 175); // Blue 800
-    doc.setFont("helvetica", "bold");
-    doc.text(
-      `ETA SMS Sent at: ${formatInUserTimezone(trip.eta_sms_sent_at, timezone, "h:mm a")}${tzSuffix}`,
-      margin,
-      headerY + 10,
-    );
-  }
-
-  // --- Patient Info Block ---
-  doc.setFillColor(248, 250, 252); // Slate 50
-  doc.setDrawColor(226, 232, 240); // Slate 200
-  const patientBlockY = orgName ? 48 : 38;
-  doc.roundedRect(
-    margin,
-    patientBlockY,
-    pageWidth - margin * 2,
-    24,
-    2,
-    2,
-    "FD",
-  );
-
-  doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139); // Slate 500
-  doc.setFont("helvetica", "normal");
-  doc.text("PATIENT", margin + 5, patientBlockY + 7);
-  doc.text("SCHEDULED DATE", margin + 80, patientBlockY + 7);
-  doc.text("TOTAL LEGS", margin + 140, patientBlockY + 7);
-
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 23, 42); // Slate 900
-  doc.text(trip.patient?.full_name || "N/A", margin + 5, patientBlockY + 14);
-  doc.text(
-    formatInUserTimezone(trip.pickup_time, timezone, "MMM d, yyyy"),
-    margin + 80,
-    patientBlockY + 14,
-  );
-  doc.text(
-    (journeyTrips.length || 1).toString(),
-    margin + 140,
-    patientBlockY + 14,
-  );
-
-  let currentY = patientBlockY + 35;
-
-  // --- Journey Timeline Section ---
-  if (journeyTrips && journeyTrips.length > 0) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(30, 41, 59);
-    doc.text("Journey Timeline", margin, currentY);
-    currentY += 5;
-
-    const timelineData = journeyTrips.map((leg, index) => {
-      const time = `${formatInUserTimezone(leg.pickup_time, timezone, "h:mm a")}${tzSuffix}`;
-
-      const cleanLocation = (loc: string) =>
-        loc.replace(/[!“"']+$|^\s*|\s*$/g, "").trim();
-      const pickup = cleanLocation(leg.pickup_location);
-      const dropoff = cleanLocation(leg.dropoff_location);
-      const route = `From: ${pickup}\nTo: ${dropoff}`;
-
-      const distance = leg.actual_distance_miles
-        ? `${Math.ceil(Number(leg.actual_distance_miles))} mi`
-        : leg.distance_miles
-          ? `${Math.ceil(Number(leg.distance_miles))} mi`
-          : "-";
-
-      return [
-        index + 1,
-        time,
-        route,
-        leg.status.replace(/_/g, " ").toUpperCase(),
-        distance,
-      ];
-    });
-
-    // @ts-ignore
-    autoTable(doc, {
-      startY: currentY,
-      head: [["#", "Time", "Route", "Status", "Dist."]],
-      body: timelineData,
-      theme: "plain",
-      styles: {
-        fontSize: 9,
-        cellPadding: 4,
-        lineColor: [226, 232, 240],
-        lineWidth: 0.1,
-        halign: "center", // Center things by default
-        valign: "middle", // Vertical centering
-      },
-      headStyles: {
-        fillColor: [241, 245, 249],
-        textColor: [71, 85, 105],
-        fontStyle: "bold",
-        lineWidth: 0,
-        halign: "center",
-      },
-      columnStyles: {
-        0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 32, halign: "center" }, // Increased width for time + suffix
-        2: { cellWidth: "auto", halign: "left" }, // Route left-aligned but padded
-        3: { cellWidth: 35, fontSize: 8, halign: "center" },
-        4: { cellWidth: 15, halign: "center" },
-      },
-      didParseCell: (data) => {
-        // Styling status cells based on value
-        if (data.section === "body" && data.column.index === 3) {
-          const status = data.cell.raw as string;
-          if (status === "COMPLETED") {
-            data.cell.styles.textColor = [16, 185, 129];
-          } else if (status === "CANCELLED" || status === "NO SHOW") {
-            data.cell.styles.textColor = [239, 68, 68];
-          } else if (status.includes("CIRCLE")) {
-            data.cell.styles.textColor = [147, 51, 234]; // Purple
-          } else if (status === "LOADED") {
-            data.cell.styles.textColor = [14, 165, 233]; // Sky
-          } else {
-            data.cell.styles.textColor = [59, 130, 246];
-          }
-        }
-      },
-    });
-
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-  }
-  // --- Map Snippet ---
-  const mapWidth = pageWidth - margin * 2;
-  const mapHeight = 70;
-  
-  if (trip.pickup_lat && trip.pickup_lng && trip.dropoff_lat && trip.dropoff_lng) {
-    // Check if we need a new page for the map
-    if (currentY > doc.internal.pageSize.height - mapHeight - 30) {
-      doc.addPage();
-      currentY = 20;
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(30, 41, 59);
-    doc.text("Trip Visualization", margin, currentY);
-    currentY += 8;
-
-    try {
-      let mapParams: TripMapData = {
-        pickupLat: trip.pickup_lat!,
-        pickupLng: trip.pickup_lng!,
-        dropoffLat: trip.dropoff_lat!,
-        dropoffLng: trip.dropoff_lng!,
-      };
-
-      // For cancelled trips, use cancellation location as start marker if available
-      const isCancelled = ["cancelled", "no_show"].includes(trip.status);
-      if (isCancelled && cancellationAudit?.location_lat && cancellationAudit?.location_lng) {
-        mapParams.pickupLat = cancellationAudit.location_lat;
-        mapParams.pickupLng = cancellationAudit.location_lng;
-      }
-
-      const mapImage = await getStaticMapImage(
-        mapParams,
-        Math.round(mapWidth * 3), // Higher density for PDF
-        Math.round(mapHeight * 3)
-      );
-
-      if (mapImage) {
-        doc.addImage(
-          mapImage,
-          "PNG",
-          margin,
-          currentY,
-          mapWidth,
-          mapHeight,
-          undefined,
-          "FAST"
-        );
-        
-        // Add legend/caption
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "italic");
-        doc.setTextColor(100, 116, 139);
-        const caption = isCancelled 
-          ? `Trip ${trip.status.replace(/_/g, " ")} - Map showing location of ${trip.status === "cancelled" ? "cancellation" : "no-show"} (A) and dropoff point (B)`
-          : "Map showing pickup (A) and dropoff (B) points";
-        doc.text(caption, margin, currentY + mapHeight + 5);
-        
-        currentY += mapHeight + 18;
-      }
-    } catch (e) {
-      console.error("Error adding map image to PDF", e);
-      currentY += 5;
-    }
-  }
-
-  // --- Activity History Section ---
-  if (history && history.length > 0) {
-    // Check if we need a new page
-    if (currentY > doc.internal.pageSize.height - 40) {
-      doc.addPage();
-      currentY = 20;
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(30, 41, 59);
-    doc.text("Activity History", margin, currentY);
-    currentY += 8;
-
-    const historyData = history.map((item) => {
-      const timeStr = `${formatInUserTimezone(item.created_at, timezone, "h:mm a")}${tzSuffix}`;
-      const dateStr = formatInUserTimezone(
-        item.created_at,
-        timezone,
-        "MM/dd/yyyy",
-      );
-
-      let statusText = item.status.replace(/_/g, " ").toUpperCase();
-      if (statusText.startsWith("UPDATED:")) {
-        statusText = statusText.replace("UPDATED:", "UPDATED").trim();
-      }
-      
-      const coordinates = (item.latitude && item.longitude) 
-        ? `${item.latitude.toFixed(6)},\n${item.longitude.toFixed(6)}`
-        : "N/A";
-
-      return [`${dateStr}\n${timeStr}`, statusText, item.actor_name, coordinates];
-    });
-
-    // @ts-ignore
-    autoTable(doc, {
-      startY: currentY,
-      head: [["Date/Time", "Activity", "Performed By", "Coordinates"]],
-      body: historyData,
-      theme: "plain",
-      styles: {
-        fontSize: 8,
-        cellPadding: 4,
-        lineColor: [241, 245, 249],
-        lineWidth: 0.1,
-        valign: "middle", // Vertical centering
-      },
-      headStyles: {
-        fillColor: [248, 250, 252],
-        textColor: [100, 116, 139],
-        fontStyle: "bold",
-        fontSize: 7,
-      },
-      columnStyles: {
-        0: { cellWidth: 32, halign: "center" }, // Date/Time
-        1: { cellWidth: "auto", fontStyle: "bold" }, // Activity
-        2: { cellWidth: 40, halign: "center" }, // Actor
-        3: { cellWidth: 28, halign: "center", fontSize: 7, textColor: [100, 116, 139] }, // Coordinates
-      },
-      didParseCell: (data) => {
-        if (data.section === "body" && data.column.index === 1) {
-          const text = data.cell.raw as string;
-          if (text.includes("COMPLETED"))
-            data.cell.styles.textColor = [16, 185, 129];
-          else if (text.includes("CANCEL") || text.includes("NO SHOW"))
-            data.cell.styles.textColor = [239, 68, 68];
-          else if (text.includes("EN ROUTE"))
-            data.cell.styles.textColor = [147, 51, 234];
-          else if (text.includes("ASSIGNED"))
-            data.cell.styles.textColor = [59, 130, 246];
-          else if (text.includes("CIRCLE"))
-            data.cell.styles.textColor = [147, 51, 234]; // Purple for circle statuses
-          else if (text.includes("LOADED"))
-            data.cell.styles.textColor = [14, 165, 233]; // Sky blue for loaded
-        }
-      },
-    });
-
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-  }
-
-  // --- Specific Trip Details & Signature ---
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(30, 41, 59);
-  doc.text("Selected Trip Verification", margin, currentY);
-  currentY += 8;
-
-  // Status Indicator for the selected trip
-  let statusColor = [100, 116, 139]; // Default Slate
-  if (trip.status === "completed") statusColor = [16, 185, 129];
-  else if (trip.status === "cancelled" || trip.status === "no_show") statusColor = [239, 68, 68];
-  else if (trip.status === "in_progress") statusColor = [59, 130, 246];
-  else if (trip.status === "loaded") statusColor = [14, 165, 233]; // Sky
-  else if (trip.status === "in_pickup_circle" || trip.status === "in_dropoff_circle") statusColor = [147, 51, 234]; // Purple
-  else if (trip.status === "en_route") statusColor = [147, 51, 234]; // Purple
-
-  doc.setDrawColor(statusColor[0], statusColor[1], statusColor[2]);
-  doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
-  doc.rect(margin, currentY, 2, 10, "F"); // Vertical colored strip
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-  doc.text(
-    trip.status.toUpperCase().replace(/_/g, " "),
-    margin + 5,
-    currentY + 7,
-  );
-
-  currentY += 15;
-
-  const detailsData = [
-    ["Driver", trip.driver?.full_name || "Unassigned"],
-    ["Vehicle", trip.driver?.vehicle_info || "N/A"],
-    ["Trip Type", trip.trip_type],
-    [
-      "Distance",
-      trip.actual_distance_miles
-        ? `${Math.ceil(Number(trip.actual_distance_miles))} miles`
-        : trip.distance_miles
-          ? `${Math.ceil(Number(trip.distance_miles))} miles`
-          : "N/A",
-    ],
-    [
-      "Duration",
-      trip.actual_duration_minutes
-        ? `${trip.actual_duration_minutes} minutes`
-        : trip.duration_minutes
-          ? `${trip.duration_minutes} minutes`
-          : "N/A",
-    ],
-    [
-      "Total Journey Duration",
-      journeyTrips.length > 0
-        ? `${journeyTrips.reduce((acc, leg) => acc + (Number(leg.actual_duration_minutes) || Number(leg.duration_minutes) || 0), 0)} minutes`
-        : trip.actual_duration_minutes
-          ? `${trip.actual_duration_minutes} minutes`
-          : trip.duration_minutes
-            ? `${trip.duration_minutes} minutes`
-            : "N/A",
-    ],
-  ];
-
-  if (trip.total_waiting_minutes && Number(trip.total_waiting_minutes) > 0) {
-    detailsData.push(["Wait Time", `${trip.total_waiting_minutes} minutes`]);
-  }
-
-  if (trip.notes) {
-    detailsData.push(["Notes", trip.notes]);
-  }
-
-  // @ts-ignore
-  autoTable(doc, {
-    startY: currentY,
-    body: detailsData,
-    theme: "plain",
-    tableWidth: "auto",
-    styles: {
-      fontSize: 10,
-      cellPadding: 4,
-      textColor: [51, 65, 85],
-      valign: "middle",
-    },
-    columnStyles: {
-      0: { fontStyle: "bold", cellWidth: 40, textColor: [100, 116, 139] },
-      1: { cellWidth: "auto" },
-    },
-  });
-
-  const tableFinalY = (doc as any).lastAutoTable.finalY;
-
-  currentY = tableFinalY + 15;
-
-  // --- Signature Section ---
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(30, 41, 59);
-  doc.text("Signature", margin, currentY);
-  currentY += 8;
-
-  const signatureBoxHeight = 60; // Increased from 40
-
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.5);
-  doc.rect(margin, currentY, pageWidth - margin * 2, signatureBoxHeight);
-
-  if (trip.signature_declined) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(180, 83, 9); // Amber 700
-    doc.text("Signature was declined by the rider.", margin + 5, currentY + 10);
-    if (trip.signature_declined_reason) {
-      doc.text(
-        `Reason: ${trip.signature_declined_reason}`,
-        margin + 5,
-        currentY + 20,
-      );
-    }
-  } else if (trip.signature_data) {
-    // Add Signature Image
-    try {
-      const imgProps = doc.getImageProperties(trip.signature_data);
-      // Center visually and make slightly larger
-      const maxWidth = 160; // Increased from 140
-      const maxHeight = signatureBoxHeight - 12;
-
-      let finalWidth = maxWidth;
-      let finalHeight = (imgProps.height * maxWidth) / imgProps.width;
-
-      if (finalHeight > maxHeight) {
-        finalHeight = maxHeight;
-        finalWidth = (imgProps.width * maxHeight) / imgProps.height;
-      }
-
-      // Center the signature visually in the box
-      doc.addImage(
-        trip.signature_data,
-        "PNG",
-        (pageWidth - finalWidth) / 2, // Center visually
-        currentY + (signatureBoxHeight - finalHeight) / 2, // Center vertically
-        finalWidth,
-        finalHeight,
-        undefined,
-        "FAST", // Compression
-      );
-
-      // Show Signer Info - Centered at the bottom of the box
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139); // Slate 500
-      let signerInfo = "";
-      if (trip.signed_by_name)
-        signerInfo += `Signed by: ${trip.signed_by_name}  |  `;
-      if (trip.signature_captured_at)
-        signerInfo += `Captured: ${formatInUserTimezone(trip.signature_captured_at, timezone, "MMM d, yyyy h:mm a")}${tzSuffix}`;
-
-      if (signerInfo) {
-        doc.text(signerInfo, pageWidth / 2, currentY + signatureBoxHeight - 4, {
-          align: "center",
-        });
-      }
-    } catch (e) {
-      console.error("Error adding signature image to PDF", e);
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(10);
-      doc.setTextColor(148, 163, 184);
-      doc.text("Error loading signature.", pageWidth / 2, currentY + 20, {
-        align: "center",
-      });
-    }
-  } else {
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(10);
-    doc.setTextColor(148, 163, 184);
-    doc.text("No signature recorded.", pageWidth / 2, currentY + 20, {
-      align: "center",
-    });
-  }
-
-  // --- Footer ---
-  const pageCount = (doc as any).internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(148, 163, 184);
-    doc.text(
-      `${orgName || "Future NEMT Transportation"} - Page ${i} of ${pageCount}`,
-      pageWidth / 2,
-      doc.internal.pageSize.height - 10,
-      { align: "center" },
-    );
-  }
-
-  doc.save(`journey_summary_${new Date().toISOString().split("T")[0]}.pdf`);
+  const localDate = formatInUserTimezone(new Date(), timezone, "yyyy-MM-dd");
+  doc.save(`journey_summary_${localDate}.pdf`);
 }

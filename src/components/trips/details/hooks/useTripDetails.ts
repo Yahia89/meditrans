@@ -1,10 +1,92 @@
 import { useState, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryState } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryState } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth-context";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTimezone } from "@/hooks/useTimezone";
 import type { Trip, TripStatus, TripStatusHistory } from "../../types";
+import { toast } from "sonner";
+import {
+  normalizeBrowserEventLocation,
+  type BrowserEventLocation,
+} from "../browserEventLocation";
+
+function captureBrowserEventLocation(): Promise<BrowserEventLocation> {
+  if (!navigator.geolocation) {
+    return Promise.reject(
+      new Error("This browser cannot provide the event-time location."),
+    );
+  }
+
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        try {
+          resolve(
+            normalizeBrowserEventLocation({
+              latitude,
+              longitude,
+              accuracyMeters: accuracy,
+              capturedAtMs: Number(position.timestamp),
+            }),
+          );
+        } catch (error) {
+          reject(
+            error instanceof Error
+              ? error
+              : new Error("The browser returned invalid location evidence."),
+          );
+        }
+      },
+      () => {
+        reject(
+          new Error(
+            "A current location is required. Allow location access and try again.",
+          ),
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 15_000,
+      },
+    );
+  });
+}
+
+function createClientEventId() {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const value = Math.floor(Math.random() * 16);
+    return (char === "x" ? value : (value & 0x3) | 0x8).toString(16);
+  });
+}
+
+function isRetryableTransportError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { code?: unknown; message?: unknown };
+  if (typeof candidate.code === "string" && candidate.code.length > 0) {
+    return false;
+  }
+  return (
+    typeof candidate.message === "string" &&
+    /fetch|network|timeout|connection|socket/i.test(candidate.message)
+  );
+}
+
+async function applyTripTransitionWithRetry(
+  params: Record<string, string | number | boolean | null>,
+) {
+  let result = await supabase.rpc("apply_trip_transition", params);
+  if (result.error && isRetryableTransportError(result.error)) {
+    // Preserve the event id and full payload. If the first response was lost
+    // after commit, the RPC returns the already-created history event.
+    result = await supabase.rpc("apply_trip_transition", params);
+  }
+  if (result.error) throw result.error;
+  return result.data;
+}
 
 export function useTripDetails({
   tripId,
@@ -48,10 +130,10 @@ export function useTripDetails({
       }
     }
     return latest;
-  }, [queryClient, tripId]);
+  }, [queryClient]);
 
   // Queries
-  const { data: trip, isLoading } = useQuery({
+  const { data: trip, isLoading, refetch: refetchTrip } = useQuery({
     queryKey: ["trip", tripId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -59,7 +141,7 @@ export function useTripDetails({
         .select(`
             *,
             patient:patients(id, full_name, phone, email, created_at, user_id),
-            driver:drivers(id, full_name, phone, email, user_id, vehicle_info, current_lat, current_lng)
+            driver:drivers(id, full_name, phone, email, user_id, id_number, license_number, vehicle_info, vehicle_type, vehicle_make, vehicle_model, license_plate, current_lat, current_lng)
         `)
         .eq("id", tripId)
         .single();
@@ -67,7 +149,6 @@ export function useTripDetails({
       return data as Trip;
     },
     staleTime: 0,
-    placeholderData: keepPreviousData,
     // Seed from list cache so the UI renders instantly on first navigation.
     // initialData is considered valid only as long as the list cache is fresh
     // (controlled by initialDataUpdatedAt + staleTime above).
@@ -75,7 +156,11 @@ export function useTripDetails({
     initialDataUpdatedAt: getSeededAt,
   });
 
-  const { data: history, isLoading: isHistoryLoading } = useQuery({
+  const {
+    data: history,
+    isLoading: isHistoryLoading,
+    refetch: refetchHistory,
+  } = useQuery({
     queryKey: ["trip-history", tripId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -88,10 +173,9 @@ export function useTripDetails({
     },
     enabled: !!tripId,
     staleTime: 60 * 1000,
-    placeholderData: keepPreviousData,
   });
 
-  const { data: cancellationAudit } = useQuery({
+  const { data: cancellationAudit, refetch: refetchCancellationAudit } = useQuery({
     queryKey: ["trip-cancellation-audit", tripId],
     queryFn: async () => {
       if (!tripId || !["cancelled", "no_show"].includes(trip?.status || "")) return null;
@@ -105,10 +189,9 @@ export function useTripDetails({
     },
     enabled: !!tripId && ["cancelled", "no_show"].includes(trip?.status || ""),
     staleTime: 5 * 60 * 1000,
-    placeholderData: keepPreviousData,
   });
 
-  const { data: org } = useQuery({
+  const { data: org, refetch: refetchOrganization } = useQuery({
     queryKey: ["organization", trip?.org_id],
     queryFn: async () => {
       if (!trip?.org_id) return null;
@@ -122,7 +205,6 @@ export function useTripDetails({
     },
     enabled: !!trip?.org_id,
     staleTime: 5 * 60 * 1000,
-    placeholderData: keepPreviousData,
   });
 
   // Mutations
@@ -136,49 +218,77 @@ export function useTripDetails({
       cancelReason?: string;
       cancelExplanation?: string;
     }) => {
-      const updates: any = {
-        status: status,
-        status_requested: null,
-        status_requested_at: null,
-      };
+      if (!trip) throw new Error("Trip data is not loaded yet.");
+      const isPhysicalMilestone = !["cancelled", "no_show"].includes(status);
+      if (isPhysicalMilestone) {
+        if (trip.driver?.user_id !== user?.id) {
+          throw new Error(
+            "Driver milestones must be recorded by the assigned driver so event-time GPS can be verified.",
+          );
+        }
 
-      if (cancelReason) updates.cancel_reason = cancelReason;
-      if (cancelExplanation) updates.cancel_explanation = cancelExplanation;
+        const location = await captureBrowserEventLocation();
+        await applyTripTransitionWithRetry({
+          p_org_id: trip.org_id,
+          p_trip_id: tripId,
+          p_expected_status: trip.status,
+          p_new_status: status,
+          p_client_event_id: createClientEventId(),
+          p_trigger_kind: "manual",
+          p_source_surface: "web_crm",
+          p_client_platform: "web",
+          p_latitude: location.latitude,
+          p_longitude: location.longitude,
+          p_location_source: "browser_geolocation",
+          p_location_captured_at: location.capturedAt,
+          p_location_accuracy_m: location.accuracyMeters,
+          p_signature_data: null,
+          p_signed_by_name: null,
+          p_signature_declined: null,
+          p_signature_declined_reason: null,
+        });
 
-      const { error } = await supabase.from("trips").update(updates).eq("id", tripId);
-      if (error) throw error;
-
-      await supabase.from("trip_status_history").insert({
-        trip_id: tripId,
-        status: status,
-        actor_id: user?.id,
-        actor_name: authProfile?.full_name || user?.email || "System",
-        latitude: (user?.id === trip?.driver?.user_id) ? trip?.driver?.current_lat : null,
-        longitude: (user?.id === trip?.driver?.user_id) ? trip?.driver?.current_lng : null,
-      });
-
-      if (status === "en_route") {
-        supabase.functions
-          .invoke("send_eta_sms", {
-            body: {
-              trip_id: tripId,
-              source: "web-status-update",
-            },
-          })
-          .then((result) => {
-            if (result.error) {
-              console.error("Immediate ETA SMS check failed:", result.error);
-            }
-          })
-          .catch((error) => {
-            console.error("Immediate ETA SMS check failed:", error);
+        if (status === "en_route") {
+          void supabase.functions.invoke("send_eta_sms", {
+            body: { trip_id: tripId, source: "web-status-update" },
           });
+        }
+        return;
       }
+
+      await applyTripTransitionWithRetry({
+        p_org_id: trip.org_id,
+        p_trip_id: tripId,
+        p_expected_status: trip.status,
+        p_new_status: status,
+        p_client_event_id: createClientEventId(),
+        p_trigger_kind: "manual",
+        p_source_surface: "web_crm",
+        p_client_platform: "web",
+        // A CRM exception action has no event-time driver fix. Do not present
+        // a potentially stale last-known point as audit evidence.
+        p_latitude: null,
+        p_longitude: null,
+        p_location_source: null,
+        p_location_captured_at: null,
+        p_location_accuracy_m: null,
+        p_signature_data: null,
+        p_signed_by_name: null,
+        p_signature_declined: null,
+        p_signature_declined_reason: null,
+        p_cancel_reason: cancelReason ?? null,
+        p_cancel_explanation: cancelExplanation ?? null,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
       queryClient.invalidateQueries({ queryKey: ["trips"] });
       queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to update trip status",
+      );
     },
   });
 
@@ -195,6 +305,9 @@ export function useTripDetails({
         status: `UPDATED: Distance ${miles} miles`,
         actor_id: user?.id,
         actor_name: authProfile?.full_name || user?.email || "System",
+        trigger_kind: "manual",
+        source_surface: "web_crm",
+        client_platform: "web",
       });
     },
     onSuccess: () => {
@@ -218,6 +331,9 @@ export function useTripDetails({
         status: `UPDATED: Wait Time ${minutes} minutes`,
         actor_id: user?.id,
         actor_name: authProfile?.full_name || user?.email || "System",
+        trigger_kind: "manual",
+        source_surface: "web_crm",
+        client_platform: "web",
       });
     },
     onSuccess: () => {
@@ -251,56 +367,31 @@ export function useTripDetails({
       declined?: boolean;
       declinedReason?: string;
     }) => {
-      let actualDistance: number | null = null;
-      let actualDuration: number | null = null;
-
-      try {
-        if (trip && import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
-          const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
-            trip.pickup_location
-          )}&destination=${encodeURIComponent(trip.dropoff_location)}&key=${
-            import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-          }`;
-
-          const response = await fetch(directionsUrl);
-          const data = await response.json();
-
-          if (data.status === "OK" && data.routes?.[0]?.legs?.[0]?.distance) {
-            const meters = data.routes[0].legs[0].distance.value;
-            actualDistance = Math.ceil(meters / 1609.34);
-            const seconds = data.routes[0].legs[0].duration.value;
-            actualDuration = Math.round(seconds / 60);
-          }
-        }
-      } catch (err) {
-        console.error("Error calculating actual distance:", err);
+      if (!trip || trip.driver?.user_id !== user?.id) {
+        throw new Error(
+          "Trip completion must be recorded by the assigned driver so event-time GPS can be verified.",
+        );
       }
 
-      const updates: Record<string, unknown> = {
-        status: "completed",
-        signature_captured_at: new Date().toISOString(),
-        actual_distance_miles: actualDistance,
-        actual_duration_minutes: actualDuration,
-      };
-
-      if (declined) {
-        updates.signature_declined = true;
-        updates.signature_declined_reason = declinedReason;
-      } else {
-        updates.signature_data = signatureData;
-        updates.signed_by_name = signedByName;
-      }
-
-      const { error } = await supabase.from("trips").update(updates).eq("id", tripId);
-      if (error) throw error;
-
-      await supabase.from("trip_status_history").insert({
-        trip_id: tripId,
-        status: declined ? "COMPLETED (Signature Declined)" : "COMPLETED WITH SIGNATURE",
-        actor_id: user?.id,
-        actor_name: authProfile?.full_name || user?.email || "Driver",
-        latitude: (user?.id === trip?.driver?.user_id) ? trip?.driver?.current_lat : null,
-        longitude: (user?.id === trip?.driver?.user_id) ? trip?.driver?.current_lng : null,
+      const location = await captureBrowserEventLocation();
+      await applyTripTransitionWithRetry({
+        p_org_id: trip.org_id,
+        p_trip_id: tripId,
+        p_expected_status: trip.status,
+        p_new_status: "completed",
+        p_client_event_id: createClientEventId(),
+        p_trigger_kind: "manual",
+        p_source_surface: "web_crm",
+        p_client_platform: "web",
+        p_latitude: location.latitude,
+        p_longitude: location.longitude,
+        p_location_source: "browser_geolocation",
+        p_location_captured_at: location.capturedAt,
+        p_location_accuracy_m: location.accuracyMeters,
+        p_signature_data: declined ? null : (signatureData ?? null),
+        p_signed_by_name: declined ? null : (signedByName ?? null),
+        p_signature_declined: Boolean(declined),
+        p_signature_declined_reason: declined ? (declinedReason ?? null) : null,
       });
     },
     onSuccess: () => {
@@ -308,6 +399,11 @@ export function useTripDetails({
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
       queryClient.invalidateQueries({ queryKey: ["trips"] });
       queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to complete trip",
+      );
     },
   });
 
@@ -331,6 +427,37 @@ export function useTripDetails({
 
   const handleEditMileage = useCallback((t: Trip) => setEditingMileageTrip(t), []);
   const handleEditWaitTime = useCallback((t: Trip) => setEditingWaitTimeTrip(t), []);
+
+  const refreshPdfData = useCallback(async () => {
+    const [tripResult, historyResult, cancellationResult, organizationResult] =
+      await Promise.all([
+        refetchTrip(),
+        refetchHistory(),
+        refetchCancellationAudit(),
+        refetchOrganization(),
+      ]);
+
+    if (tripResult.error) throw tripResult.error;
+    if (historyResult.error) throw historyResult.error;
+    if (cancellationResult.error) throw cancellationResult.error;
+    if (organizationResult.error) throw organizationResult.error;
+    if (!tripResult.data || tripResult.data.id !== tripId) {
+      throw new Error("Fresh trip data did not match the selected trip.");
+    }
+
+    return {
+      trip: tripResult.data as Trip,
+      history: (historyResult.data || []) as TripStatusHistory[],
+      cancellationAudit: cancellationResult.data || null,
+      orgName: organizationResult.data?.name,
+    };
+  }, [
+    refetchCancellationAudit,
+    refetchHistory,
+    refetchOrganization,
+    refetchTrip,
+    tripId,
+  ]);
 
   return {
     state: {
@@ -367,6 +494,7 @@ export function useTripDetails({
       isCapturingSignature: signatureCaptureMutation.isPending,
       updateMileage: (tripId: string, miles: number) => updateMileageMutation.mutate({ tripId, miles }),
       updateWaitTime: (tripId: string, minutes: number) => updateWaitTimeMutation.mutate({ tripId, minutes }),
+      refreshPdfData,
     },
   };
 }
