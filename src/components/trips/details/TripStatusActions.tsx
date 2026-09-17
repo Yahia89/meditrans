@@ -4,11 +4,13 @@ import { HandPointing, Signature, CheckCircle, FilePdf, DownloadSimple } from "@
 import { Loader2 } from "lucide-react";
 import { generateTripSummaryPDF } from "@/utils/pdf-generator";
 import { toast } from "sonner";
+import { canCompleteTrip } from "./tripCompletion";
 
 interface TripStatusActionsProps {
   trip: Trip;
   isDesignatedDriver: boolean;
   canManage: boolean;
+  canCompleteFromOffice: boolean;
   handleStatusUpdate: (status: TripStatus) => void;
   setShowSignatureDialog: (show: boolean) => void;
   isGeneratingPDF: boolean;
@@ -27,6 +29,7 @@ export function TripStatusActions({
   trip,
   isDesignatedDriver,
   canManage,
+  canCompleteFromOffice,
   handleStatusUpdate,
   setShowSignatureDialog,
   isGeneratingPDF,
@@ -35,7 +38,7 @@ export function TripStatusActions({
   activeTimezone,
   refreshPdfData,
 }: TripStatusActionsProps) {
-  if (!isDesignatedDriver && !canManage) return null;
+  if (!isDesignatedDriver && !canManage && !canCompleteFromOffice) return null;
 
   return (
     <div className="bg-slate-50 rounded-2xl border border-slate-200 p-8 shadow-sm">
@@ -49,14 +52,14 @@ export function TripStatusActions({
           </div>
           <div>
             <h3 className="text-lg font-bold text-slate-900">
-              {isDesignatedDriver
-                ? "Driver Actions"
-                : "Trip Management"}
+              {canManage || canCompleteFromOffice ? "Trip Management" : "Driver Actions"}
             </h3>
             <p className="text-sm text-slate-600">
-              {isDesignatedDriver
-                ? "Driver milestones require a live event-time location."
-                : "Driver milestones are recorded by the assigned driver; dispatch can manage exceptions here."}
+              {canCompleteFromOffice
+                ? "Complete trips from the office without GPS. A rider signature or a reason it could not be obtained is required."
+                : isDesignatedDriver
+                  ? "Driver milestones require a live event-time location."
+                  : "Trip completion requires a manager role in this trip's organization."}
             </p>
           </div>
         </div>
@@ -114,16 +117,13 @@ export function TripStatusActions({
             </Button>
           )}
 
-          {isDesignatedDriver &&
-            (trip.status === "in_progress" ||
-              trip.status === "loaded" ||
-              trip.status === "in_dropoff_circle") && (
+          {(isDesignatedDriver || canCompleteFromOffice) && canCompleteTrip(trip.status) && (
             <Button
               onClick={() => setShowSignatureDialog(true)}
               className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-8 rounded-xl transition-all duration-300"
             >
               <Signature weight="bold" className="w-5 h-5 mr-2" />
-              Arrived at Destination / Drop Off
+              {canCompleteFromOffice ? "Complete Trip" : "Arrived at Destination / Drop Off"}
             </Button>
           )}
 

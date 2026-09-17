@@ -18,6 +18,7 @@ import {
   Clock,
   RefreshCw,
   Printer,
+  ClipboardCheck,
 } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -32,7 +33,14 @@ import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatInUserTimezone } from "@/lib/timezone";
-import { generateProfilePDF } from "@/utils/profile-pdf-generator";
+import { generateDriverProfilePDF } from "@/utils/driver-profile-pdf";
+import type { DriverPrintSections } from "@/utils/driver-profile-print-model";
+import { DriverPrintDialog } from "@/components/drivers/DriverPrintDialog";
+import { fetchDriverPrintTrips } from "@/components/drivers/driver-print-trips";
+import type { DriverTripDateRange } from "@/utils/driver-trip-print";
+import { useAuditAccess } from "@/hooks/useAuditAccess";
+import { fetchStsInspections } from "@/features/sts-inspections/api";
+import { STSInspectionPanel } from "@/features/sts-inspections/STSInspectionPanel";
 import { useCanManageUserAccess } from "@/hooks/useCanManageUserAccess";
 import {
   AccessStatusBadge,
@@ -80,7 +88,7 @@ interface Driver {
   notes: string | null;
   status: string;
   created_at: string;
-  custom_fields: Record<string, any> | null;
+  custom_fields: Record<string, string> | null;
   user_id: string | null;
   active: boolean;
   disabled_at: string | null;
@@ -117,15 +125,16 @@ export function DriverDetailsPage({
   onTripClick,
 }: DriverDetailsPageProps) {
   const [activeTab, setActiveTab] = useQueryState<
-    "overview" | "documents" | "trips" | "summary"
+    "overview" | "documents" | "trips" | "summary" | "sts-inspection"
   >("section", {
     defaultValue: "overview",
     parse: (value) =>
-      (value as "overview" | "documents" | "trips" | "summary") || "overview",
+      (value as "overview" | "documents" | "trips" | "summary" | "sts-inspection") || "overview",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
   const { canEditDrivers, canDeleteDrivers } = usePermissions();
   const { isDemoMode } = useOnboarding();
   const { currentOrganization } = useOrganization();
@@ -150,6 +159,7 @@ export function DriverDetailsPage({
     },
     enabled: !!id,
   });
+  const { canManageAudit } = useAuditAccess(driver?.org_id ?? null);
 
   // Fetch trip count
   const { data: tripCount = 0 } = useQuery({
@@ -216,7 +226,7 @@ export function DriverDetailsPage({
       const { error } = await supabase.from("org_invites").insert({
         org_id: currentOrganization.id,
         email: driver.email,
-        role: "driver" as any,
+        role: "driver",
         full_name: driver.full_name, // Store driver's name for accept-invite page
         invited_by: (await supabase.auth.getUser()).data.user?.id,
       });
@@ -309,6 +319,37 @@ export function DriverDetailsPage({
     }
   };
 
+  const handlePrintDriver = async (sections: DriverPrintSections, tripDateRange: DriverTripDateRange) => {
+    if (!driver) throw new Error("Driver data is not loaded yet.");
+    if (sections.stsHistory && !canManageAudit) {
+      throw new Error("Only organization owners and administrators can print STS inspection history.");
+    }
+    const [driverResult, organizationResult, trips, inspections] = await Promise.all([
+      supabase.from("drivers").select("*").eq("id", id).eq("org_id", driver.org_id).single(),
+      supabase.from("organizations").select("name").eq("id", driver.org_id).single(),
+      sections.tripCount
+        ? fetchDriverPrintTrips({ orgId: driver.org_id, driverId: id, range: tripDateRange, timezone: activeTimezone })
+        : Promise.resolve(undefined),
+      sections.stsHistory
+        ? fetchStsInspections({ orgId: driver.org_id, driverId: id })
+        : Promise.resolve(undefined),
+    ]);
+    if (driverResult.error) throw driverResult.error;
+    if (organizationResult.error) throw organizationResult.error;
+    if (!driverResult.data || driverResult.data.id !== id || driverResult.data.org_id !== driver.org_id) {
+      throw new Error("Fresh profile data did not match the selected driver.");
+    }
+    generateDriverProfilePDF({
+      driver: driverResult.data as Driver,
+      orgName: organizationResult.data?.name || "",
+      timezone: activeTimezone,
+      sections,
+      trips,
+      tripDateRange,
+      inspections,
+    });
+  };
+
   if (isLoadingDriver) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -368,14 +409,7 @@ export function DriverDetailsPage({
         <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:flex 2xl:w-auto 2xl:flex-wrap 2xl:justify-end">
           <Button
             variant="outline"
-            onClick={() =>
-              generateProfilePDF(
-                "driver",
-                driver,
-                currentOrganization?.name || "",
-                activeTimezone,
-              )
-            }
+            onClick={() => setShowPrintDialog(true)}
             className="w-full items-center justify-center gap-2 rounded-xl 2xl:w-auto"
           >
             <Printer size={16} />
@@ -524,22 +558,53 @@ export function DriverDetailsPage({
             <FilePdf size={16} weight="duotone" className="text-[#3D5A3D]" />
             Trips summary
           </button>
+          {canManageAudit && (
+            <button
+              onClick={() => setActiveTab("sts-inspection")}
+              className={cn(
+                "px-4 py-2 sm:py-3 text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap rounded-xl sm:rounded-none sm:border-b-2",
+                activeTab === "sts-inspection"
+                  ? "bg-[#3D5A3D]/10 text-[#3D5A3D] sm:bg-transparent sm:border-[#3D5A3D]"
+                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 sm:hover:bg-transparent sm:border-transparent sm:hover:border-slate-300",
+              )}
+            >
+              <ClipboardCheck size={16} className="text-[#3D5A3D]" />
+              STS Inspection
+            </button>
+          )}
         </div>
       </div>
 
       {/* Tab Content */}
       <div className={cn(
-        activeTab === "summary" ? "block" : "grid grid-cols-1 lg:grid-cols-3 gap-6"
+        activeTab === "summary" || activeTab === "sts-inspection" ? "block" : "grid grid-cols-1 lg:grid-cols-3 gap-6"
       )}>
         {/* Main Content Area */}
         <div className={cn(
-          activeTab === "summary" ? "w-full" : "lg:col-span-2 space-y-6"
+          activeTab === "summary" || activeTab === "sts-inspection" ? "w-full" : "lg:col-span-2 space-y-6"
         )}>
           {activeTab === "summary" && (
             <DriverSummaryTab 
               driverId={id} 
               driverName={driver.full_name} 
             />
+          )}
+          {activeTab === "sts-inspection" && (
+            canManageAudit ? (
+              <STSInspectionPanel
+                key={driver.id}
+                orgId={driver.org_id}
+                driverId={driver.id}
+                driverName={driver.full_name}
+                canEdit={canManageAudit}
+                isDemoMode={isDemoMode}
+                timezone={activeTimezone}
+              />
+            ) : (
+              <p role="alert" className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+                STS inspections are available to organization owners and administrators.
+              </p>
+            )
           )}
           {activeTab === "overview" && (
             <div className="space-y-6">
@@ -927,7 +992,7 @@ export function DriverDetailsPage({
         </div>
 
         {/* Sidebar Stats/Summary */}
-        <div className="space-y-6">
+        <div className={cn("space-y-6", activeTab === "sts-inspection" && "hidden")}>
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">
               Driver Profile
@@ -1020,6 +1085,15 @@ export function DriverDetailsPage({
       </div>
 
       {/* Edit Form */}
+      <DriverPrintDialog
+        key={`${driver.id}-${showPrintDialog ? "open" : "closed"}`}
+        open={showPrintDialog}
+        onOpenChange={setShowPrintDialog}
+        driverName={driver.full_name}
+        canPrintSts={canManageAudit}
+        timezone={activeTimezone}
+        onPrint={handlePrintDriver}
+      />
       <DriverForm
         open={isEditing}
         onOpenChange={setIsEditing}

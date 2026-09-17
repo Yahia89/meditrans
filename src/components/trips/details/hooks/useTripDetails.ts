@@ -10,6 +10,7 @@ import {
   normalizeBrowserEventLocation,
   type BrowserEventLocation,
 } from "../browserEventLocation";
+import { canCompleteTripFromOffice, prepareWebTripCompletion } from "../tripCompletion";
 
 function captureBrowserEventLocation(): Promise<BrowserEventLocation> {
   if (!navigator.geolocation) {
@@ -95,7 +96,7 @@ export function useTripDetails({
   tripId: string;
   onDeleteSuccess?: () => void;
 }) {
-  const { user, profile: authProfile } = useAuth();
+  const { user, profile: authProfile, memberships } = useAuth();
   const { canManageTrips, canDeleteTrips } = usePermissions();
   const queryClient = useQueryClient();
   const activeTimezone = useTimezone();
@@ -367,32 +368,21 @@ export function useTripDetails({
       declined?: boolean;
       declinedReason?: string;
     }) => {
-      if (!trip || trip.driver?.user_id !== user?.id) {
-        throw new Error(
-          "Trip completion must be recorded by the assigned driver so event-time GPS can be verified.",
-        );
-      }
-
-      const location = await captureBrowserEventLocation();
-      await applyTripTransitionWithRetry({
-        p_org_id: trip.org_id,
-        p_trip_id: tripId,
-        p_expected_status: trip.status,
-        p_new_status: "completed",
-        p_client_event_id: createClientEventId(),
-        p_trigger_kind: "manual",
-        p_source_surface: "web_crm",
-        p_client_platform: "web",
-        p_latitude: location.latitude,
-        p_longitude: location.longitude,
-        p_location_source: "browser_geolocation",
-        p_location_captured_at: location.capturedAt,
-        p_location_accuracy_m: location.accuracyMeters,
-        p_signature_data: declined ? null : (signatureData ?? null),
-        p_signed_by_name: declined ? null : (signedByName ?? null),
-        p_signature_declined: Boolean(declined),
-        p_signature_declined_reason: declined ? (declinedReason ?? null) : null,
-      });
+      if (!trip) throw new Error("Trip data is not loaded yet.");
+      const params = await prepareWebTripCompletion(
+        {
+          trip,
+          userId: user?.id,
+          memberships,
+          clientEventId: createClientEventId(),
+          signatureData,
+          signedByName,
+          declined,
+          declinedReason,
+        },
+        captureBrowserEventLocation,
+      );
+      await applyTripTransitionWithRetry(params);
     },
     onSuccess: () => {
       setShowSignatureDialog(false);
@@ -401,8 +391,17 @@ export function useTripDetails({
       queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
     },
     onError: (error) => {
+      // Supabase returns PostgREST errors as objects, not Error instances.
+      const rpcError = error as { code?: string; message?: string };
+      if (rpcError.code === "40001") {
+        queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
+        queryClient.invalidateQueries({ queryKey: ["trips"] });
+        queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
+      }
       toast.error(
-        error instanceof Error ? error.message : "Unable to complete trip",
+        rpcError.code === "40001"
+          ? "The trip status changed. Review the updated trip before completing it."
+          : rpcError.message || "Unable to complete trip",
       );
     },
   });
@@ -475,6 +474,7 @@ export function useTripDetails({
       isGeneratingPDF,
       activeTimezone,
       canManage: canManageTrips,
+      canCompleteFromOffice: canCompleteTripFromOffice(trip?.org_id, user?.id, memberships),
       canDeleteTrips,
       isDesignatedDriver: trip?.driver?.user_id === user?.id,
     },

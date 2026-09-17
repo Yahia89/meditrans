@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "test:browser-event-location": "node --test src/components/trips/details/browserEventLocation.test.mjs",
+    "test:trip-completion": "node --test src/components/trips/details/tripCompletion.test.mjs",
+    "test:driver-print": "node --test src/utils/driver-profile-print-model.test.mjs src/components/drivers/driver-print-trips.test.mjs",
+    "test:compliance": "node --test src/features/compliance/*.test.mjs src/features/sts-inspections/*.test.mjs",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "sh -c 'echo nemt.futrans.us > dist/CNAME && gh-pages -d dist'"

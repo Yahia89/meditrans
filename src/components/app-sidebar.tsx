@@ -16,6 +16,7 @@ import {
   Buildings,
   FilePdf,
   PlugsConnected,
+  ClipboardText,
 } from "@phosphor-icons/react";
 
 import { NavUser } from "@/components/nav-user";
@@ -69,6 +70,11 @@ const data = {
       icon: CarProfile,
     },
     {
+      title: "STS Inspection",
+      url: "sts-inspection" as Page,
+      icon: ClipboardText,
+    },
+    {
       title: "Employees",
       url: "employees" as Page,
       icon: UserList,
@@ -88,6 +94,7 @@ const data = {
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useAuditAccess } from "@/hooks/useAuditAccess";
 
 export function AppSidebar({
   currentPage,
@@ -95,6 +102,7 @@ export function AppSidebar({
   ...props
 }: AppSidebarProps) {
   const { currentOrganization } = useOrganization();
+  const { canManageAudit } = useAuditAccess();
   const {
     isSuperAdmin,
     isDriver,
@@ -109,6 +117,7 @@ export function AppSidebar({
 
   // Filter nav items based on permissions
   navItems = navItems.filter((item) => {
+    if (item.url === "sts-inspection" && !canManageAudit) return false;
     // Employees: only visible to admin+
     if (item.url === "employees" && !canViewEmployees) return false;
     // Upload: only visible to admin+
@@ -163,6 +172,8 @@ export function AppSidebar({
         icon: Shield,
       },
     ];
+    // Founder access alone is insufficient; a company membership is required.
+    if (canManageAudit) navItems.push({ title: "STS Inspection", url: "sts-inspection", icon: ClipboardText });
   }
 
   return (
@@ -225,6 +236,12 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
+        {canManageAudit && <SidebarMenu><SidebarMenuItem><SidebarMenuButton
+          isActive={currentPage === "company"}
+          onClick={() => onNavigate("company")}
+          tooltip="Company"
+          size="lg"
+        ><Buildings weight="duotone" className="!size-7" /><span>Company</span></SidebarMenuButton></SidebarMenuItem></SidebarMenu>}
         <NavUser />
       </SidebarFooter>
     </Sidebar>

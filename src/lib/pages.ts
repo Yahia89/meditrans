@@ -4,6 +4,8 @@ export const pages = [
   "patient-details",
   "drivers",
   "driver-details",
+  "sts-inspection",
+  "company",
   "employees",
   "employee-details",
   "upload",

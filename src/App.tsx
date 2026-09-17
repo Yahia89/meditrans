@@ -15,6 +15,7 @@ import { OnboardingProvider } from "@/contexts/OnboardingContext";
 import loginbgimg from "./assets/loginbgimg.png";
 import logo from "./assets/logo.png";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuditAccess } from "@/hooks/useAuditAccess";
 import { usePresence } from "@/hooks/usePresence";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
@@ -53,6 +54,8 @@ const CompaniesPage = lazy(() => import("./components/admin/companies-page").the
 const ResetPasswordPage = lazy(() => import("./components/reset-password-page").then(m => ({ default: m.ResetPasswordPage })));
 const FeeSettingsPage = lazy(() => import("./components/admin/FeeSettingsPage").then(m => ({ default: m.FeeSettingsPage })));
 const SummaryPage = lazy(() => import("./components/summary-page").then(m => ({ default: m.SummaryPage })));
+const STSInspectionPage = lazy(() => import("./components/sts-inspection-page").then(m => ({ default: m.STSInspectionPage })));
+const CompanyDocumentsPage = lazy(() => import("./components/company/CompanyDocumentsPage").then(m => ({ default: m.CompanyDocumentsPage })));
 
 // Suspense fallback for lazy-loaded pages
 function PageLoader() {
@@ -68,6 +71,7 @@ function AppContent() {
   const { driverId: currentDriverId } = useDriverLocation(); // Enables driver tracking and SMS trigger
   const { loading: orgLoading, userRole } = useOrganization();
   const { isDriver, isSuperAdmin } = usePermissions();
+  const auditAccess = useAuditAccess();
 
   // Initialize presence tracking for logged-in users
   usePresence();
@@ -100,6 +104,15 @@ function AppContent() {
   // Centralized Access Control and Redirection
   useEffect(() => {
     if (loading || !user) return;
+
+    if (currentPage === "sts-inspection" || currentPage === "company") {
+      // Auth can resolve before OrganizationProvider selects the company on reload.
+      // Keep the deep link while that organization is unresolved.
+      if (auditAccess.orgId && !auditAccess.loading && !auditAccess.canManageAudit) {
+        setCurrentPage(isDriver ? "trips" : isSuperAdmin ? "companies" : "dashboard");
+      }
+      return;
+    }
 
     // Super Admin: Bypass all role-based page restrictions
     if (isSuperAdmin) return;
@@ -158,7 +171,7 @@ function AppContent() {
       const fallbackPage = isDriver ? "trips" : "dashboard";
       setCurrentPage(fallbackPage);
     }
-  }, [loading, user, userRole, currentPage, isDriver, isSuperAdmin, setCurrentPage]);
+  }, [loading, user, userRole, currentPage, isDriver, isSuperAdmin, setCurrentPage, auditAccess.orgId, auditAccess.loading, auditAccess.canManageAudit]);
 
   // Show loading state while checking auth
   if (loading) {
@@ -255,7 +268,18 @@ function AppContent() {
   }
 
   const renderPage = () => {
+    if ((currentPage === "sts-inspection" || currentPage === "company") && !auditAccess.canManageAudit) {
+      return <DashboardPage title="Company access">{auditAccess.loading || !auditAccess.orgId ? <PageLoader /> : <p className="p-6 text-sm text-slate-500">This page is available to company owners and admins.</p>}</DashboardPage>;
+    }
     switch (currentPage) {
+      case "sts-inspection":
+        return <DashboardPage title="STS Inspection"><STSInspectionPage onDriverClick={(id) => {
+          setDriverId(id);
+          setFromPage("sts-inspection");
+          setCurrentPage("driver-details");
+        }} /></DashboardPage>;
+      case "company":
+        return <DashboardPage title="Company"><CompanyDocumentsPage /></DashboardPage>;
       case "dashboard":
         return (
           <DashboardPage title="Dashboard">

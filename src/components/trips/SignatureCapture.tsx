@@ -36,6 +36,7 @@ interface SignatureCaptureDialogProps {
   }) => void;
   onSignatureDecline: (reason: string) => void;
   isLoading?: boolean;
+  isOfficeCompletion?: boolean;
   timezone?: string;
 }
 export function SignatureCaptureDialog({
@@ -45,6 +46,7 @@ export function SignatureCaptureDialog({
   onSignatureCapture,
   onSignatureDecline,
   isLoading = false,
+  isOfficeCompletion = false,
   timezone = "UTC",
 }: SignatureCaptureDialogProps) {
   const sigCanvas = useRef<SignatureCanvas>(null);
@@ -126,7 +128,9 @@ export function SignatureCaptureDialog({
                 Trip Completion Signature
               </DialogTitle>
               <DialogDescription className="text-slate-300 text-sm">
-                Rider confirmation required for transparency
+                {isOfficeCompletion
+                  ? "Record a rider signature or explain why it could not be obtained. GPS is not required."
+                  : "Rider confirmation required for transparency"}
               </DialogDescription>
             </div>
           </div>
