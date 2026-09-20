@@ -421,8 +421,6 @@ export const createTripSummaryPDFDocument = (
   doc.setFontSize(8);
   setTextColor(doc, COLORS.ink);
   doc.text("Trip Map", margin, mainTop);
-  setDrawColor(doc, COLORS.rule);
-  doc.rect(margin, mainTop + 4, leftWidth, mainBottom - mainTop - 4);
 
   if (assets.mapResult?.image) {
     try {
@@ -531,14 +529,6 @@ export const createTripSummaryPDFDocument = (
     rightX + 2.5,
     driverTop + 17,
   );
-  doc.setFont("times", "bold");
-  doc.setFontSize(6.6);
-  doc.text("Attestation acceptance: Not recorded", rightX + 2.5, driverTop + 44);
-
-  doc.setFont("times", "normal");
-  doc.setFontSize(8);
-  doc.text("Driver Sign.: Not recorded", rightX, driverTop + 54);
-
   const vehicleTop = 177;
   doc.setFont("times", "bold");
   doc.setFontSize(8.5);
@@ -569,13 +559,15 @@ export const createTripSummaryPDFDocument = (
     `Plate: ${licensePlate}    VIN: Not recorded`,
   );
 
-  // The visible table intentionally matches the sample's fixed four columns.
-  const tableRows = milestoneRows.map((row) => [
-    row.label,
-    safeFormat(row.createdAt, timezone, "MM/dd/yyyy HH:mm"),
-    formatPdfCoordinate(row.latitude),
-    formatPdfCoordinate(row.longitude),
-  ]);
+  // Omit circle milestones from the report while retaining their source evidence.
+  const tableRows = milestoneRows
+    .filter((row) => row.key !== "in_pickup_circle" && row.key !== "in_dropoff_circle")
+    .map((row) => [
+      row.label,
+      safeFormat(row.createdAt, timezone, "MM/dd/yyyy HH:mm"),
+      formatPdfCoordinate(row.latitude),
+      formatPdfCoordinate(row.longitude),
+    ]);
   autoTable(doc, {
     startY: 225,
     head: [["Status", "Time", "Latitude", "Longitude"]],
