@@ -46,11 +46,6 @@ export interface ConnectAbilityPDFParams {
   /** Audit metadata: role of the generator */
   userRole?: string;
   orgFees?: OrganizationFees | null;
-  /**
-   * Starting invoice sequence number. Defaults to 1.
-   * Each patient increments by 1.
-   */
-  invoiceStartNumber?: number;
 }
 
 // ─── Permanent vendor info ───────────────────────────────────────────────────
@@ -85,9 +80,14 @@ function initials(name: string): string {
   return inits || "XX";
 }
 
-/** Zero-pad a number to 4 digits */
-function padNum(n: number): string {
-  return n.toString().padStart(4, "0");
+/**
+ * Build the invoice code: 00 + month (no leading zero) + 2-digit year + patient initials
+ * Example: September 2026, Anna Rolfes → "00926AR"
+ */
+function buildInvoiceCode(periodEndDate: Date, patientName: string): string {
+  const month = (periodEndDate.getMonth() + 1).toString(); // 1-12, no leading zero
+  const year  = periodEndDate.getFullYear().toString().slice(-2); // e.g. "26"
+  return `00${month}${year}${initials(patientName)}`;
 }
 
 // ─── Main export ────────────────────────────────────────────────────────────
@@ -101,7 +101,6 @@ export function generateConnectAbilityPDF({
   orgPhone,
   generatedBy,
   orgFees,
-  invoiceStartNumber = 1,
 }: ConnectAbilityPDFParams): void {
 
   // ── Only bill completed trips ──────────────────────────────────────────
@@ -156,7 +155,6 @@ export function generateConnectAbilityPDF({
     creator: "MediTrans",
   });
 
-  let invoiceSeq = invoiceStartNumber;
   let firstPatient = true;
 
   for (const patientName of sortedPatients) {
@@ -167,8 +165,8 @@ export function generateConnectAbilityPDF({
       0
     );
 
-    const invNum = `#${padNum(invoiceSeq)}${initials(patientName)}`;
-    invoiceSeq++;
+    const invoiceCode = buildInvoiceCode(endDate, patientName);
+    const invNum = `#${invoiceCode}`;
 
     if (!firstPatient) {
       doc.addPage();
@@ -198,7 +196,7 @@ export function generateConnectAbilityPDF({
       ["Phone #:",                   vendorPhone,                                false],
       ["Invoice Date:",              invoiceDate,                                false],
       ["Client Name:",               patientName,                                true ],
-      ["Invoice #",                  invNum,                                     false],
+      ["Invoice #:",                 invNum,                                     false],
       ["Service Date:",              `From ${startDateStr} To ${endDateStr}`,    false],
       ["Description of\nServices\nProvided:", "Non-Emergency Medical Transportation (NEMT) service for client", false],
       ["Cost of Service:",           `$${perMile} Per mile $${baseFee} Pickup`,  false],
@@ -306,11 +304,20 @@ export function generateConnectAbilityPDF({
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
-  const patientSlug =
-    sortedPatients.length === 1
-      ? `_${sortedPatients[0].replace(/\s+/g, "_")}`
-      : sortedPatients.length > 1
-        ? `_${sortedPatients.length}_patients`
-        : "";
-  doc.save(`connectability_invoice${patientSlug}_${safePeriod}.pdf`);
+  // File name: Invoice_{code}_{period}.pdf
+  // Single patient  → Invoice_00926AR_2026-09-01_to_2026-09-30.pdf
+  // Multiple patients → Invoice_00926AR_00926SH_..._period.pdf
+  let fileName: string;
+  if (sortedPatients.length === 1) {
+    const code = buildInvoiceCode(endDate, sortedPatients[0]);
+    fileName = `Invoice_${code}_${safePeriod}.pdf`;
+  } else {
+    const codes = sortedPatients
+      .slice(0, 3)
+      .map((n) => buildInvoiceCode(endDate, n))
+      .join("_");
+    const extra = sortedPatients.length > 3 ? `_and_${sortedPatients.length - 3}_more` : "";
+    fileName = `Invoice_${codes}${extra}_${safePeriod}.pdf`;
+  }
+  doc.save(fileName);
 }
