@@ -11,7 +11,13 @@ export interface SummaryTrip {
   actual_duration_minutes: number | null;
   distance_miles: number | null;
   actual_distance_miles: number | null;
-  billing_details: { total_cost: number } | null;
+  total_waiting_minutes: number | null;
+  billing_details: {
+    total_cost?: number;
+    service_type?: string;
+    base_fee?: number;
+    mileage_cost?: number;
+  } | null;
   patient: {
     full_name: string;
     vehicle_type_need: string | null;
@@ -36,6 +42,8 @@ export interface FilterState {
   selectedSalStatuses: string[];
   selectedTripPurposes: string[];
   selectedTripStatuses: string[];
+  /** ConnectAbility-mode only: patient full_names to include (empty = all) */
+  selectedConnectAbilityPatients: string[];
 }
 
 export interface ActiveFilter {

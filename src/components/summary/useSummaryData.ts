@@ -3,6 +3,12 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { REFERRAL_SOURCES } from "@/lib/constants";
 import { fromZonedTime } from "date-fns-tz";
+import {
+  normalizeReferredBy,
+  isConnectAbilityReferrer,
+  CONNECTABILITY_CANONICAL,
+} from "./connectability-utils";
+import { type OrganizationFees } from "@/lib/credit-utils";
 import type { SummaryTrip, FilterState, MultiSelectOption } from "./types";
 
 interface UseSummaryDataParams {
@@ -23,6 +29,32 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
   const [referredByOptions, setReferredByOptions] = useState<MultiSelectOption[]>([]);
   const [referredByLoading, setReferredByLoading] = useState(false);
 
+  // Organization fee schedule (used for cost calculation in ConnectAbility PDFs)
+  const [orgFees, setOrgFees] = useState<OrganizationFees | null>(null);
+
+  // ConnectAbility patient list (full names) — populated after a generate so the
+  // user can check/uncheck individual patients for per-patient PDFs.
+  const [connectAbilityPatients, setConnectAbilityPatients] = useState<string[]>([]);
+
+  // Fetch org fees once per org
+  useEffect(() => {
+    if (!orgId) return;
+    const fetchFees = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("organization_fees" as any)
+          .select("*")
+          .eq("org_id", orgId)
+          .single();
+        if (error && (error as any).code !== "PGRST116") throw error;
+        if (data) setOrgFees(data as OrganizationFees);
+      } catch {
+        // Non-critical: fall back to DEFAULT_FEES in the PDF generator
+      }
+    };
+    fetchFees();
+  }, [orgId]);
+
   // Fetch all unique referral_by values from the patients table
   // This aggregates both standard values AND custom "Other" entries
   useEffect(() => {
@@ -40,11 +72,11 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
 
         if (error) throw error;
 
-        // Aggregate unique values
+        // Aggregate unique values, normalizing ConnectAbility variants → canonical label
         const uniqueValues = new Set<string>();
         (data as any[] || []).forEach((p: { referral_by: string }) => {
           if (p.referral_by) {
-            uniqueValues.add(p.referral_by);
+            uniqueValues.add(normalizeReferredBy(p.referral_by) ?? p.referral_by);
           }
         });
 
@@ -54,6 +86,9 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
             uniqueValues.add(s);
           }
         });
+
+        // Always include the canonical ConnectAbility label
+        uniqueValues.add(CONNECTABILITY_CANONICAL);
 
         // Sort: standard sources first, then custom ones alphabetically
         const standardSet = new Set(REFERRAL_SOURCES.filter((s) => s !== "Other") as unknown as any[]);
@@ -131,10 +166,27 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
           );
         }
         if (filters.selectedReferredBy.length > 0) {
-          patientQuery = patientQuery.in(
-            "referral_by",
-            filters.selectedReferredBy,
+          // For each selected referral value, if it's the canonical ConnectAbility
+          // label, expand it so the DB query matches ALL naming variants via ilike.
+          const hasConnectAbility = filters.selectedReferredBy.some(
+            (r) => isConnectAbilityReferrer(r)
           );
+          const nonConnectAbility = filters.selectedReferredBy.filter(
+            (r) => !isConnectAbilityReferrer(r)
+          );
+
+          if (hasConnectAbility && nonConnectAbility.length === 0) {
+            // Only ConnectAbility selected – use ilike to match all variants
+            patientQuery = patientQuery.ilike("referral_by", "%connectability%");
+          } else if (hasConnectAbility && nonConnectAbility.length > 0) {
+            // Mixed selection: ConnectAbility + others
+            patientQuery = patientQuery.or(
+              `referral_by.ilike.%connectability%,referral_by.in.(${nonConnectAbility.map((v) => `"${v}"`).join(",")})`
+            );
+          } else {
+            // No ConnectAbility – plain in() filter
+            patientQuery = patientQuery.in("referral_by", nonConnectAbility);
+          }
         }
         if (filters.selectedSalStatuses.length > 0) {
           patientQuery = patientQuery.in(
@@ -154,6 +206,7 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
 
         if (!patientIds || patientIds.length === 0) {
           setTrips([]);
+          setConnectAbilityPatients([]);
           setIsFetching(false);
           return;
         }
@@ -200,7 +253,26 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
       const { data, error } = await tripsQuery;
       if (error) throw error;
 
-      setTrips((data as SummaryTrip[]) || []);
+      const fetchedTrips = (data as SummaryTrip[]) || [];
+
+      // Post-fetch: if specific CA patients are selected, filter client-side by name
+      const filteredTrips =
+        filters.selectedConnectAbilityPatients.length > 0
+          ? fetchedTrips.filter((t) =>
+              filters.selectedConnectAbilityPatients.includes(
+                t.patient?.full_name || ""
+              )
+            )
+          : fetchedTrips;
+
+      setTrips(filteredTrips);
+
+      // Build the unique sorted patient name list for the CA patient picker
+      const patientNames = Array.from(
+        new Set(fetchedTrips.map((t) => t.patient?.full_name || "Unknown"))
+      ).sort((a, b) => a.localeCompare(b));
+      setConnectAbilityPatients(patientNames);
+
       if (!hasPatientFilters) {
         setMatchedPatientCount(0);
       }
@@ -208,6 +280,7 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
       console.error("Error fetching data:", error);
       toast.error("Failed to fetch data. Please try again.");
       setTrips([]);
+      setConnectAbilityPatients([]);
     } finally {
       setIsFetching(false);
     }
@@ -215,6 +288,7 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
 
   const resetGenerated = useCallback(() => {
     setHasGenerated(false);
+    setConnectAbilityPatients([]);
   }, []);
 
   return {
@@ -227,5 +301,7 @@ export function useSummaryData({ orgId, filters, patientId, driverId, timezone }
     resetGenerated,
     referredByOptions,
     referredByLoading,
+    orgFees,
+    connectAbilityPatients,
   };
 }

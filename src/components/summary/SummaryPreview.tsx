@@ -12,6 +12,7 @@ import {
   MagnifyingGlass,
 } from "@phosphor-icons/react";
 import { formatInUserTimezone } from "@/lib/timezone";
+import { calculateTripCost, type OrganizationFees } from "@/lib/credit-utils";
 import type { SummaryTrip } from "./types";
 
 interface SummaryPreviewProps {
@@ -21,6 +22,8 @@ interface SummaryPreviewProps {
   hasFilters: boolean;
   matchedPatientCount: number;
   timezone: string;
+  isConnectAbilityMode?: boolean;
+  orgFees?: OrganizationFees | null;
 }
 
 export function SummaryPreview({
@@ -30,6 +33,8 @@ export function SummaryPreview({
   hasFilters,
   matchedPatientCount,
   timezone,
+  isConnectAbilityMode = false,
+  orgFees,
 }: SummaryPreviewProps) {
   return (
     <Card className="border-slate-200 shadow-sm rounded-2xl overflow-hidden">
@@ -38,7 +43,7 @@ export function SummaryPreview({
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <Info size={18} weight="bold" className="text-slate-400" />
-              Summary Preview
+              {isConnectAbilityMode ? "ConnectAbility Invoice Preview" : "Summary Preview"}
             </CardTitle>
             <CardDescription className="text-xs">
               {hasGenerated
@@ -59,11 +64,15 @@ export function SummaryPreview({
         ) : isFetching ? (
           <LoadingState />
         ) : trips.length > 0 ? (
-          <TripsTable
-            trips={trips}
-            hasFilters={hasFilters}
-            timezone={timezone}
-          />
+          isConnectAbilityMode ? (
+            <ConnectAbilityTripsTable trips={trips} timezone={timezone} orgFees={orgFees} />
+          ) : (
+            <TripsTable
+              trips={trips}
+              hasFilters={hasFilters}
+              timezone={timezone}
+            />
+          )
         ) : (
           <NoDataState hasFilters={hasFilters} />
         )}
@@ -221,6 +230,110 @@ function TripsTable({
             <td className="px-6 py-4 text-center align-middle font-bold text-[#3D5A3D]">
               {trips.length} Trips
             </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+/**
+ * ConnectAbility-specific preview: CLIENT NAME | PICK UP | DROP OFF | TOTAL | DATE
+ * Matches the vendor's billing table format exactly.
+ */
+function ConnectAbilityTripsTable({
+  trips,
+  timezone,
+  orgFees,
+}: {
+  trips: SummaryTrip[];
+  timezone: string;
+  orgFees?: OrganizationFees | null;
+}) {
+  // Sort by patient name, then by date — completed trips only
+  const sorted = [...trips]
+    .filter((t) => t.status === "completed")
+    .sort((a, b) => {
+      const nameA = a.patient?.full_name || "";
+      const nameB = b.patient?.full_name || "";
+      const nameCmp = nameA.localeCompare(nameB);
+      if (nameCmp !== 0) return nameCmp;
+      return new Date(a.pickup_time).getTime() - new Date(b.pickup_time).getTime();
+    });
+
+  const grandTotal = sorted.reduce(
+    (sum, t) => sum + calculateTripCost(t, orgFees || null),
+    0
+  );
+
+  const PREVIEW_LIMIT = 20;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm align-middle">
+        <thead className="bg-emerald-50 text-emerald-900 font-bold border-b border-emerald-200">
+          <tr>
+            <th className="px-4 py-3 text-left align-middle">CLIENT NAME</th>
+            <th className="px-4 py-3 text-left align-middle">PICK UP</th>
+            <th className="px-4 py-3 text-left align-middle">DROP OFF</th>
+            <th className="px-4 py-3 text-right align-middle">TOTAL</th>
+            <th className="px-4 py-3 text-center align-middle">DATE</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {sorted.slice(0, PREVIEW_LIMIT).map((trip, index) => {
+            const dateStr = formatInUserTimezone(
+              trip.pickup_time,
+              timezone,
+              "M/d/yyyy"
+            );
+            return (
+              <tr
+                key={trip.id}
+                className={`hover:bg-emerald-50/30 transition-colors ${
+                  index % 2 === 0 ? "" : "bg-slate-50/60"
+                }`}
+              >
+                <td className="px-4 py-3 font-semibold text-slate-900 uppercase">
+                  {trip.patient?.full_name || "Unknown"}
+                </td>
+                <td className="px-4 py-3 text-slate-600 text-xs">
+                  {trip.pickup_location || "—"}
+                </td>
+                <td className="px-4 py-3 text-slate-600 text-xs">
+                  {trip.dropoff_location || "—"}
+                </td>
+                <td className="px-4 py-3 text-right font-medium text-slate-900">
+                  {trip.status === "completed"
+                    ? `$${calculateTripCost(trip, orgFees || null).toFixed(2)}`
+                    : "—"}
+                </td>
+                <td className="px-4 py-3 text-center text-slate-500 text-xs">
+                  {dateStr}
+                </td>
+              </tr>
+            );
+          })}
+          {sorted.length > PREVIEW_LIMIT && (
+            <tr>
+              <td
+                colSpan={5}
+                className="px-4 py-3 text-center text-slate-400 italic text-xs"
+              >
+                + {sorted.length - PREVIEW_LIMIT} more trips (shown in full PDF)
+              </td>
+            </tr>
+          )}
+        </tbody>
+        <tfoot className="bg-emerald-50 border-t-2 border-emerald-200 font-bold">
+          <tr>
+            <td colSpan={3} className="px-4 py-4 text-right text-emerald-900">
+              GRAND TOTAL ({sorted.length} completed trip{sorted.length !== 1 ? "s" : ""})
+            </td>
+            <td className="px-4 py-4 text-right text-emerald-900">
+              ${grandTotal.toFixed(2)}
+            </td>
+            <td />
           </tr>
         </tfoot>
       </table>
