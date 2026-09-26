@@ -39,7 +39,6 @@ export function CreditEntryDialog({
   patientId,
   patientName,
   currentMonthlyCredit = 0,
-  currentCreditUsedFor = "",
   currentNotes = "",
   currentReferralDate = "",
   currentReferralExpiration = "",

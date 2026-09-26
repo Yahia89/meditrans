@@ -108,6 +108,12 @@ interface CreateTripFormProps {
   tripId?: string;
 }
 
+interface DriverConflict {
+  id: string;
+  patient_id: string;
+  patients: { full_name: string } | null;
+}
+
 export function CreateTripForm({
   onSuccess,
   onLoadingChange,
@@ -608,7 +614,8 @@ export function CreateTripForm({
             .select("id, patient_id, patients(full_name)")
             .eq("driver_id", leg.driver_id)
             .eq("pickup_time", pickupDateTimeUTC)
-            .not("status", "in", '("cancelled", "no_show")');
+            .not("status", "in", '("cancelled", "no_show")')
+            .overrideTypes<DriverConflict[], { merge: false }>();
 
           if (driverConflicts && driverConflicts.length > 0) {
             const realDriverConflicts = driverConflicts.filter(

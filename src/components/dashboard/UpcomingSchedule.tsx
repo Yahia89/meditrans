@@ -34,10 +34,10 @@ export function UpcomingSchedule() {
   const { currentOrganization } = useOrganization();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isMonthExpanded, setIsMonthExpanded] = useState(false);
-  const [_, setPage] = useQueryState("page");
-  const [__, setTripId] = useQueryState("tripId");
-  const [___, setFromPage] = useQueryState("from");
-  const [____, setSection] = useQueryState("section");
+  const [, setPage] = useQueryState("page");
+  const [, setTripId] = useQueryState("tripId");
+  const [, setFromPage] = useQueryState("from");
+  const [, setSection] = useQueryState("section");
   const { profile } = useAuth();
 
   const activeTimezone = useMemo(

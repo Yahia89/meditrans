@@ -5,11 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "typecheck": "tsc -b --pretty false",
+    "build": "npm run typecheck && vite build",
+    "lint:billing": "eslint src/features/billing src/types/supabase.ts src/components/MedicaidBillingPage.tsx --max-warnings 0",
     "test:browser-event-location": "node --test src/components/trips/details/browserEventLocation.test.mjs",
     "test:trip-completion": "node --test src/components/trips/details/tripCompletion.test.mjs",
     "test:driver-print": "node --test src/utils/driver-profile-print-model.test.mjs src/components/drivers/driver-print-trips.test.mjs",
     "test:compliance": "node --test src/features/compliance/*.test.mjs src/features/sts-inspections/*.test.mjs",
+    "test:billing": "node --test src/features/billing/tests/*.test.mjs",
+    "test:billing:ui": "playwright test --config playwright.billing.config.ts",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "sh -c 'echo nemt.futrans.us > dist/CNAME && gh-pages -d dist'"
@@ -64,6 +68,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4.1.17",
     "@tailwindcss/vite": "^4.1.17",
     "@types/google.maps": "^3.58.1",

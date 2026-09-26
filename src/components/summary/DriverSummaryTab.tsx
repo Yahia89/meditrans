@@ -78,6 +78,7 @@ export function DriverSummaryTab({
     selectedSalStatuses: [],
     selectedTripPurposes: [],
     selectedTripStatuses: [],
+    selectedConnectAbilityPatients: [],
   });
 
   const handleFilterChange = <K extends keyof FilterState>(

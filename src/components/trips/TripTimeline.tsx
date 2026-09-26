@@ -50,6 +50,24 @@ const statusConfig: Record<
     text: "text-blue-800",
     dot: "bg-blue-600 animate-pulse",
   },
+  loaded: {
+    bg: "bg-purple-50",
+    border: "border-purple-200",
+    text: "text-purple-700",
+    dot: "bg-purple-500",
+  },
+  in_pickup_circle: {
+    bg: "bg-cyan-50",
+    border: "border-cyan-200",
+    text: "text-cyan-700",
+    dot: "bg-cyan-500",
+  },
+  in_dropoff_circle: {
+    bg: "bg-pink-50",
+    border: "border-pink-200",
+    text: "text-pink-700",
+    dot: "bg-pink-500",
+  },
   en_route: {
     bg: "bg-purple-50",
     border: "border-purple-200",

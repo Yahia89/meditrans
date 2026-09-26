@@ -147,7 +147,7 @@ export function AppSidebar({
   // Add Medicaid Billing and Client Credits to owners and admins only
   if (canViewMedicaid) {
     navItems.push({
-      title: "Medicaid Billing",
+      title: "Billing & Payments",
       url: "medicaid-billing" as Page,
       icon: FileText,
     });

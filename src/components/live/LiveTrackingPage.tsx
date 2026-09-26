@@ -37,10 +37,10 @@ export function LiveTrackingPage() {
     routeFollowingStates,
   } = useLiveTracking();
   const { canManageTrips } = usePermissions();
-  const [_, setPage] = useQueryState("page");
-  const [__, setTripId] = useQueryState("tripId");
-  const [___, setFromPage] = useQueryState("from");
-  const [____, setSection] = useQueryState("section");
+  const [, setPage] = useQueryState("page");
+  const [, setTripId] = useQueryState("tripId");
+  const [, setFromPage] = useQueryState("from");
+  const [, setSection] = useQueryState("section");
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"drivers" | "trips">("drivers");

@@ -63,7 +63,7 @@ export function AcceptInvitePage() {
         if (inviteData.full_name) {
           setInviteeName(inviteData.full_name);
         }
-      } catch (err) {
+      } catch {
         setError("Failed to fetch invitation details.");
       } finally {
         setLoading(false);

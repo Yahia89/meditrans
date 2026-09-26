@@ -78,6 +78,7 @@ export function PatientSummaryTab({
     selectedSalStatuses: [],
     selectedTripPurposes: [],
     selectedTripStatuses: [],
+    selectedConnectAbilityPatients: [],
   });
 
   const handleFilterChange = <K extends keyof FilterState>(

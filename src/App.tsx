@@ -517,7 +517,7 @@ function AppContent() {
         );
       case "medicaid-billing":
         return (
-          <DashboardPage title="Medicaid Electronic Billing">
+          <DashboardPage title="Billing & Payments">
             <MedicaidBillingPage />
           </DashboardPage>
         );

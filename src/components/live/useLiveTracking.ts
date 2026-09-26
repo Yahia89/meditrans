@@ -233,7 +233,7 @@ export function useLiveTracking() {
   useEffect(() => {
     if (!driversData) return;
 
-    setDrivers((_) => {
+    setDrivers(() => {
       return driversData.map((d) => {
         const activeTrip = tripsData?.find((t) => t.driver_id === d.id);
         let status: LiveDriver["status"] = "idle";
@@ -364,7 +364,6 @@ export function useLiveTracking() {
         // Calculate distance along route
         const distanceAlongRoute = getDistanceAtSegment(
           route.cumulativeDistances,
-          route.polyline,
           projection.segmentIndex,
           projection.t,
         );

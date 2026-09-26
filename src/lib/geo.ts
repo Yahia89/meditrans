@@ -324,7 +324,6 @@ export function getPositionAtDistance(
  */
 export function getDistanceAtSegment(
   cumulativeDistances: number[],
-  polyline: PolylinePoint[],
   segmentIndex: number,
   t: number,
 ): number {

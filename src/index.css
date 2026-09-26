@@ -305,3 +305,84 @@ html body[data-radix-scroll-lock-ignored] {
 html body[style*="overflow"] {
   overflow: visible !important;
 }
+
+/* Billing composes the existing CRM theme without inheriting Vite's legacy
+   unlayered heading/button demo rules above. Keep other pages unchanged. */
+.billing-surface {
+  --primary: #3d5a3d;
+  --primary-foreground: #ffffff;
+  --ring: #6b866b;
+  --muted: #f7f8f7;
+  --muted-foreground: #5d6862;
+  --border: #e2e7e3;
+  color: var(--foreground);
+}
+
+.billing-surface :where(h1) {
+  font-size: revert-layer;
+  line-height: revert-layer;
+}
+
+.billing-surface :where(button) {
+  padding: revert-layer;
+  border: revert-layer;
+  border-radius: revert-layer;
+  font-size: revert-layer;
+  font-weight: revert-layer;
+  transition: revert-layer;
+}
+
+.billing-surface :where(button):focus,
+.billing-surface :where(button):focus-visible {
+  outline: revert-layer;
+}
+
+.billing-surface [data-slot="alert-title"] {
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.billing-surface [data-slot="table-container"] {
+  overscroll-behavior-x: contain;
+}
+
+/* Let Radix lock the page behind a billing dialog. The older global overrides
+   otherwise allow background scrolling and horizontal overflow while open. */
+html body[data-scroll-locked]:has(.billing-surface[data-slot="dialog-content"]) {
+  overflow: hidden !important;
+}
+
+@media (max-width: 639px) {
+  .billing-surface :is(input, textarea, select, [data-slot="select-trigger"]) {
+    font-size: 1rem;
+    min-width: 0;
+  }
+
+  .billing-surface :is([data-slot="button"], [data-slot="select-trigger"], input:not([type="checkbox"]), [data-slot="tabs-trigger"]) {
+    min-height: 2.75rem;
+  }
+
+  .billing-surface [data-slot="dialog-close"] {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .billing-surface .grid {
+    gap: revert-layer !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .billing-surface,
+  .billing-surface *,
+  .billing-surface *::before,
+  .billing-surface *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

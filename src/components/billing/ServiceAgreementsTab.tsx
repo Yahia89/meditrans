@@ -1,14 +1,14 @@
 import { useState } from "react";
+import { CircleAlert, RefreshCw, ShieldCheck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { format, parseISO } from "date-fns";
 import {
-  Plus,
-  MagnifyingGlass,
-  WarningCircle,
-  DotsThree,
-  CaretRight,
-  ShieldCheck,
-  ArrowsClockwise,
-} from "@phosphor-icons/react";
-import { Card } from "@/components/ui/card";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,223 +20,400 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { format } from "date-fns";
+import { billingDb } from "@/features/billing/api/client";
+import { formatMoney } from "@/features/billing/utils/decimal";
+
+import {
+  BillingDialogBody,
+  BillingDialogContent,
+  BillingDialogFooter,
+  BillingDialogHeader,
+} from "@/features/billing/components/BillingDialogLayout";
 
 export function ServiceAgreementsTab() {
   const { currentOrganization } = useOrganization();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedAgreementId, setSelectedAgreementId] = useState<string | null>(
+    null,
+  );
 
-  const { data: agreements, isLoading } = useQuery({
+  const {
+    data: agreements = [],
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ["service-agreements", currentOrganization?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!currentOrganization?.id) return [];
+      const { data, error } = await billingDb
         .from("billing_service_agreements")
         .select(
-          `
-          *,
-          patient:patients(full_name, medicaid_id),
-          lines:billing_service_agreement_lines(*)
-        `,
+          "*, patient:patients(full_name, medicaid_id), lines:billing_service_agreement_lines(*)",
         )
-        .eq("org_id", currentOrganization?.id)
+        .eq("org_id", currentOrganization.id)
         .order("created_at", { ascending: false });
-
-      if (error) {
-        console.warn("Service Agreement tables might be missing:", error);
-        return [];
-      }
+      if (error) throw error;
       return data;
     },
     enabled: !!currentOrganization?.id,
   });
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            placeholder="Search Patient or Agreement #..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-11 bg-white border-slate-200/60 shadow-none focus-visible:ring-slate-400"
-          />
-        </div>
-        <Button className="bg-slate-900 text-white hover:bg-slate-800 gap-2 h-11 px-6 font-bold shadow-xl shadow-slate-900/10 transition-all active:scale-95">
-          <Plus size={18} weight="bold" />
-          Add Service Agreement
-        </Button>
-      </div>
+  const search = searchTerm.trim().toLowerCase();
+  const filteredAgreements = agreements.filter((agreement) =>
+    [
+      agreement.agreement_number,
+      agreement.patient?.full_name,
+      agreement.patient?.medicaid_id,
+    ].some((value) => value?.toLowerCase().includes(search)),
+  );
+  const selectedAgreement = agreements.find(
+    (agreement) => agreement.id === selectedAgreementId,
+  );
 
-      <Card className="border-slate-200/60 shadow-none overflow-hidden bg-white/50 backdrop-blur-sm rounded-xl">
-        <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow className="hover:bg-transparent border-slate-100">
-              <TableHead className="font-bold text-slate-900 uppercase text-[10px] tracking-widest h-12">
-                Agreement #
-              </TableHead>
-              <TableHead className="font-bold text-slate-900 uppercase text-[10px] tracking-widest h-12">
-                Patient
-              </TableHead>
-              <TableHead className="font-bold text-slate-900 uppercase text-[10px] tracking-widest h-12">
-                Period
-              </TableHead>
-              <TableHead className="font-bold text-slate-900 uppercase text-[10px] tracking-widest h-12">
-                Codes
-              </TableHead>
-              <TableHead className="font-bold text-slate-900 uppercase text-[10px] tracking-widest h-12 text-center">
-                Status
-              </TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-48 text-center">
-                  <div className="flex items-center justify-center gap-3 text-slate-400 font-bold italic">
-                    <ArrowsClockwise
-                      size={20}
-                      className="animate-spin"
-                      weight="duotone"
-                    />
-                    Synchronizing...
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : agreements?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-64 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-4">
-                    <div className="bg-slate-50 p-6 rounded-full">
-                      <ShieldCheck
-                        size={40}
-                        weight="duotone"
-                        className="text-slate-200"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-slate-600 font-black">
-                        No Active Records
-                      </p>
-                      <p className="text-slate-400 text-xs max-w-xs mx-auto italic">
-                        Authorized service agreements are required for automated
-                        trip validation and claim filing.
-                      </p>
-                    </div>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              agreements?.map((ag) => (
-                <TableRow
-                  key={ag.id}
-                  className="hover:bg-slate-50/50 transition-colors border-slate-50"
-                >
-                  <TableCell className="font-mono text-[11px] font-black text-slate-900">
-                    {ag.agreement_number}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-900">
-                        {ag.patient?.full_name}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">
-                        ID: {ag.patient?.medicaid_id || "MISSING"}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-slate-500 text-xs font-medium italic">
-                    {format(new Date(ag.effective_date), "MMM d")} -{" "}
-                    {format(new Date(ag.expiration_date), "MMM d, yyyy")}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {ag.lines?.map((line: any) => (
-                        <Badge
-                          key={line.id}
-                          variant="secondary"
-                          className="text-[9px] font-black bg-slate-100 text-slate-600 border-none px-2"
-                        >
-                          {line.hcpcs_code}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      className={
-                        ag.status === "active"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-100 font-black text-[9px] uppercase tracking-widest"
-                          : "bg-slate-50 text-slate-500 border-slate-100 font-black text-[9px] uppercase tracking-widest"
-                      }
-                    >
-                      {ag.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-slate-100 rounded-full"
-                        >
-                          <DotsThree
-                            size={24}
-                            weight="bold"
-                            className="text-slate-400"
-                          />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="w-48 p-1.5 shadow-2xl border-slate-200/60 rounded-xl"
-                      >
-                        <DropdownMenuItem className="cursor-pointer font-bold text-xs gap-2 focus:bg-slate-50 focus:text-slate-900 rounded-lg">
-                          <CaretRight size={14} weight="bold" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer font-bold text-xs gap-2 text-red-600 focus:bg-red-50 focus:text-red-700 rounded-lg">
-                          <Plus size={14} weight="bold" className="rotate-45" />
-                          Archive
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+  return (
+    <div className="flex min-w-0 flex-col gap-4">
+      <Card className="min-w-0">
+        <CardHeader>
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 flex-col gap-2">
+              <CardTitle>Service agreements</CardTitle>
+              <CardDescription>
+                Review saved authorization periods and service codes while
+                preparing billing records.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              disabled={isFetching}
+              onClick={() => refetch()}
+              className="w-full sm:w-auto sm:shrink-0"
+            >
+              <RefreshCw data-icon="inline-start" />
+              {isFetching ? "Refreshing…" : "Refresh"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="min-w-0">
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="service-agreement-search">
+                Search agreements
+              </FieldLabel>
+              <Input
+                id="service-agreement-search"
+                type="search"
+                placeholder="Patient, agreement number, or Medicaid ID"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </Field>
+          </FieldGroup>
+        </CardContent>
       </Card>
 
-      <div className="bg-amber-50/50 border border-amber-100/60 rounded-2xl p-6 flex gap-4">
-        <WarningCircle
-          size={28}
-          weight="duotone"
-          className="text-amber-600 shrink-0"
-        />
-        <div className="space-y-1">
-          <h4 className="text-sm font-black text-amber-900 tracking-tight">
-            Authorization Enforcement
-          </h4>
-          <p className="text-xs text-amber-800/80 leading-relaxed max-w-3xl italic">
-            Direct billing requires a valid Prior Authorization Number (SA #).
-            Our validator verifies every trip against these records to ensure
-            rate accuracy and eligibility before transmission.
-          </p>
-        </div>
-      </div>
+      <Alert>
+        <ShieldCheck />
+        <AlertTitle>Reference for manual billing</AlertTitle>
+        <AlertDescription>
+          These agreements help staff review authorization details. Claims and
+          invoices are submitted outside this workspace; this list does not
+          validate trips or transmit claims.
+        </AlertDescription>
+      </Alert>
+
+      <Card className="min-w-0 gap-0 overflow-hidden py-0">
+        <CardHeader className="py-5">
+          <CardTitle>
+            Saved agreements {isLoading ? "" : `(${filteredAgreements.length})`}
+          </CardTitle>
+          <CardDescription>
+            Open an agreement to review its service lines. Scroll the table to
+            see all columns.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="min-w-0 px-0">
+          {isLoading ? (
+            <div
+              role="status"
+              aria-label="Loading service agreements"
+              className="flex flex-col gap-3 px-6 pb-6"
+            >
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <span className="sr-only">Loading service agreements…</span>
+            </div>
+          ) : isError ? (
+            <div className="px-6 pb-6">
+              <Alert variant="destructive">
+                <CircleAlert />
+                <AlertTitle>Service agreements could not be loaded</AlertTitle>
+                <AlertDescription>
+                  <p>Check your connection and try again.</p>
+                  <Button variant="outline" onClick={() => refetch()}>
+                    Retry
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            </div>
+          ) : filteredAgreements.length === 0 ? (
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ShieldCheck />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {search
+                    ? "No matching agreements"
+                    : "No service agreements available"}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {search
+                    ? "Try a different patient name, agreement number, or Medicaid ID."
+                    : "Saved agreements appear here for reference during manual billing review."}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <Table className="min-w-[760px]" aria-label="Service agreements">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6">Agreement</TableHead>
+                  <TableHead>Patient</TableHead>
+                  <TableHead>Authorization period</TableHead>
+                  <TableHead>Service codes</TableHead>
+                  <TableHead className="pr-6">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAgreements.map((agreement) => (
+                  <TableRow key={agreement.id}>
+                    <TableCell className="py-4 pl-6">
+                      <Button
+                        variant="link"
+                        className="h-auto max-w-48 justify-start whitespace-normal break-words p-0 text-left"
+                        aria-label={`View service agreement ${agreement.agreement_number}`}
+                        onClick={() => setSelectedAgreementId(agreement.id)}
+                      >
+                        {agreement.agreement_number}
+                      </Button>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="flex max-w-56 flex-col gap-1 whitespace-normal break-words">
+                        <span className="font-medium">
+                          {agreement.patient?.full_name ||
+                            "Patient unavailable"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Medicaid ID:{" "}
+                          {agreement.patient?.medicaid_id || "Not recorded"}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 tabular-nums">
+                      <div className="flex flex-col gap-1">
+                        <span>
+                          {format(
+                            parseISO(agreement.effective_date),
+                            "MMM d, yyyy",
+                          )}
+                        </span>
+                        <span className="text-muted-foreground">
+                          to{" "}
+                          {format(
+                            parseISO(agreement.expiration_date),
+                            "MMM d, yyyy",
+                          )}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="flex max-w-60 flex-wrap gap-1.5">
+                        {agreement.lines.length > 0 ? (
+                          agreement.lines.map((line) => (
+                            <Badge key={line.id} variant="outline">
+                              {line.hcpcs_code}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground">
+                            No service lines
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 pr-6">
+                      <Badge
+                        variant={
+                          agreement.status === "active"
+                            ? "secondary"
+                            : "outline"
+                        }
+                        className="capitalize"
+                      >
+                        {agreement.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={!!selectedAgreement}
+        onOpenChange={(open) => {
+          if (!open) setSelectedAgreementId(null);
+        }}
+      >
+        <BillingDialogContent className="sm:max-w-3xl">
+          <BillingDialogHeader>
+            <DialogTitle className="break-words">
+              Service agreement {selectedAgreement?.agreement_number}
+            </DialogTitle>
+            <DialogDescription>
+              Saved authorization details for manual billing review.
+            </DialogDescription>
+          </BillingDialogHeader>
+          {selectedAgreement && (
+            <BillingDialogBody>
+              <dl className="grid min-w-0 gap-4 sm:grid-cols-2">
+                <div className="min-w-0">
+                  <dt className="text-sm text-muted-foreground">Patient</dt>
+                  <dd className="mt-1 break-words font-medium">
+                    {selectedAgreement.patient?.full_name ||
+                      "Patient unavailable"}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-sm text-muted-foreground">Medicaid ID</dt>
+                  <dd className="mt-1 break-words">
+                    {selectedAgreement.patient?.medicaid_id || "Not recorded"}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-sm text-muted-foreground">
+                    Authorization period
+                  </dt>
+                  <dd className="mt-1 text-sm tabular-nums">
+                    {format(
+                      parseISO(selectedAgreement.effective_date),
+                      "MMM d, yyyy",
+                    )}{" "}
+                    to{" "}
+                    {format(
+                      parseISO(selectedAgreement.expiration_date),
+                      "MMM d, yyyy",
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-muted-foreground">Status</dt>
+                  <dd className="mt-1">
+                    <Badge variant="secondary" className="capitalize">
+                      {selectedAgreement.status}
+                    </Badge>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-muted-foreground">
+                    Total authorized units
+                  </dt>
+                  <dd className="mt-1 tabular-nums">
+                    {selectedAgreement.total_units_authorized ?? "Not recorded"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-muted-foreground">
+                    Total authorized amount
+                  </dt>
+                  <dd className="mt-1 tabular-nums">
+                    {selectedAgreement.total_amount_authorized === null
+                      ? "Not recorded"
+                      : formatMoney(selectedAgreement.total_amount_authorized)}
+                  </dd>
+                </div>
+              </dl>
+              <div className="flex min-w-0 flex-col gap-3">
+                <h3 className="font-medium">Authorized services</h3>
+                {selectedAgreement.lines.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No service lines are recorded for this agreement.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Scroll the table to review all service details.
+                    </p>
+                    <Table
+                      className="min-w-[540px]"
+                      aria-label="Agreement service lines"
+                    >
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Code</TableHead>
+                          <TableHead>Modifier</TableHead>
+                          <TableHead className="text-right">
+                            Authorized units
+                          </TableHead>
+                          <TableHead className="text-right">
+                            Used units
+                          </TableHead>
+                          <TableHead className="text-right">
+                            Unit rate
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedAgreement.lines.map((line) => (
+                          <TableRow key={line.id}>
+                            <TableCell>{line.hcpcs_code}</TableCell>
+                            <TableCell>{line.modifier || "—"}</TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {line.units_authorized ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {line.units_used ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {line.unit_rate === null
+                                ? "—"
+                                : formatMoney(line.unit_rate)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </>
+                )}
+              </div>
+            </BillingDialogBody>
+          )}
+          <BillingDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedAgreementId(null)}
+            >
+              Close
+            </Button>
+          </BillingDialogFooter>
+        </BillingDialogContent>
+      </Dialog>
     </div>
   );
 }

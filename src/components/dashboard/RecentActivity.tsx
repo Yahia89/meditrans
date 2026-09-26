@@ -14,10 +14,10 @@ import { useQueryState } from "nuqs";
 
 export function RecentActivity() {
   const { currentOrganization } = useOrganization();
-  const [_, setPage] = useQueryState("page");
-  const [__, setTripId] = useQueryState("tripId");
-  const [___, setFromPage] = useQueryState("from");
-  const [____, setSection] = useQueryState("section");
+  const [, setPage] = useQueryState("page");
+  const [, setTripId] = useQueryState("tripId");
+  const [, setFromPage] = useQueryState("from");
+  const [, setSection] = useQueryState("section");
 
   const { data: activities, isLoading } = useQuery({
     queryKey: ["recent-activity", currentOrganization?.id],
