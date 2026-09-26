@@ -1,0 +1,1 @@
+import{r as t}from"./vendor-query-IVBxe8cG.js";import{b as r,a as n}from"./index-NdVKbe2w.js";import{g as i}from"./timezone-CjUb8KB6.js";function c(){const{profile:e}=r(),{currentOrganization:o}=n();return t.useMemo(()=>i(e,o),[e,o])}export{c as u};
