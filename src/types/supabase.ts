@@ -604,11 +604,14 @@ export type Database = {
           payer_id: string
           payer_reported_date: string | null
           payment_method: string
+          received_at: string | null
           received_date: string | null
           reconciled_at: string | null
           reconciled_by: string | null
           reconciliation_status: string
           reference_number: string
+          request_fingerprint: string | null
+          request_id: string | null
           unapplied_amount: number
         }
         Insert: {
@@ -622,11 +625,14 @@ export type Database = {
           payer_id: string
           payer_reported_date?: string | null
           payment_method: string
+          received_at?: string | null
           received_date?: string | null
           reconciled_at?: string | null
           reconciled_by?: string | null
           reconciliation_status?: string
           reference_number: string
+          request_fingerprint?: string | null
+          request_id?: string | null
           unapplied_amount: number
         }
         Update: {
@@ -640,11 +646,14 @@ export type Database = {
           payer_id?: string
           payer_reported_date?: string | null
           payment_method?: string
+          received_at?: string | null
           received_date?: string | null
           reconciled_at?: string | null
           reconciled_by?: string | null
           reconciliation_status?: string
           reference_number?: string
+          request_fingerprint?: string | null
+          request_id?: string | null
           unapplied_amount?: number
         }
         Relationships: [
@@ -809,12 +818,15 @@ export type Database = {
           notes: string | null
           org_id: string
           original_external_reference: string | null
+          original_submitted_amount: number | null
           outstanding_balance: number
           payer_acknowledged_at: string | null
           payer_id: string
           provenance: string
           record_type: string
           replaces_record_id: string | null
+          request_fingerprint: string | null
+          request_id: string | null
           settlement_status: string
           submission_channel: string | null
           submission_status: string
@@ -848,12 +860,15 @@ export type Database = {
           notes?: string | null
           org_id: string
           original_external_reference?: string | null
+          original_submitted_amount?: number | null
           outstanding_balance?: number
           payer_acknowledged_at?: string | null
           payer_id: string
           provenance?: string
           record_type: string
           replaces_record_id?: string | null
+          request_fingerprint?: string | null
+          request_id?: string | null
           settlement_status?: string
           submission_channel?: string | null
           submission_status?: string
@@ -887,12 +902,15 @@ export type Database = {
           notes?: string | null
           org_id?: string
           original_external_reference?: string | null
+          original_submitted_amount?: number | null
           outstanding_balance?: number
           payer_acknowledged_at?: string | null
           payer_id?: string
           provenance?: string
           record_type?: string
           replaces_record_id?: string | null
+          request_fingerprint?: string | null
+          request_id?: string | null
           settlement_status?: string
           submission_channel?: string | null
           submission_status?: string
@@ -3124,6 +3142,7 @@ export type Database = {
         Args: { p_lines: Json[]; p_record: Json }
         Returns: Json
       }
+      create_manual_billing_record: { Args: { p_record: Json }; Returns: Json }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {
@@ -3304,6 +3323,10 @@ export type Database = {
       postgis_wagyu_version: { Args: never; Returns: string }
       record_adjustment: {
         Args: { p_adjustment: Json; p_record_id: string }
+        Returns: Json
+      }
+      record_billing_receipt: {
+        Args: { p_receipt: Json; p_record_id: string }
         Returns: Json
       }
       record_external_submission: {

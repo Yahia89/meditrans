@@ -39,9 +39,12 @@ function databaseStub(tables, failedTable) {
     from(table) {
       let rows = [...(tables[table] ?? [])];
       let single = false;
+      let rangeStart = 0;
+      let rangeEnd = Infinity;
       requests.push(table);
       const query = {
         select() { return query; },
+        range(start, end) { rangeStart = start; rangeEnd = end; return query; },
         order() { return query; },
         eq(field, value) { rows = rows.filter((row) => row[field] === value); return query; },
         gte(field, value) { rows = rows.filter((row) => row[field] >= value); return query; },
@@ -57,7 +60,7 @@ function databaseStub(tables, failedTable) {
         then(resolve, reject) {
           return Promise.resolve(table === failedTable
             ? { data: null, error: failure }
-            : { data: single ? rows[0] : rows, error: null }).then(resolve, reject);
+            : { data: single ? rows[0] : rows.slice(rangeStart, rangeEnd + 1), error: null }).then(resolve, reject);
         },
       };
       return query;
@@ -143,14 +146,13 @@ test("each failed record-detail query rejects instead of returning empty financi
   }
 });
 
-test("overview counts a rejected record once and sums confirmed payment headers once", async () => {
+test("overview sums confirmed payment headers once", async () => {
   const db = databaseStub({
     billing_records: [recordFixture({ submission_status: "rejected" })],
     billing_payments: [{ org_id: "org-1", amount: 1000, received_date: new Date().toISOString().slice(0, 10) }],
   });
   const { getBillingOverviewStats } = loadSource("../api/summary.ts", db);
   const stats = await getBillingOverviewStats("org-1");
-  assert.equal(stats.actionNeededCount, 1);
   assert.equal(stats.receivedThisMonth, "1000.00");
   assert.equal(stats.outstandingBalance, "123.20");
 });
@@ -171,4 +173,45 @@ test("overview database errors remain errors instead of zero balances", async ()
     const { getBillingOverviewStats } = loadSource("../api/summary.ts", db);
     await assert.rejects(getBillingOverviewStats("org-1"), (error) => error === db.failure);
   }
+});
+
+
+test("overview keeps original submitted amounts and uses the organization month boundary", async () => {
+  const db = databaseStub({
+    billing_records: [
+      recordFixture({ original_submitted_amount: "100.00", total_billed_amount: "120.00", external_submitted_at: "2026-10-01T02:00:00Z" }),
+      recordFixture({ id: "record-2", original_submitted_amount: "50.00", external_submitted_at: "2026-10-01T06:00:00Z" }),
+    ],
+    billing_payments: [
+      { org_id: "org-1", amount: 40, received_at: "2026-10-01T02:00:00Z", received_date: "2026-10-01" },
+      { org_id: "org-1", amount: 60, received_at: "2026-10-01T06:00:00Z", received_date: "2026-10-01" },
+      { org_id: "org-1", amount: 10, received_at: null, received_date: "2026-09-20" },
+      { org_id: "org-1", amount: 999, received_at: null, received_date: null },
+    ],
+  });
+  const { getBillingOverviewStats } = loadSource("../api/summary.ts", db);
+  const stats = await getBillingOverviewStats("org-1", "America/Chicago", new Date("2026-09-26T12:00:00Z"));
+  assert.equal(stats.billedThisMonth, "100.00");
+  assert.equal(stats.receivedThisMonth, "50.00");
+});
+
+test("record search matches patient and agency and treats filter punctuation literally", async () => {
+  const db = databaseStub({ billing_records: [recordFixture({
+    client: { id: "client-1", full_name: "Patient Example", medicaid_id: null },
+    notes: "Invoice (A,B)%",
+  })] });
+  const { getBillingRecords } = loadSource("../api/records.ts", db);
+  assert.equal((await getBillingRecords({ orgId: "org-1", search: "patient example" })).length, 1);
+  assert.equal((await getBillingRecords({ orgId: "org-1", search: "(A,B)%" })).length, 1);
+  assert.equal((await getBillingRecords({ orgId: "org-1", search: "unrelated" })).length, 0);
+});
+
+
+test("overview and record exports include rows beyond the API page limit", async () => {
+  const records = Array.from({ length: 1001 }, (_, index) => recordFixture({ id: `record-${index}`, total_billed_amount: "1.00", outstanding_balance: "1.00" }));
+  const db = databaseStub({ billing_records: records });
+  const { getBillingRecords } = loadSource("../api/records.ts", db);
+  const { getBillingOverviewStats } = loadSource("../api/summary.ts", db);
+  assert.equal((await getBillingRecords({ orgId: "org-1" })).length, 1001);
+  assert.equal((await getBillingOverviewStats("org-1")).outstandingBalance, "1001.00");
 });

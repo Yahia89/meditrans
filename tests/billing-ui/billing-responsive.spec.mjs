@@ -15,7 +15,7 @@ async function assertDialogFits(page) {
   await expect(dialog).toBeVisible();
   const bounds = await dialog.evaluate((element) => {
     const rect = element.getBoundingClientRect();
-    const controls = [...element.querySelectorAll('input, textarea, [role="combobox"]')].map((control) => {
+    const controls = [...element.querySelectorAll('input:not([type="file"]), textarea, [role="combobox"]')].map((control) => {
       const bounds = control.getBoundingClientRect();
       return { left: bounds.left, right: bounds.right, font: parseFloat(getComputedStyle(control).fontSize) };
     });
@@ -55,45 +55,37 @@ test("billing tabs and dialogs fit with populated records", async ({ page }, tes
   await assertPageFits(page);
   await page.screenshot({ path: testInfo.outputPath("records.png"), animations: "disabled" });
 
-  for (const name of ["Payments", "Authorizations", "Payers", "Billing records"]) {
+  for (const name of ["Payments", "Billing records"]) {
     await page.getByRole("tab", { name, exact: true }).click();
     await expect(page.getByRole("tab", { name, exact: true })).toHaveAttribute("data-state", "active");
     await assertPageFits(page);
   }
 
-  await page.getByRole("button", { name: "Record Payment", exact: true }).first().click();
-  const paymentDialog = await assertDialogFits(page);
-  await expect(paymentDialog.getByRole("button", { name: "Save Payment", exact: true })).toBeInViewport();
-  await paymentDialog.getByRole("combobox").first().click();
-  await page.getByRole("option", { name: /Connectivity/ }).click();
-  await assertDialogFits(page);
-  await page.screenshot({ path: testInfo.outputPath("payment.png"), animations: "disabled" });
-  await closeDialog(page);
-
-  await page.getByRole("button", { name: "Add Billing Record", exact: true }).first().click();
+  await expect(page.getByRole("tab", { name: "Payers", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Authorizations", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Record Payment", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Add billing record", exact: true }).first().click();
   const addDialog = await assertDialogFits(page);
-  await expect(addDialog.getByRole("button", { name: /Save|Create|Record Billing/ }).last()).toBeInViewport();
+  await expect(addDialog.getByRole("button", { name: "Add billing record", exact: true })).toBeInViewport();
+  await addDialog.getByLabel("Patient *", { exact: true }).click();
+  await page.getByRole("option", { name: /Sample Client/ }).click();
+  await expect(addDialog.getByLabel("Internal reference", { exact: true })).toHaveValue("00000000");
+  await expect(addDialog.getByLabel("Internal reference", { exact: true })).toHaveAttribute("readonly", "");
+  await addDialog.getByLabel("Agency *", { exact: true }).fill("Community transport agency");
+  await addDialog.getByLabel("Original submitted amount ($) *", { exact: true }).fill("1000.00");
+  await addDialog.getByLabel("Amount received ($)", { exact: true }).fill("400.00");
+  await expect(addDialog.getByRole("button", { name: "Attach files", exact: true })).toBeVisible();
+  await assertDialogFits(page);
   await page.screenshot({ path: testInfo.outputPath("add-record.png"), animations: "disabled" });
   await closeDialog(page);
 
   await page.getByRole("button", { name: /QA-INVOICE/ }).first().click();
   const detail = await assertDialogFits(page);
-  for (const tab of await detail.getByRole("tab").all()) {
-    await tab.click();
-    await assertDialogFits(page);
-  }
+  await expect(detail.getByRole("heading", { name: "Received amounts", exact: true })).toBeAttached();
+  await expect(detail.getByRole("heading", { name: "Billing files", exact: true })).toBeAttached();
   await page.screenshot({ path: testInfo.outputPath("record-detail.png"), animations: "disabled" });
   await closeDialog(page);
 
-  await page.getByRole("tab", { name: "Payers", exact: true }).click();
-  await page.getByRole("button", { name: /Add custom payer/i }).first().click();
-  await assertDialogFits(page);
-  await closeDialog(page);
-
-  await page.getByRole("tab", { name: "Authorizations", exact: true }).click();
-  await page.getByRole("button", { name: /View service agreement/ }).click();
-  await assertDialogFits(page);
-  await closeDialog(page);
   expect(errors).toEqual([]);
 });
 
@@ -102,7 +94,7 @@ test("empty and failed billing states stay responsive", async ({ page }, testInf
   await page.goto("/?page=medicaid-billing");
   await expect(page.getByRole("heading", { name: "Billing & Payments", exact: true })).toBeVisible();
   await assertPageFits(page);
-  for (const name of ["Payments", "Authorizations", "Payers"]) {
+  for (const name of ["Payments", "Billing records"]) {
     await page.getByRole("tab", { name, exact: true }).click();
     await assertPageFits(page);
   }

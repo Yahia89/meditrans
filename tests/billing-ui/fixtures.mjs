@@ -8,7 +8,7 @@ const payer = {
   contact_phone: null, payment_terms: null, typical_follow_up_days: null, is_active: true,
   notes: null, created_at: timestamp, updated_at: timestamp, created_by: null,
 };
-const client = { id: ids.client, full_name: "Sample Client With A Longer Name", medicaid_id: "0001234567", org_id: ids.org };
+const client = { id: ids.client, disabled: false, full_name: "Sample Client With A Longer Name", medicaid_id: "0001234567", org_id: ids.org };
 const record = {
   id: ids.record, org_id: ids.org, payer_id: ids.payer, client_id: ids.client,
   record_type: "partner_invoice", internal_reference: "QA-INVOICE-0000123456789",
@@ -17,6 +17,7 @@ const record = {
   external_submitted_at: timestamp, submitted_by_name: null, submission_channel: "other",
   payer_acknowledged_at: null, follow_up_owner_id: null, next_follow_up_date: null, follow_up_notes: null,
   submission_status: "submitted", adjudication_status: "in_review", settlement_status: "partially_paid",
+  original_submitted_amount: 1234.56,
   total_billed_amount: 1234.56, total_allowed_amount: null, total_paid_amount: 400,
   total_adjusted_amount: 0, outstanding_balance: 834.56, version: 1,
   is_historical: true, is_summary_only: false, provenance: "historical_backfill", notes: "Synthetic QA record.",
@@ -36,7 +37,7 @@ record.lines = [line];
 const payment = {
   id: ids.payment, org_id: ids.org, payer_id: ids.payer, amount: 400, currency: "USD",
   payment_method: "eft", reference_number: "QA-EFT-000000001", payer_reported_date: null,
-  received_date: timestamp.slice(0, 10), reconciliation_status: "fully_applied", unapplied_amount: 0,
+  received_at: timestamp, received_date: timestamp.slice(0, 10), reconciliation_status: "fully_applied", unapplied_amount: 0,
   notes: null, created_at: timestamp, created_by: null, reconciled_at: null, reconciled_by: null, payer,
 };
 const allocation = { id: id(8), org_id: ids.org, payment_id: ids.payment, record_id: ids.record,
@@ -66,10 +67,7 @@ export async function mockBillingApp(page, { empty = false, failed = false } = {
       organization_memberships: [{ id: id(9), org_id: ids.org, user_id: ids.user, role: "admin", is_primary: true, created_at: timestamp }],
       patients: [client], billing_payers: [payer], billing_records: [record], billing_record_lines: [line],
       billing_payments: [payment], billing_payment_allocations: [{ ...allocation, payment }],
-      billing_service_agreements: [{ id: id(10), org_id: ids.org, patient_id: ids.client, agreement_number: "QA-SA-000012345",
-        effective_date: "2026-01-01", expiration_date: "2026-12-31", status: "active", created_at: timestamp,
-        total_units_authorized: null, total_amount_authorized: null,
-        patient: client, lines: [] }],
+
     };
     if (failed && table.startsWith("billing_")) {
       return route.fulfill({ status: 503, json: { code: "QA_UNAVAILABLE", message: "Synthetic database unavailable" } });

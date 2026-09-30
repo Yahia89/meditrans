@@ -112,6 +112,8 @@ export interface BillingRecordBase {
   settlement_status: SettlementStatus;
 
   total_billed_amount: string;
+  original_submitted_amount?: string | null;
+  request_id?: string | null;
   total_allowed_amount: string | null;
   total_paid_amount: string;
   total_adjusted_amount: string;
@@ -241,6 +243,8 @@ export interface BillingPayment {
   reference_number: string;
   payer_reported_date: string | null;
   received_date: string | null;
+  received_at?: string | null;
+  request_id?: string | null;
   reconciliation_status: "unapplied" | "partially_applied" | "fully_applied" | "reconciled";
   unapplied_amount: string;
   notes: string | null;

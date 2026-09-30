@@ -1,76 +1,46 @@
+import { formatInTimeZone } from "date-fns-tz";
 import { billingDb } from "./client";
+import { readBillingRows } from "./pagination";
 import { addMoney } from "../utils/decimal";
-import { doesRecordRequireAction } from "../utils/status-helpers";
 import { billingRecordResponseSchema, decimalResponseSchema } from "../types/responses";
 
 export interface BillingOverviewStats {
   billedThisMonth: string;
   receivedThisMonth: string;
   outstandingBalance: string;
-  actionNeededCount: number;
 }
 
-export async function getBillingOverviewStats(orgId: string): Promise<BillingOverviewStats> {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const monthStart = `${year}-${month}-01`;
-  // Last day of month
-  const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
-  const monthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
-
-  // Fetch each active record once so rejected records are not counted twice.
-  const { data: recordsData, error: recordsError } = await billingDb
-    .from("billing_records")
-    .select("*")
-    .eq("org_id", orgId)
-    .not("submission_status", "in", '("cancelled","superseded")');
-
-  if (recordsError) throw recordsError;
-
-  const records = billingRecordResponseSchema.array().parse(recordsData ?? []);
+export async function getBillingOverviewStats(
+  orgId: string,
+  timezone = "America/Chicago",
+  now = new Date(),
+): Promise<BillingOverviewStats> {
+  const month = formatInTimeZone(now, timezone, "yyyy-MM");
+  // Fetch independently. Never count the same receipt once per allocation.
+  const [recordsData, paymentsData] = await Promise.all([
+    readBillingRows(billingDb.from("billing_records").select("*").eq("org_id", orgId)
+      .not("submission_status", "in", '("cancelled","superseded")').order("id")),
+    readBillingRows(billingDb.from("billing_payments").select("amount, received_date, received_at").eq("org_id", orgId).order("id")),
+  ]);
 
   let billedThisMonth = "0.00";
-  let totalOutstanding = "0.00";
-  let actionCount = 0;
-
-  for (const r of records) {
-    if (doesRecordRequireAction(r)) actionCount++;
-    if (r.submission_status === "draft") continue;
-
-    // A service period alone is not evidence of an external submission.
-    const subDate = r.external_submitted_at?.slice(0, 10);
-
-    if (subDate && subDate >= monthStart && subDate <= monthEnd) {
-      billedThisMonth = addMoney(billedThisMonth, r.total_billed_amount);
+  let outstandingBalance = "0.00";
+  for (const record of billingRecordResponseSchema.array().parse(recordsData)) {
+    if (record.submission_status === "draft") continue;
+    if (record.external_submitted_at && formatInTimeZone(record.external_submitted_at, timezone, "yyyy-MM") === month) {
+      billedThisMonth = addMoney(billedThisMonth, record.original_submitted_amount ?? record.total_billed_amount);
     }
-
-    // Accumulate total open balance
-    totalOutstanding = addMoney(totalOutstanding, r.outstanding_balance);
-
+    outstandingBalance = addMoney(outstandingBalance, record.outstanding_balance);
   }
-
-  // 2. Confirmed payments received this month (counted from billing_payments header, not duplicate allocations)
-  const { data: paymentsData, error: paymentsError } = await billingDb
-    .from("billing_payments")
-    .select("amount, received_date")
-    .eq("org_id", orgId)
-    .gte("received_date", monthStart)
-    .lte("received_date", monthEnd);
-
-  if (paymentsError) throw paymentsError;
 
   let receivedThisMonth = "0.00";
-  if (paymentsData) {
-    for (const p of paymentsData) {
-      receivedThisMonth = addMoney(receivedThisMonth, decimalResponseSchema.parse(p.amount));
-    }
+  for (const payment of paymentsData) {
+    // Old date-only receipts retain their precision; new receipts use the
+    // actual event timestamp in the organization's timezone.
+    const receivedMonth = payment.received_at
+      ? formatInTimeZone(payment.received_at, timezone, "yyyy-MM")
+      : payment.received_date?.slice(0, 7);
+    if (receivedMonth === month) receivedThisMonth = addMoney(receivedThisMonth, decimalResponseSchema.parse(payment.amount));
   }
-
-  return {
-    billedThisMonth,
-    receivedThisMonth,
-    outstandingBalance: totalOutstanding,
-    actionNeededCount: actionCount,
-  };
+  return { billedThisMonth, receivedThisMonth, outstandingBalance };
 }

@@ -98,6 +98,8 @@ const billingRecordBaseResponseSchema = z.object({
   adjudication_status: adjudicationStatus,
   settlement_status: settlementStatus,
   total_billed_amount: decimalResponseSchema,
+  original_submitted_amount: decimalResponseSchema.nullable().optional(),
+  request_id: nullableText.optional(),
   total_allowed_amount: decimalResponseSchema.nullable(),
   total_paid_amount: decimalResponseSchema,
   total_adjusted_amount: decimalResponseSchema,
@@ -178,6 +180,8 @@ const billingPaymentBaseResponseSchema = z.object({
   reference_number: z.string(),
   payer_reported_date: nullableText,
   received_date: nullableText,
+  received_at: nullableText.optional(),
+  request_id: nullableText.optional(),
   reconciliation_status: z.enum([
     "unapplied", "partially_applied", "fully_applied", "reconciled",
   ]),

@@ -13,8 +13,4 @@ export const billingQueryKeys = {
     ["billing", orgId, "payers"] as const,
   stats: (orgId: string) =>
     ["billing", orgId, "stats"] as const,
-  billableTrips: (orgId: string) =>
-    ["billing", orgId, "billable-trips"] as const,
-  serviceAgreements: (orgId: string) =>
-    ["billing", orgId, "service-agreements"] as const,
 };

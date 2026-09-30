@@ -12,7 +12,6 @@ import {
   getSubmissionStatusMeta,
   getAdjudicationStatusMeta,
   getSettlementStatusMeta,
-  doesRecordRequireAction,
 } from "../utils/status-helpers.ts";
 import { sanitizeCsvCell, generateCsv } from "../utils/export-helpers.ts";
 import {
@@ -272,37 +271,6 @@ test("Criteria 9: Payment allocation cannot exceed available payment amount", ()
 // ---------------------------------------------------------
 // CRITERIA 14: Action Needed Evaluation
 // ---------------------------------------------------------
-test("Criteria 14: Rejections, denials, and overdue follow-ups trigger action-needed flag", () => {
-  const rejectedRecord = {
-    submission_status: "rejected",
-    adjudication_status: "not_reported",
-    settlement_status: "unpaid",
-  };
-  assert.equal(doesRecordRequireAction(rejectedRecord), true);
-
-  const deniedRecord = {
-    submission_status: "received",
-    adjudication_status: "denied",
-    settlement_status: "unpaid",
-  };
-  assert.equal(doesRecordRequireAction(deniedRecord), true);
-
-  const pastDueFollowUp = {
-    submission_status: "submitted",
-    adjudication_status: "in_review",
-    settlement_status: "unpaid",
-    next_follow_up_date: "2025-01-01", // Past date
-  };
-  assert.equal(doesRecordRequireAction(pastDueFollowUp), true);
-
-  const cleanPaidRecord = {
-    submission_status: "received",
-    adjudication_status: "approved",
-    settlement_status: "paid",
-  };
-  assert.equal(doesRecordRequireAction(cleanPaidRecord), false);
-});
-
 // ---------------------------------------------------------
 // CSV Formula Injection Sanitization (CWE-1236)
 // ---------------------------------------------------------

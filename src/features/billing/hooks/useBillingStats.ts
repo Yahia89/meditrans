@@ -8,8 +8,8 @@ export function useBillingStats() {
   const orgId = currentOrganization?.id;
 
   return useQuery({
-    queryKey: billingQueryKeys.stats(orgId || ""),
-    queryFn: orgId ? () => getBillingOverviewStats(orgId) : skipToken,
+    queryKey: [...billingQueryKeys.stats(orgId || ""), currentOrganization?.timezone],
+    queryFn: orgId ? () => getBillingOverviewStats(orgId, currentOrganization?.timezone || "America/Chicago") : skipToken,
     enabled: !!orgId,
   });
 }

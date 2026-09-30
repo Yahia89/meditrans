@@ -2,7 +2,6 @@ import type {
   SubmissionStatus,
   AdjudicationStatus,
   SettlementStatus,
-  BillingRecord,
 } from "../types/billing";
 
 export interface StatusMeta {
@@ -131,44 +130,10 @@ export function getSettlementStatusMeta(status: SettlementStatus): StatusMeta {
       };
     case "overpaid":
       return {
-        label: "Overpayment / Credit to Resolve",
+        label: "Overpaid",
         badgeClass: "bg-purple-50 text-purple-700 border-purple-200",
         textClass: "text-purple-600",
         description: "Receipts exceed billed charges. Overpayment to resolve.",
       };
   }
-}
-
-/**
- * Evaluates whether a record requires immediate staff attention (the "Action Needed" filter):
- * - Rejections
- * - Denials
- * - Overdue follow-up date (past or today)
- * - Under review / suspended
- * - Overpayment to resolve
- * - Past-due partner invoices
- */
-export function doesRecordRequireAction(record: BillingRecord): boolean {
-  if (record.submission_status === "rejected") return true;
-  if (record.adjudication_status === "denied" && record.settlement_status !== "paid") return true;
-  if (record.adjudication_status === "in_review") return true;
-  if (record.settlement_status === "overpaid") return true;
-
-  // Check next follow-up date
-  if (record.next_follow_up_date) {
-    const today = new Date().toISOString().slice(0, 10);
-    if (record.next_follow_up_date <= today && record.settlement_status !== "paid") {
-      return true;
-    }
-  }
-
-  // Check due date for partner invoice
-  if (record.record_type === "partner_invoice" && record.due_date) {
-    const today = new Date().toISOString().slice(0, 10);
-    if (record.due_date < today && record.settlement_status === "unpaid") {
-      return true;
-    }
-  }
-
-  return false;
 }
