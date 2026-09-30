@@ -87,7 +87,7 @@ export function TripDetails({
         </Button>
       )}
 
-      {(state.isDesignatedDriver || state.canManage || state.canCompleteFromOffice) && (
+      {(state.isDesignatedDriver || state.canManage || state.canManageFromOffice) && (
         <StatusHeader trip={state.trip} />
       )}
 
@@ -106,7 +106,8 @@ export function TripDetails({
             trip={state.trip}
             isDesignatedDriver={state.isDesignatedDriver}
             canManage={state.canManage}
-            canCompleteFromOffice={state.canCompleteFromOffice}
+            canManageFromOffice={state.canManageFromOffice}
+            isUpdatingStatus={actions.isUpdatingStatus}
             handleStatusUpdate={actions.handleStatusUpdate}
             setShowSignatureDialog={actions.setShowSignatureDialog}
             isGeneratingPDF={state.isGeneratingPDF}
@@ -195,7 +196,7 @@ export function TripDetails({
           });
         }}
         isLoading={actions.isCapturingSignature}
-        isOfficeCompletion={state.canCompleteFromOffice}
+        isOfficeCompletion={state.canManageFromOffice}
         timezone={state.activeTimezone}
       />
 

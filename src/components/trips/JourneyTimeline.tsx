@@ -77,12 +77,16 @@ export function useJourneyTrips(
   // with no extra network round-trip.
   const getSeedFromCache = useCallback((): Trip[] | undefined => {
     if (!patientId || !dateKey) return undefined;
-    const allQueries = queryClient.getQueriesData<Trip[]>({ queryKey: ["trips"] });
+    const allQueries = queryClient.getQueriesData<Trip[]>({
+      queryKey: ["trips"],
+      predicate: (query) => query.queryKey[2] !== "dashboard",
+    });
     let merged: Trip[] | undefined;
     for (const [, trips] of allQueries) {
-      if (!trips) continue;
+      if (!Array.isArray(trips)) continue;
       const same = trips.filter(
         (t) =>
+          t.org_id && "driver_id" in t &&
           t.patient_id === patientId &&
           formatInUserTimezone(t.pickup_time, timezone, "yyyy-MM-dd") === dateKey,
       );

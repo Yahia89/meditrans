@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { canCompleteTrip, canCompleteTripFromOffice, prepareWebTripCompletion } from "./tripCompletion.ts";
+import { canCompleteTrip, canManageTripFromOffice, getNextWebTripStatus, getWebTripCancellationReason, prepareWebTripCompletion, prepareWebTripMilestone } from "./tripCompletion.ts";
 
 const trip = {
   id: "trip-1",
@@ -29,7 +29,7 @@ const unexpectedLocation = () => {
 
 test("office completion requires the acting user's manager membership in the trip's organization", async () => {
   for (const role of ["owner", "admin", "dispatch"]) {
-    assert.equal(canCompleteTripFromOffice("org-1", "dispatcher-1", [
+    assert.equal(canManageTripFromOffice("org-1", "dispatcher-1", [
       { org_id: "org-1", user_id: "dispatcher-1", role },
     ]), true);
   }
@@ -39,7 +39,7 @@ test("office completion requires the acting user's manager membership in the tri
     [{ org_id: "org-1", user_id: "another-user", role: "admin" }],
     ...["employee", "driver", "patient"].map(role => [{ org_id: "org-1", user_id: "dispatcher-1", role }]),
   ]) {
-    assert.equal(canCompleteTripFromOffice("org-1", "dispatcher-1", memberships), false);
+    assert.equal(canManageTripFromOffice("org-1", "dispatcher-1", memberships), false);
     await assert.rejects(
       prepareWebTripCompletion({ ...officeInput, memberships }, unexpectedLocation),
       /Only the assigned driver/,
@@ -150,4 +150,127 @@ test("completion requires a real signature/name or a nonempty reason", async () 
       /Provide a rider signature/,
     );
   }
+});
+
+const milestoneSteps = [
+  ["assigned", "en_route"],
+  ["accepted", "en_route"],
+  ["en_route", "arrived"],
+  ["arrived", "loaded"],
+  ["in_pickup_circle", "loaded"],
+];
+
+test("the full web flow includes mobile aliases and stops after terminal states", () => {
+  for (const [status, nextStatus] of milestoneSteps) {
+    assert.equal(getNextWebTripStatus(status), nextStatus);
+  }
+  for (const status of ["loaded", "in_progress", "in_dropoff_circle", "waiting"]) {
+    assert.equal(getNextWebTripStatus(status), "completed");
+  }
+  for (const status of ["pending", "completed", "cancelled", "no_show"]) {
+    assert.equal(getNextWebTripStatus(status), null);
+  }
+});
+
+test("owners, admins and dispatchers can record each office milestone without browser GPS", async () => {
+  for (const role of ["owner", "admin", "dispatch"]) {
+    for (const [expectedStatus, status] of milestoneSteps) {
+      const params = await prepareWebTripMilestone({
+        ...officeInput,
+        memberships: [{ org_id: trip.org_id, user_id: officeInput.userId, role }],
+        trip: { ...trip, status: expectedStatus },
+        status,
+      }, unexpectedLocation);
+      assert.deepEqual(params, {
+        p_org_id: trip.org_id,
+        p_trip_id: trip.id,
+        p_expected_status: expectedStatus,
+        p_new_status: status,
+        p_client_event_id: officeInput.clientEventId,
+        p_trigger_kind: "manual",
+        p_source_surface: "web_crm",
+        p_client_platform: "web",
+        p_latitude: null,
+        p_longitude: null,
+        p_location_source: null,
+        p_location_captured_at: null,
+        p_location_accuracy_m: null,
+        p_signature_data: null,
+        p_signed_by_name: null,
+        p_signature_declined: null,
+        p_signature_declined_reason: null,
+      });
+    }
+  }
+});
+
+test("GPS-free office milestones reject missing auth and unrelated organization/user memberships", async () => {
+  const input = { ...officeInput, trip: { ...trip, status: "assigned" }, status: "en_route" };
+  for (const fields of [
+    { userId: undefined },
+    { memberships: [] },
+    { memberships: [{ org_id: "org-2", user_id: officeInput.userId, role: "admin" }] },
+    { memberships: [{ org_id: trip.org_id, user_id: "other-user", role: "owner" }] },
+    ...["driver", "patient", "employee"].map(role => ({
+      memberships: [{ org_id: trip.org_id, user_id: officeInput.userId, role }],
+    })),
+  ]) {
+    await assert.rejects(
+      prepareWebTripMilestone({ ...input, ...fields }, unexpectedLocation),
+      /Only the assigned driver or an organization manager/,
+    );
+  }
+});
+
+test("assigned drivers retain live GPS on every web milestone and fail closed on location errors", async () => {
+  for (const [expectedStatus, status] of milestoneSteps) {
+    const input = {
+      ...officeInput,
+      userId: "driver-1",
+      memberships: [],
+      trip: { ...trip, status: expectedStatus },
+      status,
+    };
+    let captures = 0;
+    const params = await prepareWebTripMilestone(input, async () => { captures++; return location; });
+    assert.equal(captures, 1);
+    assert.equal(params.p_latitude, location.latitude);
+    assert.equal(params.p_longitude, location.longitude);
+    assert.equal(params.p_location_source, "browser_geolocation");
+    assert.equal(params.p_location_captured_at, location.capturedAt);
+    assert.equal(params.p_location_accuracy_m, location.accuracyMeters);
+    await assert.rejects(prepareWebTripMilestone(input, async () => {
+      throw new Error("Location permission denied");
+    }), /Location permission denied/);
+  }
+});
+
+test("milestones reject skipped, reversed and terminal transitions and cannot bypass signature completion", async () => {
+  for (const [expectedStatus, status] of [
+    ["pending", "en_route"],
+    ["assigned", "loaded"],
+    ["en_route", "loaded"],
+    ["arrived", "en_route"],
+    ["loaded", "completed"],
+    ["completed", "en_route"],
+    ["cancelled", "en_route"],
+    ["no_show", "en_route"],
+    ["assigned", "cancelled"],
+    ["arrived", "no_show"],
+  ]) {
+    await assert.rejects(prepareWebTripMilestone({
+      ...officeInput,
+      trip: { ...trip, status: expectedStatus },
+      status,
+    }, unexpectedLocation), /not ready for that action/);
+  }
+});
+
+
+test("no-show keeps its confirmation-only UI while cancellation retains the chosen reason", () => {
+  assert.equal(getWebTripCancellationReason("no_show"), "patient_no_show");
+  for (const reason of ["late driver", "appointment cancel", "other"]) {
+    assert.equal(getWebTripCancellationReason("cancelled", reason), reason);
+  }
+  assert.equal(getWebTripCancellationReason("cancelled"), null);
 });

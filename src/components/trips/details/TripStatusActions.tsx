@@ -2,15 +2,15 @@ import type { Trip, TripStatus, TripStatusHistory, TripCancellationAudit } from 
 import { Button } from "@/components/ui/button";
 import { HandPointing, Signature, CheckCircle, FilePdf, DownloadSimple } from "@phosphor-icons/react";
 import { Loader2 } from "lucide-react";
-import { generateTripSummaryPDF } from "@/utils/pdf-generator";
 import { toast } from "sonner";
-import { canCompleteTrip } from "./tripCompletion";
+import { getNextWebTripStatus } from "./tripCompletion";
 
 interface TripStatusActionsProps {
   trip: Trip;
   isDesignatedDriver: boolean;
   canManage: boolean;
-  canCompleteFromOffice: boolean;
+  canManageFromOffice: boolean;
+  isUpdatingStatus: boolean;
   handleStatusUpdate: (status: TripStatus) => void;
   setShowSignatureDialog: (show: boolean) => void;
   isGeneratingPDF: boolean;
@@ -29,7 +29,8 @@ export function TripStatusActions({
   trip,
   isDesignatedDriver,
   canManage,
-  canCompleteFromOffice,
+  canManageFromOffice,
+  isUpdatingStatus,
   handleStatusUpdate,
   setShowSignatureDialog,
   isGeneratingPDF,
@@ -38,7 +39,10 @@ export function TripStatusActions({
   activeTimezone,
   refreshPdfData,
 }: TripStatusActionsProps) {
-  if (!isDesignatedDriver && !canManage && !canCompleteFromOffice) return null;
+  if (!isDesignatedDriver && !canManage && !canManageFromOffice) return null;
+
+  const canProgressTrip = isDesignatedDriver || canManageFromOffice;
+  const nextStatus = getNextWebTripStatus(trip.status);
 
   return (
     <div className="bg-slate-50 rounded-2xl border border-slate-200 p-8 shadow-sm">
@@ -52,11 +56,11 @@ export function TripStatusActions({
           </div>
           <div>
             <h3 className="text-lg font-bold text-slate-900">
-              {canManage || canCompleteFromOffice ? "Trip Management" : "Driver Actions"}
+              {canManage || canManageFromOffice ? "Trip Management" : "Driver Actions"}
             </h3>
             <p className="text-sm text-slate-600">
-              {canCompleteFromOffice
-                ? "Complete trips from the office without GPS. A rider signature or a reason it could not be obtained is required."
+              {canManageFromOffice
+                ? "Record pickup and drop-off from the office without GPS. Completion requires a rider signature or a reason it could not be obtained."
                 : isDesignatedDriver
                   ? "Driver milestones require a live event-time location."
                   : "Trip completion requires a manager role in this trip's organization."}
@@ -71,6 +75,7 @@ export function TripStatusActions({
             <>
               <Button
                 variant="outline"
+                disabled={isUpdatingStatus}
                 onClick={() => handleStatusUpdate("no_show")}
                 className="flex-1 md:flex-none border-orange-200 text-orange-700 hover:bg-orange-50 font-bold h-11 px-6 rounded-xl transition-all duration-300"
               >
@@ -78,6 +83,7 @@ export function TripStatusActions({
               </Button>
               <Button
                 variant="outline"
+                disabled={isUpdatingStatus}
                 onClick={() => handleStatusUpdate("cancelled")}
                 className="flex-1 md:flex-none border-red-200 text-red-600 hover:bg-red-50 font-bold h-11 px-6 rounded-xl transition-all duration-300"
               >
@@ -87,9 +93,9 @@ export function TripStatusActions({
           )}
 
           {/* Status Flow */}
-          {isDesignatedDriver &&
-            (trip.status === "assigned" || trip.status === "accepted") && (
+          {canProgressTrip && nextStatus === "en_route" && (
             <Button
+              disabled={isUpdatingStatus}
               onClick={() => handleStatusUpdate("en_route")}
               className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700 text-white font-bold h-11 px-8 rounded-xl"
             >
@@ -97,8 +103,9 @@ export function TripStatusActions({
             </Button>
           )}
 
-          {isDesignatedDriver && trip.status === "en_route" && (
+          {canProgressTrip && nextStatus === "arrived" && (
             <Button
+              disabled={isUpdatingStatus}
               onClick={() => handleStatusUpdate("arrived")}
               className="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white font-bold h-11 px-8 rounded-xl"
             >
@@ -106,10 +113,9 @@ export function TripStatusActions({
             </Button>
           )}
 
-          {isDesignatedDriver &&
-            (trip.status === "arrived" ||
-              trip.status === "in_pickup_circle") && (
+          {canProgressTrip && nextStatus === "loaded" && (
             <Button
+              disabled={isUpdatingStatus}
               onClick={() => handleStatusUpdate("loaded")}
               className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-8 rounded-xl"
             >
@@ -117,13 +123,14 @@ export function TripStatusActions({
             </Button>
           )}
 
-          {(isDesignatedDriver || canCompleteFromOffice) && canCompleteTrip(trip.status) && (
+          {canProgressTrip && nextStatus === "completed" && (
             <Button
+              disabled={isUpdatingStatus}
               onClick={() => setShowSignatureDialog(true)}
               className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-8 rounded-xl transition-all duration-300"
             >
               <Signature weight="bold" className="w-5 h-5 mr-2" />
-              {canCompleteFromOffice ? "Complete Trip" : "Arrived at Destination / Drop Off"}
+              {canManageFromOffice ? "Complete Trip" : "Arrived at Destination / Drop Off"}
             </Button>
           )}
 
@@ -153,7 +160,10 @@ export function TripStatusActions({
                   setIsGeneratingPDF(true);
                   setTimeout(async () => {
                     try {
-                      const fresh = await refreshPdfData();
+                      const [{ generateTripSummaryPDF }, fresh] = await Promise.all([
+                        import("@/utils/pdf-generator"),
+                        refreshPdfData(),
+                      ]);
                       await generateTripSummaryPDF(
                         fresh.trip,
                         journeyTrips || [],

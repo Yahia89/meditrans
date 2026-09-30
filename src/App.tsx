@@ -66,6 +66,14 @@ function PageLoader() {
   );
 }
 
+function DialogLoader() {
+  return (
+    <div role="status" aria-label="Loading dialog" className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+      <Loader2 className="h-8 w-8 animate-spin text-slate-700" />
+    </div>
+  );
+}
+
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
   const { driverId: currentDriverId } = useDriverLocation(); // Enables driver tracking and SMS trigger
@@ -602,36 +610,44 @@ function AppContent() {
         {(currentPage === "dashboard" ||
           currentPage === "trips" ||
           currentPage === "trip-details") && (
-          <>
-            <TripDialog
-              key="create-dialog"
-              open={modalType === "create"}
-              onOpenChange={(open) => setModalType(open ? "create" : null)}
-              onSuccess={() => setModalType(null)}
-            />
-            <TripDialog
-              key={`edit-dialog-${tripId || "none"}`}
-              open={modalType === "edit"}
-              tripId={tripId || undefined}
-              onOpenChange={(open) => setModalType(open ? "edit" : null)}
-              onSuccess={() => setModalType(null)}
-            />
-            <CreateDischargeDialog
-              key="discharge-dialog"
-              open={modalType === "discharge"}
-              onOpenChange={(open) => setModalType(open ? "discharge" : null)}
-              onSuccess={() => setModalType(null)}
-            />
-          </>
+          <Suspense fallback={<DialogLoader />}>
+            {modalType === "create" && (
+              <TripDialog
+                key="create-dialog"
+                open
+                onOpenChange={(open) => setModalType(open ? "create" : null)}
+                onSuccess={() => setModalType(null)}
+              />
+            )}
+            {modalType === "edit" && (
+              <TripDialog
+                key={`edit-dialog-${tripId || "none"}`}
+                open
+                tripId={tripId || undefined}
+                onOpenChange={(open) => setModalType(open ? "edit" : null)}
+                onSuccess={() => setModalType(null)}
+              />
+            )}
+            {modalType === "discharge" && (
+              <CreateDischargeDialog
+                key="discharge-dialog"
+                open
+                onOpenChange={(open) => setModalType(open ? "discharge" : null)}
+                onSuccess={() => setModalType(null)}
+              />
+            )}
+          </Suspense>
         )}
 
-        <BulkImportDialog
-          open={showBulkImport}
-          onOpenChange={setShowBulkImport}
-          onSuccess={() => {
-            setShowBulkImport(false);
-          }}
-        />
+        {showBulkImport && (
+          <Suspense fallback={<DialogLoader />}>
+            <BulkImportDialog
+              open
+              onOpenChange={setShowBulkImport}
+              onSuccess={() => setShowBulkImport(false)}
+            />
+          </Suspense>
+        )}
         <Toaster position="top-right" richColors />
       </SidebarProvider>
     </OnboardingProvider>

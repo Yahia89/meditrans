@@ -12,6 +12,16 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { formatDistanceToNow } from "date-fns";
 import { useQueryState } from "nuqs";
 
+interface RecentActivityTrip {
+  id: string;
+  status: string;
+  updated_at: string;
+  pickup_location: string;
+  dropoff_location: string;
+  patient: { full_name: string | null } | null;
+  driver: { full_name: string | null } | null;
+}
+
 export function RecentActivity() {
   const { currentOrganization } = useOrganization();
   const [, setPage] = useQueryState("page");
@@ -19,9 +29,9 @@ export function RecentActivity() {
   const [, setFromPage] = useQueryState("from");
   const [, setSection] = useQueryState("section");
 
-  const { data: activities, isLoading } = useQuery({
-    queryKey: ["recent-activity", currentOrganization?.id],
-    queryFn: async () => {
+  const { data: activities, isLoading, isError } = useQuery({
+    queryKey: ["trips", currentOrganization?.id, "dashboard", "recent-activity"],
+    queryFn: async ({ signal }) => {
       const { data, error } = await supabase
         .from("trips")
         .select(
@@ -37,12 +47,15 @@ export function RecentActivity() {
         )
         .eq("org_id", currentOrganization?.id)
         .order("updated_at", { ascending: false })
-        .limit(5);
+        .limit(5)
+        .abortSignal(signal);
 
       if (error) throw error;
-      return data;
+      return data as unknown as RecentActivityTrip[];
     },
-    enabled: !!currentOrganization,
+    enabled: !!currentOrganization?.id,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 
   if (isLoading) {
@@ -90,7 +103,9 @@ export function RecentActivity() {
       </div>
 
       <div className="space-y-4">
-        {!hasActivities ? (
+        {isError ? (
+          <p role="alert" className="py-12 text-center text-sm text-slate-500">Unable to load recent activity. Please try again.</p>
+        ) : !hasActivities ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
               <ListChecks size={32} className="text-slate-300" />
@@ -120,7 +135,7 @@ export function RecentActivity() {
                       : "bg-slate-400"
                   )}
                 >
-                  {((activity.patient as any)?.full_name || "U").charAt(0)}
+                  {(activity.patient?.full_name || "U").charAt(0)}
                 </div>
                 <div
                   className={cn(
@@ -137,7 +152,7 @@ export function RecentActivity() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-slate-900 truncate">
-                    {(activity.patient as any)?.full_name || "Unknown Patient"}
+                    {activity.patient?.full_name || "Unknown Patient"}
                   </span>
                   <ArrowRight
                     size={14}
@@ -145,7 +160,7 @@ export function RecentActivity() {
                     className="text-slate-300 group-hover:text-lime-500 transition-colors"
                   />
                   <span className="text-sm font-medium text-slate-500 truncate">
-                    {(activity.driver as any)?.full_name || "Unassigned"}
+                    {activity.driver?.full_name || "Unassigned"}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400">

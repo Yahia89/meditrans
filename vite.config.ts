@@ -15,37 +15,21 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor: React core (shared by everything)
-          'vendor-react': ['react', 'react-dom'],
-          // Supabase client
-          'vendor-supabase': ['@supabase/supabase-js'],
-          // React Query
-          'vendor-query': ['@tanstack/react-query'],
-          // Date utilities
-          'vendor-date': ['date-fns', 'date-fns-tz'],
-          // UI primitives (Radix)
-          'vendor-radix': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-select',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-tooltip',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-label',
-            '@radix-ui/react-scroll-area',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-slot',
-            '@radix-ui/react-avatar',
-            '@radix-ui/react-collapsible',
-            '@radix-ui/react-alert-dialog',
-          ],
-          // Icons
-          'vendor-icons': ['lucide-react', '@phosphor-icons/react'],
-          // PDF generation (only loaded when needed)
-          'vendor-pdf': ['jspdf', 'jspdf-autotable'],
-          // Table
-          'vendor-table': ['@tanstack/react-table'],
+        // Keep shared helpers out of optional vendors such as PDF generation.
+        // Otherwise a shell dependency can pull the entire PDF chunk at startup.
+        onlyExplicitManualChunks: true,
+        manualChunks(id) {
+          // Group package modules, not their entire dependency graphs. In particular,
+          // Vite's shared preload helper must not be captured by the PDF vendor.
+          if (!id.includes('/node_modules/')) return;
+          if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'vendor-react';
+          if (id.includes('/node_modules/@supabase/')) return 'vendor-supabase';
+          if (/\/node_modules\/@tanstack\/(react-query|query-core)\//.test(id)) return 'vendor-query';
+          if (/\/node_modules\/(date-fns|date-fns-tz)\//.test(id)) return 'vendor-date';
+          if (id.includes('/node_modules/@radix-ui/')) return 'vendor-radix';
+          if (id.includes('/node_modules/lucide-react/') || id.includes('/node_modules/@phosphor-icons/react/')) return 'vendor-icons';
+          if (/\/node_modules\/(jspdf|jspdf-autotable)\//.test(id)) return 'vendor-pdf';
+          if (/\/node_modules\/@tanstack\/(react-table|table-core)\//.test(id)) return 'vendor-table';
         },
       },
     },

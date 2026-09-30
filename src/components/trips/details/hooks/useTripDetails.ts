@@ -10,7 +10,7 @@ import {
   normalizeBrowserEventLocation,
   type BrowserEventLocation,
 } from "../browserEventLocation";
-import { canCompleteTripFromOffice, prepareWebTripCompletion } from "../tripCompletion";
+import { canManageTripFromOffice, getWebTripCancellationReason, prepareWebTripCompletion, prepareWebTripMilestone } from "../tripCompletion";
 
 function captureBrowserEventLocation(): Promise<BrowserEventLocation> {
   if (!navigator.geolocation) {
@@ -112,26 +112,36 @@ export function useTripDetails({
   // contains this trip — gives instant data on navigation, no loading flash.
   const getSeedFromCache = useCallback((): Trip | undefined => {
     // Walk every cached query whose key starts with "trips" (list queries)
-    const allQueries = queryClient.getQueriesData<Trip[]>({ queryKey: ["trips"] });
+    const allQueries = queryClient.getQueriesData<Trip[]>({
+      queryKey: ["trips"],
+      predicate: (query) => query.queryKey[2] !== "dashboard",
+    });
     for (const [, trips] of allQueries) {
-      if (!trips) continue;
-      const match = trips.find((t) => t.id === tripId);
+      // Dashboard counts and activity summaries share the invalidation prefix,
+      // but do not contain complete trip records suitable for detail rendering.
+      if (!Array.isArray(trips)) continue;
+      const match = trips.find((t) => t.id === tripId && t.org_id && t.pickup_time && "driver_id" in t);
       if (match) return match as Trip;
     }
     return undefined;
   }, [queryClient, tripId]);
 
   const getSeededAt = useCallback((): number => {
-    const queries = queryClient.getQueriesData<Trip[]>({ queryKey: ["trips"] });
+    const queries = queryClient.getQueriesData<Trip[]>({
+      queryKey: ["trips"],
+      predicate: (query) => query.queryKey[2] !== "dashboard",
+    });
     let latest = 0;
-    for (const [key] of queries) {
+    for (const [key, trips] of queries) {
+      if (!Array.isArray(trips)
+        || !trips.some((t) => t.id === tripId && t.org_id && t.pickup_time && "driver_id" in t)) continue;
       const state = queryClient.getQueryState(key) as QueryState<Trip[]> | undefined;
       if (state?.dataUpdatedAt && state.dataUpdatedAt > latest) {
         latest = state.dataUpdatedAt;
       }
     }
     return latest;
-  }, [queryClient]);
+  }, [queryClient, tripId]);
 
   // Queries
   const { data: trip, isLoading, refetch: refetchTrip } = useQuery({
@@ -209,6 +219,13 @@ export function useTripDetails({
   });
 
   // Mutations
+  const refreshTripStatus = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["trip", tripId] }),
+    queryClient.invalidateQueries({ queryKey: ["trips"] }),
+    queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] }),
+    queryClient.invalidateQueries({ queryKey: ["journey-trips"] }),
+  ]);
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({
       status,
@@ -222,32 +239,17 @@ export function useTripDetails({
       if (!trip) throw new Error("Trip data is not loaded yet.");
       const isPhysicalMilestone = !["cancelled", "no_show"].includes(status);
       if (isPhysicalMilestone) {
-        if (trip.driver?.user_id !== user?.id) {
-          throw new Error(
-            "Driver milestones must be recorded by the assigned driver so event-time GPS can be verified.",
-          );
-        }
-
-        const location = await captureBrowserEventLocation();
-        await applyTripTransitionWithRetry({
-          p_org_id: trip.org_id,
-          p_trip_id: tripId,
-          p_expected_status: trip.status,
-          p_new_status: status,
-          p_client_event_id: createClientEventId(),
-          p_trigger_kind: "manual",
-          p_source_surface: "web_crm",
-          p_client_platform: "web",
-          p_latitude: location.latitude,
-          p_longitude: location.longitude,
-          p_location_source: "browser_geolocation",
-          p_location_captured_at: location.capturedAt,
-          p_location_accuracy_m: location.accuracyMeters,
-          p_signature_data: null,
-          p_signed_by_name: null,
-          p_signature_declined: null,
-          p_signature_declined_reason: null,
-        });
+        const params = await prepareWebTripMilestone(
+          {
+            trip,
+            status,
+            userId: user?.id,
+            memberships,
+            clientEventId: createClientEventId(),
+          },
+          captureBrowserEventLocation,
+        );
+        await applyTripTransitionWithRetry(params);
 
         if (status === "en_route") {
           void supabase.functions.invoke("send_eta_sms", {
@@ -277,18 +279,20 @@ export function useTripDetails({
         p_signed_by_name: null,
         p_signature_declined: null,
         p_signature_declined_reason: null,
-        p_cancel_reason: cancelReason ?? null,
+        p_cancel_reason: getWebTripCancellationReason(status, cancelReason),
         p_cancel_explanation: cancelExplanation ?? null,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
-      queryClient.invalidateQueries({ queryKey: ["trips"] });
-      queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
-    },
+    // Keep the action disabled until the updated status reaches the UI.
+    onSuccess: refreshTripStatus,
     onError: (error) => {
+      const rpcError = error as { code?: string; message?: string };
+      const statusChanged = rpcError.code === "40001" || rpcError.code === "PT409";
+      if (statusChanged) void refreshTripStatus();
       toast.error(
-        error instanceof Error ? error.message : "Unable to update trip status",
+        statusChanged
+          ? "The trip status changed. Review the updated trip before continuing."
+          : rpcError.message || "Unable to update trip status",
       );
     },
   });
@@ -384,22 +388,19 @@ export function useTripDetails({
       );
       await applyTripTransitionWithRetry(params);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setShowSignatureDialog(false);
-      queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
-      queryClient.invalidateQueries({ queryKey: ["trips"] });
-      queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
+      await refreshTripStatus();
     },
     onError: (error) => {
       // Supabase returns PostgREST errors as objects, not Error instances.
       const rpcError = error as { code?: string; message?: string };
-      if (rpcError.code === "40001") {
-        queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
-        queryClient.invalidateQueries({ queryKey: ["trips"] });
-        queryClient.invalidateQueries({ queryKey: ["trip-history", tripId] });
+      const statusChanged = rpcError.code === "40001" || rpcError.code === "PT409";
+      if (statusChanged) {
+        void refreshTripStatus();
       }
       toast.error(
-        rpcError.code === "40001"
+        statusChanged
           ? "The trip status changed. Review the updated trip before completing it."
           : rpcError.message || "Unable to complete trip",
       );
@@ -407,12 +408,13 @@ export function useTripDetails({
   });
 
   const handleStatusUpdate = useCallback((status: TripStatus) => {
+    if (updateStatusMutation.isPending || signatureCaptureMutation.isPending) return;
     if (status === "cancelled" || status === "no_show") {
       setStatusToUpdate(status);
     } else {
       updateStatusMutation.mutate({ status });
     }
-  }, [updateStatusMutation]);
+  }, [updateStatusMutation, signatureCaptureMutation.isPending]);
 
   const confirmStatusUpdate = useCallback((data: { reason?: string; explanation?: string }) => {
     if (!statusToUpdate) return;
@@ -474,7 +476,7 @@ export function useTripDetails({
       isGeneratingPDF,
       activeTimezone,
       canManage: canManageTrips,
-      canCompleteFromOffice: canCompleteTripFromOffice(trip?.org_id, user?.id, memberships),
+      canManageFromOffice: canManageTripFromOffice(trip?.org_id, user?.id, memberships),
       canDeleteTrips,
       isDesignatedDriver: trip?.driver?.user_id === user?.id,
     },
@@ -492,6 +494,7 @@ export function useTripDetails({
       deleteTrip: () => deleteTripMutation.mutate(),
       captureSignature: signatureCaptureMutation.mutate,
       isCapturingSignature: signatureCaptureMutation.isPending,
+      isUpdatingStatus: updateStatusMutation.isPending || signatureCaptureMutation.isPending,
       updateMileage: (tripId: string, miles: number) => updateMileageMutation.mutate({ tripId, miles }),
       updateWaitTime: (tripId: string, minutes: number) => updateWaitTimeMutation.mutate({ tripId, minutes }),
       refreshPdfData,

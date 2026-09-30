@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
+import { createContext, useContext, useState, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from './auth-context'
 import { useOrganization } from './OrganizationContext'
 import { supabase } from '@/lib/supabase'
 
@@ -69,25 +71,9 @@ interface OnboardingProviderProps {
     onNavigate?: (page: string) => void
 }
 
-// ─── localStorage helpers ───
-// These are synchronous reads at module load time. Safe because this code
-// only runs in the browser (Vite SPA). Using a versioned key prevents
-// stale data from breaking the app if we ever change the schema.
-
-const STORAGE_KEY_DATA_STATE = 'onboarding:dataState'
 const STORAGE_KEY_DEMO_MODE = 'onboarding:isDemoMode'
-
-function readCachedDataState(): DataState | null {
-    try {
-        const v = localStorage.getItem(STORAGE_KEY_DATA_STATE)
-        if (v === 'empty' || v === 'onboarding' || v === 'live') return v
-    } catch { /* quota / SSR / private-browsing – ignore */ }
-    return null
-}
-
-function writeCachedDataState(state: DataState) {
-    try { localStorage.setItem(STORAGE_KEY_DATA_STATE, state) } catch { /* */ }
-}
+const EMPTY_COUNTS: DataCounts = { patients: 0, drivers: 0, employees: 0, trips: 0 }
+const EMPTY_UPLOADS: UploadRecord[] = []
 
 function readCachedDemoMode(): boolean {
     try { return localStorage.getItem(STORAGE_KEY_DEMO_MODE) === 'true' } catch { return false }
@@ -99,33 +85,59 @@ function writeCachedDemoMode(v: boolean) {
 
 export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderProps) => {
     const { currentOrganization } = useOrganization()
-
-    // ─── Synchronous initial state from cache ───
-    // By reading from localStorage *inside the initializer*, the very first
-    // render already has the correct answer. No useEffect, no flash.
-    const cachedDataState = useRef(readCachedDataState())
-
-    // If the cache says "live", we know the user has real data.
-    // Skip the loading state entirely — start with isLoading: false and
-    // use the cached dataState so the dashboard renders instantly.
-    const [isLoading, setIsLoading] = useState(() => cachedDataState.current !== 'live')
-
+    const { user } = useAuth()
+    const orgId = currentOrganization?.id
     const [isDemoMode, setIsDemoMode] = useState(readCachedDemoMode)
 
-    const [dataCounts, setDataCounts] = useState<DataCounts>(() => {
-        // If cached as "live", seed with non-zero sentinel counts so
-        // getDataState() returns "live" on the first render.
-        if (cachedDataState.current === 'live') {
-            return { patients: 1, drivers: 1, employees: 1, trips: 1 }
-        }
-        return { patients: 0, drivers: 0, employees: 0, trips: 0 }
+    // Cache server data per user and company; never seed another company's counts.
+    const countsQuery = useQuery({
+        queryKey: ['onboarding', 'counts', user?.id, orgId],
+        enabled: !!orgId && !!user,
+        staleTime: 5 * 60_000,
+        queryFn: async ({ signal }): Promise<DataCounts> => {
+            const responses = await Promise.all([
+                supabase.from('patients').select('id', { count: 'exact', head: true }).eq('org_id', orgId!).abortSignal(signal),
+                supabase.from('drivers').select('id', { count: 'exact', head: true }).eq('org_id', orgId!).abortSignal(signal),
+                supabase.from('employees').select('id', { count: 'exact', head: true }).eq('org_id', orgId!).abortSignal(signal),
+                supabase.from('trips').select('id', { count: 'exact', head: true }).eq('org_id', orgId!).abortSignal(signal),
+            ])
+            for (const response of responses) {
+                if (response.error) throw response.error
+            }
+            return {
+                patients: responses[0].count ?? 0,
+                drivers: responses[1].count ?? 0,
+                employees: responses[2].count ?? 0,
+                trips: responses[3].count ?? 0,
+            }
+        },
     })
+    const uploadsQuery = useQuery({
+        queryKey: ['onboarding', 'uploads', user?.id, orgId],
+        enabled: !!orgId && !!user,
+        staleTime: 5 * 60_000,
+        queryFn: async ({ signal }): Promise<UploadRecord[]> => {
+            const { data, error } = await supabase
+                .from('org_uploads')
+                .select('id, source, original_filename, status, created_at, processed_at, notes')
+                .eq('org_id', orgId!)
+                .order('created_at', { ascending: false })
+                .limit(10)
+                .abortSignal(signal)
+            if (error) throw error
+            return data || []
+        },
+    })
+    const dataCounts = countsQuery.data ?? EMPTY_COUNTS
+    const recentUploads = uploadsQuery.data ?? EMPTY_UPLOADS
+    // A failed count request should not claim an established company is empty.
+    const isLoading = !!orgId && countsQuery.data === undefined
+    const { refetch: refetchCounts } = countsQuery
+    const { refetch: refetchUploads } = uploadsQuery
+    const refreshDataCounts = useCallback(async () => { if (orgId) await refetchCounts() }, [orgId, refetchCounts])
+    const refreshUploadHistory = useCallback(async () => { if (orgId) await refetchUploads() }, [orgId, refetchUploads])
 
-    const [recentUploads, setRecentUploads] = useState<UploadRecord[]>([])
-
-    // ─── Persist demo mode ───
-    // Using a ref + write-on-change instead of useEffect avoids the
-    // unnecessary render cycle on mount.
+    // Persist demo mode when the user changes it.
     const handleSetDemoMode = useCallback((enabled: boolean) => {
         setIsDemoMode(enabled)
         writeCachedDemoMode(enabled)
@@ -159,101 +171,12 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
 
     const dataState = getDataState(dataCounts)
 
-    // ─── Cache the computed dataState whenever it changes ───
-    useEffect(() => {
-        writeCachedDataState(dataState)
-    }, [dataState])
-
     // Navigate helper
     const navigateTo = useCallback((page: string) => {
         if (onNavigate) {
             onNavigate(page)
         }
     }, [onNavigate])
-
-    // Fetch recent uploads from Supabase
-    const refreshUploadHistory = useCallback(async () => {
-        if (!currentOrganization) {
-            setRecentUploads([])
-            return
-        }
-
-        try {
-            const { data, error } = await supabase
-                .from('org_uploads')
-                .select('id, source, original_filename, status, created_at, processed_at, notes')
-                .eq('org_id', currentOrganization.id)
-                .order('created_at', { ascending: false })
-                .limit(10)
-
-            if (error) throw error
-            setRecentUploads(data || [])
-        } catch (error) {
-            console.error('Error fetching upload history:', error)
-            setRecentUploads([])
-        }
-    }, [currentOrganization])
-
-    // Fetch data counts from Supabase
-    const refreshDataCounts = useCallback(async () => {
-        if (!currentOrganization) {
-            setDataCounts({ patients: 0, drivers: 0, employees: 0, trips: 0 })
-            setIsLoading(false)
-            return
-        }
-
-        // Only show loading spinner if we don't have a cached "live" state.
-        // If we do, we're silently refreshing in the background.
-        if (cachedDataState.current !== 'live') {
-            setIsLoading(true)
-        }
-
-        try {
-            // Fetch counts for each table
-            const [patientsRes, driversRes, employeesRes, tripsRes] = await Promise.all([
-                supabase
-                    .from('patients')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('org_id', currentOrganization.id),
-                supabase
-                    .from('drivers')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('org_id', currentOrganization.id),
-                supabase
-                    .from('employees')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('org_id', currentOrganization.id),
-                supabase
-                    .from('trips')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('org_id', currentOrganization.id),
-            ])
-
-            const newCounts = {
-                patients: patientsRes.count ?? 0,
-                drivers: driversRes.count ?? 0,
-                employees: employeesRes.count ?? 0,
-                trips: tripsRes.count ?? 0,
-            }
-            setDataCounts(newCounts)
-
-            // Update the cache ref so subsequent calls know the truth
-            const newState = getDataState(newCounts)
-            cachedDataState.current = newState
-        } catch (error) {
-            console.error('Error fetching data counts:', error)
-            // On error, keep whatever we have (cached or zeroes).
-            // Don't reset to zero — that would flash onboarding for live users.
-        } finally {
-            setIsLoading(false)
-        }
-    }, [currentOrganization, getDataState])
-
-    // Fetch counts and upload history when organization changes
-    useEffect(() => {
-        refreshDataCounts()
-        refreshUploadHistory()
-    }, [refreshDataCounts, refreshUploadHistory])
 
     // Generate setup checklist based on current data state
     const setupChecklist: SetupChecklistItem[] = [

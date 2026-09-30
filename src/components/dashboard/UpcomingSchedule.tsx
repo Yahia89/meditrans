@@ -15,6 +15,7 @@ import {
   isSameMonth,
   startOfMonth,
   eachDayOfInterval,
+  parseISO,
 } from "date-fns";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -30,20 +31,27 @@ import {
   parseZonedTime,
 } from "@/lib/timezone";
 
+import type { TripBucket } from "./tripBuckets";
+
+interface ScheduleTrip {
+  id: string;
+  pickup_time: string;
+  status: string;
+  pickup_location: string;
+  patient: { full_name: string | null } | null;
+  driver: { full_name: string | null } | null;
+}
+
 export function UpcomingSchedule() {
   const { currentOrganization } = useOrganization();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const { profile } = useAuth();
+  const activeTimezone = getActiveTimezone(profile, currentOrganization);
+  const [selectedDate, setSelectedDate] = useState(() => parseISO(formatInUserTimezone(new Date(), activeTimezone, "yyyy-MM-dd")));
   const [isMonthExpanded, setIsMonthExpanded] = useState(false);
   const [, setPage] = useQueryState("page");
   const [, setTripId] = useQueryState("tripId");
   const [, setFromPage] = useQueryState("from");
   const [, setSection] = useQueryState("section");
-  const { profile } = useAuth();
-
-  const activeTimezone = useMemo(
-    () => getActiveTimezone(profile, currentOrganization),
-    [profile, currentOrganization],
-  );
 
   // Calendar logic
   const calendarDates = useMemo(() => {
@@ -58,82 +66,48 @@ export function UpcomingSchedule() {
     }
   }, [selectedDate, isMonthExpanded]);
 
-  // Fetch trip counts for the calendar
+  const firstCalendarDay = format(calendarDates[0], "yyyy-MM-dd");
+  const lastCalendarDay = format(calendarDates[calendarDates.length - 1], "yyyy-MM-dd");
+
+  // The database returns at most 42 buckets instead of every trip in the month.
   const { data: tripCounts = {} } = useQuery({
-    queryKey: [
-      "trip-counts",
-      currentOrganization?.id,
-      calendarDates[0].toISOString(),
-      calendarDates[calendarDates.length - 1].toISOString(),
-      activeTimezone,
-    ],
-    queryFn: async () => {
-      const startDayStr = formatInUserTimezone(
-        calendarDates[0],
-        activeTimezone,
-        "yyyy-MM-dd",
-      );
-      const endDayStr = formatInUserTimezone(
-        calendarDates[calendarDates.length - 1],
-        activeTimezone,
-        "yyyy-MM-dd",
-      );
-
-      const startRange = parseZonedTime(
-        startDayStr,
-        "00:00",
-        activeTimezone,
-      ).toISOString();
-      const endRange = parseZonedTime(
-        endDayStr,
-        "23:59:59",
-        activeTimezone,
-      ).toISOString();
-
-      const { data, error } = await supabase
-        .from("trips")
-        .select("pickup_time")
-        .eq("org_id", currentOrganization?.id)
-        .gte("pickup_time", startRange)
-        .lte("pickup_time", endRange);
-
+    queryKey: ["trips", currentOrganization?.id, "dashboard", "calendar", firstCalendarDay, lastCalendarDay, activeTimezone],
+    queryFn: async ({ signal }) => {
+      const { data, error } = await supabase.rpc("dashboard_trip_buckets", {
+        p_org_id: currentOrganization!.id,
+        p_start: parseZonedTime(firstCalendarDay, "00:00", activeTimezone).toISOString(),
+        p_end: parseZonedTime(format(addDays(parseISO(lastCalendarDay), 1), "yyyy-MM-dd"), "00:00", activeTimezone).toISOString(),
+        p_timezone: activeTimezone,
+        p_granularity: "day",
+      }).abortSignal(signal);
       if (error) throw error;
-
-      const counts: Record<string, number> = {};
-      data.forEach((trip) => {
-        const dateStr = formatInUserTimezone(
-          trip.pickup_time,
-          activeTimezone,
-          "yyyy-MM-dd",
-        );
-        counts[dateStr] = (counts[dateStr] || 0) + 1;
-      });
-      return counts;
+      return Object.fromEntries((data as TripBucket[]).map((bucket) => [bucket.bucket, Number(bucket.total)]));
     },
-    enabled: !!currentOrganization,
+    enabled: !!currentOrganization?.id,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 
   // Fetch trips for selected date
-  const { data: trips, isLoading } = useQuery({
+  const { data: trips, isLoading, isError } = useQuery({
     queryKey: [
-      "upcoming-trips",
+      "trips",
       currentOrganization?.id,
-      formatInUserTimezone(selectedDate, activeTimezone, "yyyy-MM-dd"),
+      "dashboard",
+      "schedule",
+      format(selectedDate, "yyyy-MM-dd"),
+      activeTimezone,
     ],
-    queryFn: async () => {
-      const dateStr = formatInUserTimezone(
-        selectedDate,
-        activeTimezone,
-        "yyyy-MM-dd",
-      );
+    queryFn: async ({ signal }) => {
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
       const startStr = parseZonedTime(
         dateStr,
         "00:00",
         activeTimezone,
       ).toISOString();
       const endStr = parseZonedTime(
-        dateStr,
-        "23:59:59",
+        format(addDays(selectedDate, 1), "yyyy-MM-dd"),
+        "00:00",
         activeTimezone,
       ).toISOString();
 
@@ -151,13 +125,16 @@ export function UpcomingSchedule() {
         )
         .eq("org_id", currentOrganization?.id)
         .gte("pickup_time", startStr)
-        .lte("pickup_time", endStr)
-        .order("pickup_time", { ascending: true });
+        .lt("pickup_time", endStr)
+        .order("pickup_time", { ascending: true })
+        .abortSignal(signal);
 
       if (error) throw error;
-      return data;
+      return data as unknown as ScheduleTrip[];
     },
-    enabled: !!currentOrganization,
+    enabled: !!currentOrganization?.id,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 
   const handlePrev = () => {
@@ -182,7 +159,7 @@ export function UpcomingSchedule() {
             Operational Schedule
           </h2>
           <p className="text-sm font-medium text-slate-500 mt-0.5">
-            {formatInUserTimezone(selectedDate, activeTimezone, "MMMM yyyy")}
+            {format(selectedDate, "MMMM yyyy")}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -209,14 +186,9 @@ export function UpcomingSchedule() {
       >
         {calendarDates.map((day) => {
           const isSelected =
-            formatInUserTimezone(day, activeTimezone, "yyyy-MM-dd") ===
-            formatInUserTimezone(selectedDate, activeTimezone, "yyyy-MM-dd");
+            format(day, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
           const isCurrentMonth = isSameMonth(day, selectedDate);
-          const dateStr = formatInUserTimezone(
-            day,
-            activeTimezone,
-            "yyyy-MM-dd",
-          );
+          const dateStr = format(day, "yyyy-MM-dd");
           const count = tripCounts[dateStr] || 0;
 
           return (
@@ -288,6 +260,8 @@ export function UpcomingSchedule() {
           <div className="flex flex-col items-center justify-center py-16">
             <CircleNotch size={32} className="animate-spin text-lime-500" />
           </div>
+        ) : isError ? (
+          <p role="alert" className="py-12 text-center text-sm text-slate-500">Unable to load the schedule. Please try again.</p>
         ) : !trips || trips.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100/50 shadow-inner">
@@ -319,7 +293,7 @@ export function UpcomingSchedule() {
 
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-slate-900 truncate">
-                    {(trip.patient as any)?.full_name || "Unknown Patient"}
+                    {trip.patient?.full_name || "Unknown Patient"}
                   </p>
                   <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 mt-1">
                     <MapPin
@@ -336,7 +310,7 @@ export function UpcomingSchedule() {
                     Operator
                   </p>
                   <p className="text-sm font-bold text-slate-700">
-                    {(trip.driver as any)?.full_name || "Unassigned"}
+                    {trip.driver?.full_name || "Unassigned"}
                   </p>
                 </div>
               </div>
