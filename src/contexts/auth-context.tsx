@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     session: null, resolved: false, error: null,
   });
   const sessionRevision = useRef(0);
+  const logoutIntent = useRef(false);
   const currentUserId = useRef<string | null | undefined>(undefined);
   const session = authState.session;
   const user = session?.user ?? null;
@@ -79,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // This callback remains synchronous: no Supabase requests under the auth lock.
   const applySession = useCallback((nextSession: Session | null, sessionError: Error | null = null) => {
     sessionRevision.current += 1;
+    if (nextSession && logoutIntent.current) return;
     const nextUserId = nextSession?.user.id ?? null;
     if (currentUserId.current !== nextUserId) {
       clearPrivateQueries(queryClient);
@@ -111,6 +113,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [bootstrap]);
 
   const signIn = async (email: string, password: string) => {
+    logoutIntent.current = false;
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -119,6 +122,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
+    logoutIntent.current = false;
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -129,10 +133,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    // Remove protected UI and data before waiting for the remote logout request.
+    // Refresh can finish while logout is waiting on the SDK auth lock. Ignore
+    // its positive event until logout finishes, keeping protected UI unmounted.
+    logoutIntent.current = true;
     applySession(null);
-    const { error: signOutError } = await supabase.auth.signOut();
-    if (signOutError) throw signOutError;
+    setAuthState({ session: null, resolved: false, error: null });
+    try {
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) throw signOutError;
+      logoutIntent.current = false;
+      applySession(null);
+    } catch {
+      // Keep the local boundary closed; the shared retry action retries logout.
+      setAuthState({ session: null, resolved: true, error: new Error("Unable to complete sign out. Please try again.") });
+    }
   };
 
   const resetPassword = async (email: string) => {
@@ -147,6 +161,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const refresh = async () => {
+    if (logoutIntent.current) {
+      await signOut();
+      return;
+    }
     if (!userId) {
       const revisionAtRead = ++sessionRevision.current;
       setAuthState((previous) => ({ ...previous, resolved: false, error: null }));

@@ -108,7 +108,7 @@ export async function fetchIdentityBootstrap(
       phone: profile.phone || fallbackDriver.phone,
     } : {
       user_id: userId, full_name: fallbackDriver.full_name, phone: fallbackDriver.phone,
-      default_org_id: null, is_super_admin: false, timezone: null, created_at: "",
+      default_org_id: null, is_super_admin: false, timezone: null, created_at: new Date().toISOString(),
     };
   }
   return { userId, profile, memberships, organizations, drivers };
