@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { LoaderCircle, ChartNoAxesCombined, ArrowUpRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -18,8 +18,21 @@ import {
 import { useNearViewport } from "./useNearViewport";
 import { markStartup } from "@/lib/startup-performance";
 
-const loadPerformanceChartPlot = () => import("./PerformanceChartPlot");
-const PerformanceChartPlot = lazy(loadPerformanceChartPlot);
+type ChartPlot = typeof import("./PerformanceChartPlot")["default"];
+let loadedChartPlot: ChartPlot | undefined;
+let chartPlotPromise: Promise<ChartPlot> | undefined;
+function loadPerformanceChartPlot() {
+  chartPlotPromise ??= import("./PerformanceChartPlot")
+    .then((module) => {
+      loadedChartPlot = module.default;
+      return loadedChartPlot;
+    })
+    .catch((error: unknown) => {
+      chartPlotPromise = undefined;
+      throw error;
+    });
+  return chartPlotPromise;
+}
 
 export function PerformanceChart() {
   const { currentOrganization } = useOrganization();
@@ -28,11 +41,19 @@ export function PerformanceChart() {
   const { ref, isNearViewport } = useNearViewport();
   const orgId = currentOrganization?.id;
   const canLoad = !!orgId && !!user?.id && isNearViewport;
+  const [plotModule, setPlotModule] = useState<{ component?: ChartPlot; error?: Error }>(() => ({ component: loadedChartPlot }));
   useEffect(() => {
-    // The same visibility/access gate starts code and data together. A failed
-    // preload is retried by React.lazy and handled by the route error boundary.
-    if (canLoad) void loadPerformanceChartPlot().catch(() => undefined);
-  }, [canLoad]);
+    if (!canLoad || plotModule.component) return;
+    let active = true;
+    // Render the resolved export directly: React.lazy first initialized after
+    // data arrives would suspend again, even when this preload has completed.
+    void loadPerformanceChartPlot().then(
+      (component) => { if (active) setPlotModule({ component }); },
+      (error: unknown) => { if (active) setPlotModule({ error: error instanceof Error ? error : new Error("Unable to load fleet chart") }); },
+    );
+    return () => { active = false; };
+  }, [canLoad, plotModule.component]);
+  const PerformanceChartPlot = plotModule.component;
   const timezone = getActiveTimezone(profile, currentOrganization);
   const [timeRange, setTimeRange] = useState<TimeRange>("weekly");
 
@@ -62,6 +83,8 @@ export function PerformanceChart() {
     // An accurate empty state is also a completed chart result.
     if (isSuccess && !hasData) markStartup("chart-ready");
   }, [isSuccess, hasData]);
+
+  if (plotModule.error) throw plotModule.error;
 
   return (
     <div
@@ -122,10 +145,10 @@ export function PerformanceChart() {
               Change the time range or schedule new trips
             </p>
           </div>
+        ) : PerformanceChartPlot ? (
+          <PerformanceChartPlot chartData={chartData} timeRange={timeRange} />
         ) : (
-          <Suspense fallback={<div className="h-full flex items-center justify-center"><LoaderCircle size={32} className="animate-spin text-slate-300" /></div>}>
-            <PerformanceChartPlot chartData={chartData} timeRange={timeRange} />
-          </Suspense>
+          <div className="h-full flex items-center justify-center"><LoaderCircle size={32} className="animate-spin text-slate-300" /></div>
         )}
       </div>
     </div>

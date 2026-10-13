@@ -14,7 +14,8 @@ const noContent = () => null;
 const loaderNames = [...readFileSync(new URL("../../router/page-loaders.ts", import.meta.url), "utf8").matchAll(/export const (load\w+) =/g)].map(match => match[1]);
 const pageLoaders = Object.fromEntries(loaderNames.map(name => {
   const loader = () => null;
-  loader.protectedAudit = name === "loadSTSInspectionPage" || name === "loadCompanyDocumentsPage";
+  loader.Component = name === "loadSTSInspectionPage" || name === "loadCompanyDocumentsPage"
+    ? () => React.createElement("span", null, "PROTECTED AUDIT PAGE") : noContent;
   return [name, loader];
 }));
 const providers = {
@@ -26,10 +27,6 @@ const mocks = {
     ...React,
     // Flush non-navigation shell effects after rendering; access is synchronous.
     useEffect: (callback) => effects.push(callback),
-    lazy: (load) => {
-      return load.protectedAudit
-        ? () => React.createElement("span", null, "PROTECTED AUDIT PAGE") : noContent;
-    },
   },
   "@/router/navigation": {
     useRouteQueryState: (key) => [key === "page" ? state.page : null, (value) => { if (key === "page") state.page = value; }],
