@@ -11,7 +11,7 @@ import { DriverExpirationAlerts } from "./dashboard/DriverExpirationAlerts";
 import { usePermissions } from "@/hooks/usePermissions";
 
 import { useEffect } from "react";
-import { useQueryState } from "nuqs";
+import { useRouteQueryState as useQueryState } from "@/router/navigation";
 
 interface DashboardProps {
   onNavigateToCredits?: () => void;

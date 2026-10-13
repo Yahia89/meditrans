@@ -25,7 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 import { dashboardClient } from "./dashboard-client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
-import { useQueryState } from "nuqs";
+import { useRouteQueryState as useQueryState } from "@/router/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getActiveTimezone,

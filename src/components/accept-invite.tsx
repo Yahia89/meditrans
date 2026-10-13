@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQueryState } from "nuqs";
+import { useRouteQueryState as useQueryState } from "@/router/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, AlertCircle, User, Lock } from "lucide-react";

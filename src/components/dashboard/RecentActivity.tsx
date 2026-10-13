@@ -11,7 +11,7 @@ import { dashboardClient } from "./dashboard-client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/auth-context";
-import { useQueryState } from "nuqs";
+import { useRouteQueryState as useQueryState } from "@/router/navigation";
 
 export function RecentActivity() {
   const { user } = useAuth();

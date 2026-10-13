@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { isChunkLoadError } from '@/lib/chunk-errors';
 
 interface Props {
     children: React.ReactNode;
@@ -27,6 +28,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
     render() {
         if (this.state.hasError) {
+            const chunkFailed = isChunkLoadError(this.state.error);
             return (
                 <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
                     <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
@@ -35,10 +37,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
                         </svg>
                     </div>
                     <h2 className="text-xl font-semibold text-slate-900 mb-2">
-                        {this.props.fallbackTitle || 'Something went wrong'}
+                        {chunkFailed ? 'This page could not load' : this.props.fallbackTitle || 'Something went wrong'}
                     </h2>
                     <p className="text-slate-500 mb-4 max-w-md">
-                        {this.state.error?.message || 'An unexpected error occurred. Please try refreshing the page.'}
+                        {chunkFailed
+                            ? 'Check your connection, then refresh to load the current version. Refreshing may discard unsaved changes.'
+                            : this.state.error?.message || 'An unexpected error occurred. Please try refreshing the page.'}
                     </p>
                     <Button
                         onClick={() => window.location.reload()}

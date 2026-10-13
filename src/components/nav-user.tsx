@@ -24,10 +24,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth-context";
-import { useQueryState } from "nuqs";
+import { useRouteQueryState as useQueryState } from "@/router/navigation";
+import { useRouter } from "@tanstack/react-router";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export function NavUser() {
+  const router = useRouter();
   const { isMobile } = useSidebar();
   const { user, profile, signOut } = useAuth();
   const [, setPage] = useQueryState("page");
@@ -49,10 +51,8 @@ export function NavUser() {
 
   const handleLogout = async () => {
     try {
-      // Clear all URL query params before sign out to prevent stale state on next login
-      // This is needed because nuqs state persists in URL and may carry over between sessions
-      window.history.replaceState({}, "", window.location.pathname);
       await signOut();
+      await router.navigate({ to: "/", search: { page: "dashboard" }, hash: "", replace: true });
     } catch (error) {
       console.error("Error signing out:", error);
     }

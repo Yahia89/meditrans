@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { useQueryState } from "nuqs";
+import { useRouteQueryState as useQueryState } from "@/router/navigation";
 import { usePermissions } from "@/hooks/usePermissions";
 import { NotificationBell } from "./NotificationBell";
 

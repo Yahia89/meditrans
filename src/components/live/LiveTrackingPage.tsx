@@ -15,7 +15,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { getActiveTimezone, formatInUserTimezone } from "@/lib/timezone";
 import { useMemo } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useQueryState } from "nuqs";
+import { useRouteQueryState as useQueryState } from "@/router/navigation";
 import { Pencil } from "@phosphor-icons/react";
 
 export function LiveTrackingPage() {

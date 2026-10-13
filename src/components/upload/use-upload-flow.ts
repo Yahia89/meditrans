@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabase'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { useOnboarding } from '@/contexts/OnboardingContext'
-import { useQueryState } from 'nuqs'
+import { useRouteQueryState as useQueryState } from '@/router/navigation'
 import type {
     UploadState,
     ImportSource,
@@ -26,6 +26,7 @@ export function useUploadFlow() {
 
     const [, setPage] = useQueryState('page')
     const [, setUploadIdParam] = useQueryState('upload_id')
+    const [, setImportModeParam] = useQueryState('mode')
     const { currentOrganization } = useOrganization()
     const { refreshUploadHistory: refreshOnboardingHistory, refreshDataCounts } = useOnboarding()
     const { refresh: refreshQueryHistory } = useUploadHistory()
@@ -272,7 +273,7 @@ export function useUploadFlow() {
             // Trigger navigation first to get off the upload page
             setUploadIdParam(uploadRecord.id)
             // Add import_mode as a query param for the review page
-            window.history.pushState(null, '', `?page=review_import&upload_id=${uploadRecord.id}&mode=${state.importMode}`)
+            setImportModeParam(state.importMode)
             setPage('review_import')
 
             // Perform refreshes in the background if still mounted, 

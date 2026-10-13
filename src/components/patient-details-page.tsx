@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQueryState } from "nuqs";
+import { useRouteQueryState as useQueryState } from "@/router/navigation";
 import {
   ArrowLeft,
   Calendar,
