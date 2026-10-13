@@ -1,0 +1,14 @@
+BEGIN
+DO
+SET
+DO
+DO
+SET
+DO
+RESET
+              result
+-----------------------------------
+ billing_api_access_rollback: PASS
+(1 row)
+
+ROLLBACK

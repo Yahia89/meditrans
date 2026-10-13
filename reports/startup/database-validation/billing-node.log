@@ -1,0 +1,13 @@
+✔ Criteria 1 & 19: DHS Claim recorded with lines, external submission date preserved distinct from recorded_at (93.806708ms)
+✔ Criteria 13 & 14: Legitimate components on same trip allowed; duplicate component to another payer rejected (153.267042ms)
+✔ Criteria 6 & 18: Rejection, resubmission, and frozen snapshots retain history without doubling revenue (281.473458ms)
+✔ Criteria 8 & 9: $1,000 payment allocated across records counts as $1,000 total; over-allocation rejected (374.88425ms)
+✔ Criteria 15 & 16: Unauthorized role, disabled user, and cross-tenant allocation rejected (376.290708ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2059.474

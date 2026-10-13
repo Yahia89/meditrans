@@ -1,0 +1,263 @@
+{
+  "verified_at_utc": "2026-10-13T23:33:07.867692+00:00",
+  "project_ref": "devszzjyobijwldayicb",
+  "migration": {
+    "version": "20261013225316",
+    "name": "dashboard_timezone_fast_path",
+    "sha256": "30c26f5b582d79bc7bbf2c68240d66c4d97c1ad9b379d257f68630b71a81111b",
+    "applied_locally": true,
+    "applied_hosted": true,
+    "remote_only_pending_migration_in_reviewed_dry_run": true,
+    "remote_followup_dry_run_up_to_date": true
+  },
+  "local_dashboard_validation": {
+    "container": "supabase_db_futuretransportation",
+    "postgres_version": "17.6",
+    "baseline_checks": 26,
+    "baseline_passed": 26,
+    "candidate_checks": 26,
+    "candidate_passed": 26,
+    "restored_candidate_checks": 26,
+    "restored_candidate_passed": 26,
+    "rollback_restored_exact_definition_and_acl": true,
+    "fixture_users_remaining": 0,
+    "fixture_organizations_remaining": 0,
+    "fixture_drivers_remaining": 0,
+    "baseline_function_missing_initially": true,
+    "baseline_migration_applied_locally": "20260930190614"
+  },
+  "hosted_definition_and_permission_checks": {
+    "live_matches_reviewed_migration": true,
+    "permissions_and_flags_unchanged": true,
+    "security_invoker": true,
+    "authenticated_execute": true,
+    "anon_execute": false,
+    "empty_search_path": true
+  },
+  "hosted_authenticated_session_checks": {
+    "authenticated_role": true,
+    "matching_user": true,
+    "no_bypass_rls": true,
+    "primary_admin_membership_visible": true,
+    "read_only": true,
+    "row_security_on": true
+  },
+  "authenticated_read_only_sql_samples": {
+    "performance": {
+      "before": {
+        "samples": [
+          {
+            "execution_ms": 809.307,
+            "planning_ms": 0.083,
+            "returned_bucket_rows": 7,
+            "shared_hit_blocks": 1823,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          },
+          {
+            "execution_ms": 778.508,
+            "planning_ms": 0.081,
+            "returned_bucket_rows": 7,
+            "shared_hit_blocks": 1823,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          },
+          {
+            "execution_ms": 285.944,
+            "planning_ms": 0.083,
+            "returned_bucket_rows": 7,
+            "shared_hit_blocks": 1823,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          }
+        ],
+        "median_execution_ms": 778.508,
+        "min_execution_ms": 285.944,
+        "max_execution_ms": 809.307
+      },
+      "after": {
+        "samples": [
+          {
+            "execution_ms": 30.34,
+            "planning_ms": 0.087,
+            "returned_bucket_rows": 7,
+            "shared_hit_blocks": 1805,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          },
+          {
+            "execution_ms": 9.886,
+            "planning_ms": 0.084,
+            "returned_bucket_rows": 7,
+            "shared_hit_blocks": 1805,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          },
+          {
+            "execution_ms": 10.111,
+            "planning_ms": 0.101,
+            "returned_bucket_rows": 7,
+            "shared_hit_blocks": 1805,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          }
+        ],
+        "median_execution_ms": 10.111,
+        "min_execution_ms": 9.886,
+        "max_execution_ms": 30.34
+      },
+      "identical_bucket_results": true,
+      "compared_bucket_count": 7
+    },
+    "calendar": {
+      "before": {
+        "samples": [
+          {
+            "execution_ms": 140.709,
+            "planning_ms": 0.095,
+            "returned_bucket_rows": 4,
+            "shared_hit_blocks": 1802,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          },
+          {
+            "execution_ms": 235.894,
+            "planning_ms": 0.084,
+            "returned_bucket_rows": 4,
+            "shared_hit_blocks": 1802,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          },
+          {
+            "execution_ms": 429.528,
+            "planning_ms": 0.081,
+            "returned_bucket_rows": 4,
+            "shared_hit_blocks": 1802,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          }
+        ],
+        "median_execution_ms": 235.894,
+        "min_execution_ms": 140.709,
+        "max_execution_ms": 429.528
+      },
+      "after": {
+        "samples": [
+          {
+            "execution_ms": 9.595,
+            "planning_ms": 0.082,
+            "returned_bucket_rows": 4,
+            "shared_hit_blocks": 1784,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          },
+          {
+            "execution_ms": 9.924,
+            "planning_ms": 0.085,
+            "returned_bucket_rows": 4,
+            "shared_hit_blocks": 1784,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          },
+          {
+            "execution_ms": 9.744,
+            "planning_ms": 0.081,
+            "returned_bucket_rows": 4,
+            "shared_hit_blocks": 1784,
+            "shared_read_blocks": 0,
+            "temporary_read_blocks": 0,
+            "temporary_written_blocks": 0
+          }
+        ],
+        "median_execution_ms": 9.744,
+        "min_execution_ms": 9.595,
+        "max_execution_ms": 9.924
+      },
+      "identical_bucket_results": true,
+      "compared_bucket_count": 4
+    }
+  },
+  "advisories": {
+    "before": 23,
+    "after": 23,
+    "new": 0,
+    "resolved": 0,
+    "categories": {
+      "WARN:function_search_path_mutable": 1,
+      "ERROR:rls_disabled_in_public": 1,
+      "WARN:extension_in_public": 2,
+      "WARN:anon_security_definer_function_executable": 4,
+      "WARN:authenticated_security_definer_function_executable": 14,
+      "WARN:auth_leaked_password_protection": 1
+    }
+  },
+  "local_billing_validation": {
+    "captured_at_utc": "2026-10-13T23:27:34.536202+00:00",
+    "target": "verified local supabase_db_futuretransportation PostgreSQL container",
+    "remote_commands": false,
+    "container_left_running": true,
+    "suites": [
+      {
+        "name": "manual_billing_rollback.sql",
+        "passed": true,
+        "exit_code": 0,
+        "ended_in_rollback": true,
+        "log": "database-validation/billing-manual.log"
+      },
+      {
+        "name": "billing_api_access_rollback.sql",
+        "passed": true,
+        "exit_code": 0,
+        "ended_in_rollback": true,
+        "log": "database-validation/billing-access.log"
+      },
+      {
+        "name": "billing-db.test.mjs",
+        "tests": 5,
+        "passed": 5,
+        "failed": 0,
+        "skipped": 0,
+        "exit_code": 0,
+        "duration_ms": 2059.474,
+        "log": "database-validation/billing-node.log"
+      }
+    ],
+    "cleanup": {
+      "table_count_comparisons": 19,
+      "all_counts_unchanged": true,
+      "new_synthetic_organizations_remaining": 0,
+      "new_synthetic_users_remaining": 0,
+      "preexisting_synthetic_id_sets_preserved": true,
+      "manual_cleanup_needed": false
+    },
+    "source_changes": false,
+    "limitations": [
+      "Local synthetic fixture evidence only; no live billing actions or external storage uploads.",
+      "Node legacy harness runs as postgres with JWT claims and checks RPC business guards; authenticated/anonymous table and storage RLS coverage comes from the SQL rollback suites."
+    ]
+  },
+  "scope": {
+    "frontend_deployed": false,
+    "live_business_records_written": false,
+    "hosted_rollback_executed": false,
+    "new_indexes": false,
+    "policies_changed": false,
+    "new_function_signatures": false
+  },
+  "limitations": [
+    "Three sequential shared-cache samples per query/phase for one authorized admin and organization; not concurrent load, driver latency or cold database evidence.",
+    "SQL execution durations exclude network/browser rendering; original browser measurements preceded migration deployment.",
+    "Other roles and large synthetic row counts were validated locally, not with hosted fixture writes."
+  ]
+}
