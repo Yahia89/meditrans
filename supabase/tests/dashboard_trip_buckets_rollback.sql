@@ -1,4 +1,6 @@
--- Synthetic fixtures only; every write rolls back. Run with a local setup role
+-- Synthetic fixtures only; every write rolls back. Never run on production.
+-- Run after applying pending migrations to a disposable local/staging database
+-- with a setup role
 -- allowed to seed auth.users; all assertions execute as authenticated/anon.
 BEGIN;
 SET LOCAL statement_timeout = '45s';
@@ -72,16 +74,42 @@ FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100',
 SELECT pg_temp.assert_dashboard('empty_range',count(*)=0)
 FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100',
   '2026-08-01','2026-08-02','UTC');
+SELECT pg_temp.assert_dashboard('default_timezone_empty_range',count(*)=0)
+FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100',
+  '2026-08-01','2026-08-02','America/Chicago');
+SELECT pg_temp.assert_dashboard('alternate_canonical_timezone',
+  count(*)=1 AND bool_and(bucket='2026-09-30' AND total=1514 AND completed=1501))
+FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100',
+  '2026-09-30 00:00+00','2026-10-01 00:00+00','America/New_York');
 SELECT pg_temp.expect_dashboard_denial('cross_org',
   $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000101','2026-09-30','2026-10-01','UTC')$$,'42501');
+SELECT pg_temp.expect_dashboard_denial('default_timezone_cross_org',
+  $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000101','2026-09-30','2026-10-01','America/Chicago')$$,'42501');
 SELECT pg_temp.expect_dashboard_denial('invalid_timezone',
   $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-09-30','2026-10-01','Invalid/Zone')$$,'22023');
+SELECT pg_temp.expect_dashboard_denial('timezone_case_is_not_broadened',
+  $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-09-30','2026-10-01','america/chicago')$$,'22023');
+SELECT pg_temp.expect_dashboard_denial('null_timezone',
+  $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-09-30','2026-10-01',NULL)$$,'22023');
+SELECT pg_temp.expect_dashboard_denial('empty_timezone',
+  $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-09-30','2026-10-01','')$$,'22023');
+SELECT pg_temp.expect_dashboard_denial('parser_only_offset_is_not_accepted',
+  $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-09-30','2026-10-01','UTC+02')$$,'22023');
+-- Validation must run even when aggregation would read no rows.
+SELECT pg_temp.expect_dashboard_denial('invalid_timezone_on_empty_range',
+  $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-08-01','2026-08-02','Invalid/Zone')$$,'22023');
+SELECT pg_temp.expect_dashboard_denial('null_timezone_on_empty_range',
+  $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-08-01','2026-08-02',NULL)$$,'22023');
 SELECT pg_temp.expect_dashboard_denial('excessive_range',
   $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-01-01','2026-12-01','UTC')$$,'22023');
 SELECT pg_temp.expect_dashboard_denial('unbounded_timestamp',
   $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-09-30','infinity','UTC')$$,'22023');
 SELECT pg_temp.expect_dashboard_denial('excessive_hour_range',
   $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-09-01','2026-10-01','UTC','hour')$$,'22023');
+SELECT pg_temp.expect_dashboard_denial('default_timezone_excessive_range',
+  $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-01-01','2026-12-01','America/Chicago')$$,'22023');
+SELECT pg_temp.expect_dashboard_denial('default_timezone_excessive_hour_range',
+  $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-09-01','2026-10-01','America/Chicago','hour')$$,'22023');
 SELECT pg_temp.expect_dashboard_denial('invalid_granularity',
   $$SELECT * FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100','2026-09-30','2026-10-01','UTC','week')$$,'22023');
 RESET ROLE;
@@ -90,12 +118,18 @@ SET LOCAL ROLE authenticated;
 SELECT pg_temp.assert_dashboard('driver_rls_only_own_trip',sum(total)=1 AND sum(assigned)=1)
 FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100',
   '2026-09-30','2026-10-01','UTC');
+SELECT pg_temp.assert_dashboard('default_timezone_driver_rls_only_own_trip',sum(total)=1 AND sum(assigned)=1)
+FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100',
+  '2026-09-30 05:00+00','2026-10-01 05:00+00','America/Chicago');
 RESET ROLE;
 SELECT set_config('request.jwt.claims','{"sub":"930b0000-0000-4000-8000-000000000004","role":"authenticated"}',true);
 SET LOCAL ROLE authenticated;
 SELECT pg_temp.assert_dashboard('employee_rls_not_bypassed',count(*)=0)
 FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100',
   '2026-09-30','2026-10-01','UTC');
+SELECT pg_temp.assert_dashboard('default_timezone_employee_rls_not_bypassed',count(*)=0)
+FROM public.dashboard_trip_buckets('930b0000-0000-4000-8000-000000000100',
+  '2026-09-30','2026-10-01','America/Chicago');
 RESET ROLE;
 SET LOCAL ROLE anon;
 SELECT pg_temp.expect_dashboard_denial('anonymous_execute_denied',

@@ -1,0 +1,829 @@
+{
+  "captured_at_utc": "2026-10-13T22:51:11.857993+00:00",
+  "scope": {
+    "project": "verified repository-linked application project",
+    "role": "authenticated",
+    "membership_role": "admin",
+    "organization_selection": "test account primary authorized organization",
+    "identity_redacted": true,
+    "method": "Supabase CLI linked Management API; BEGIN READ ONLY; local JWT sub/role; SET LOCAL ROLE authenticated; EXPLAIN ANALYZE BUFFERS SETTINGS FORMAT JSON; ROLLBACK",
+    "statement_timeout_ms": 15000,
+    "lock_timeout_ms": 2000,
+    "executions_per_statement": 1,
+    "sequential": true,
+    "data_or_schema_mutations": false
+  },
+  "verification": {
+    "authenticated_role": true,
+    "matching_user": true,
+    "no_bypass_rls": true,
+    "primary_admin_membership_visible": true,
+    "read_only": true,
+    "row_security_on": true
+  },
+  "ranges": {
+    "performance": {
+      "local_start": "2026-10-07",
+      "local_end_exclusive": "2026-10-14",
+      "utc_start": "2026-10-07T05:00:00+00:00",
+      "utc_end_exclusive": "2026-10-14T05:00:00+00:00",
+      "timezone": "America/Chicago",
+      "granularity": "day"
+    },
+    "calendar": {
+      "local_start": "2026-10-12",
+      "local_end_exclusive": "2026-10-19",
+      "utc_start": "2026-10-12T05:00:00+00:00",
+      "utc_end_exclusive": "2026-10-19T05:00:00+00:00",
+      "timezone": "America/Chicago",
+      "granularity": "day"
+    }
+  },
+  "rpc": {
+    "anon_execute": false,
+    "authenticated_execute": true,
+    "proconfig": [
+      "search_path=\"\""
+    ],
+    "proname": "dashboard_trip_buckets",
+    "provolatile": "s",
+    "security_definer": false
+  },
+  "rpc_body_matches_repository_migration": true,
+  "rls": [
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "table_name": "drivers"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "table_name": "organization_memberships"
+    },
+    {
+      "rls_enabled": true,
+      "rls_forced": false,
+      "table_name": "trips"
+    }
+  ],
+  "existing_relevant_indexes": [
+    {
+      "indexdef": "CREATE INDEX drivers_org_user_access_idx ON public.drivers USING btree (org_id, user_id, active) WHERE (user_id IS NOT NULL)",
+      "indexname": "drivers_org_user_access_idx",
+      "tablename": "drivers"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX drivers_user_id_key ON public.drivers USING btree (user_id)",
+      "indexname": "drivers_user_id_key",
+      "tablename": "drivers"
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX organization_memberships_org_user_idx ON public.organization_memberships USING btree (org_id, user_id)",
+      "indexname": "organization_memberships_org_user_idx",
+      "tablename": "organization_memberships"
+    },
+    {
+      "indexdef": "CREATE INDEX organization_memberships_user_id_idx ON public.organization_memberships USING btree (user_id)",
+      "indexname": "organization_memberships_user_id_idx",
+      "tablename": "organization_memberships"
+    },
+    {
+      "indexdef": "CREATE INDEX idx_trips_org_id_pickup_time ON public.trips USING btree (org_id, pickup_time)",
+      "indexname": "idx_trips_org_id_pickup_time",
+      "tablename": "trips"
+    },
+    {
+      "indexdef": "CREATE INDEX idx_trips_org_updated_at ON public.trips USING btree (org_id, updated_at DESC)",
+      "indexname": "idx_trips_org_updated_at",
+      "tablename": "trips"
+    }
+  ],
+  "plans": [
+    {
+      "name": "performance-rpc",
+      "planning_ms": 0.102,
+      "execution_ms": 829.493,
+      "plan": {
+        "Node Type": "Function Scan",
+        "Actual Startup Time": 829.433,
+        "Actual Total Time": 829.434,
+        "Actual Rows": 7,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 1823,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      }
+    },
+    {
+      "name": "performance-inner",
+      "planning_ms": 9.57,
+      "execution_ms": 6.812,
+      "plan": {
+        "Node Type": "Aggregate",
+        "Actual Startup Time": 6.477,
+        "Actual Total Time": 6.501,
+        "Actual Rows": 7,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 332,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Sort",
+            "Parent Relationship": "Outer",
+            "Actual Startup Time": 6.462,
+            "Actual Total Time": 6.468,
+            "Actual Rows": 45,
+            "Actual Loops": 1,
+            "Shared Hit Blocks": 332,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0,
+            "Sort Method": "quicksort",
+            "Sort Space Used": 26,
+            "Sort Space Type": "Memory",
+            "Plans": [
+              {
+                "Node Type": "Index Scan",
+                "Relation Name": "trips",
+                "Index Name": "idx_trips_org_id_pickup_time",
+                "Parent Relationship": "Outer",
+                "Actual Startup Time": 6.249,
+                "Actual Total Time": 6.405,
+                "Actual Rows": 45,
+                "Actual Loops": 1,
+                "Rows Removed by Filter": 0,
+                "Rows Removed by Index Recheck": 0,
+                "Shared Hit Blocks": 329,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Index Scan",
+                    "Relation Name": "patients",
+                    "Index Name": "patients_org_user_access_idx",
+                    "Parent Relationship": "SubPlan",
+                    "Actual Startup Time": 0.027,
+                    "Actual Total Time": 0.028,
+                    "Actual Rows": 0,
+                    "Actual Loops": 1,
+                    "Rows Removed by Index Recheck": 0,
+                    "Shared Hit Blocks": 2,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 0.005,
+                        "Actual Total Time": 0.005,
+                        "Actual Rows": 1,
+                        "Actual Loops": 1,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      },
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 3.086,
+                        "Actual Total Time": 3.086,
+                        "Actual Rows": 1,
+                        "Actual Loops": 1,
+                        "Shared Hit Blocks": 292,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      }
+                    ]
+                  },
+                  {
+                    "Node Type": "Seq Scan",
+                    "Relation Name": "organization_memberships",
+                    "Parent Relationship": "SubPlan",
+                    "Actual Startup Time": 0.848,
+                    "Actual Total Time": 0.851,
+                    "Actual Rows": 1,
+                    "Actual Loops": 1,
+                    "Rows Removed by Filter": 14,
+                    "Shared Hit Blocks": 6,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 0.005,
+                        "Actual Total Time": 0.005,
+                        "Actual Rows": 1,
+                        "Actual Loops": 1,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      },
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 0.834,
+                        "Actual Total Time": 0.834,
+                        "Actual Rows": 1,
+                        "Actual Loops": 1,
+                        "Shared Hit Blocks": 5,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      }
+                    ]
+                  },
+                  {
+                    "Node Type": "Seq Scan",
+                    "Relation Name": "drivers",
+                    "Parent Relationship": "SubPlan",
+                    "Actual Startup Time": 0,
+                    "Actual Total Time": 0,
+                    "Actual Rows": 0,
+                    "Actual Loops": 0,
+                    "Rows Removed by Filter": 0,
+                    "Shared Hit Blocks": 0,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 0,
+                        "Actual Total Time": 0,
+                        "Actual Rows": 0,
+                        "Actual Loops": 0,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      },
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 0,
+                        "Actual Total Time": 0,
+                        "Actual Rows": 0,
+                        "Actual Loops": 0,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "calendar-rpc",
+      "planning_ms": 0.08,
+      "execution_ms": 812.595,
+      "plan": {
+        "Node Type": "Function Scan",
+        "Actual Startup Time": 812.533,
+        "Actual Total Time": 812.534,
+        "Actual Rows": 4,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 1802,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      }
+    },
+    {
+      "name": "calendar-inner",
+      "planning_ms": 3.379,
+      "execution_ms": 3.667,
+      "plan": {
+        "Node Type": "Aggregate",
+        "Actual Startup Time": 3.145,
+        "Actual Total Time": 3.155,
+        "Actual Rows": 4,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 311,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Sort",
+            "Parent Relationship": "Outer",
+            "Actual Startup Time": 3.131,
+            "Actual Total Time": 3.135,
+            "Actual Rows": 17,
+            "Actual Loops": 1,
+            "Shared Hit Blocks": 311,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0,
+            "Sort Method": "quicksort",
+            "Sort Space Used": 25,
+            "Sort Space Type": "Memory",
+            "Plans": [
+              {
+                "Node Type": "Index Scan",
+                "Relation Name": "trips",
+                "Index Name": "idx_trips_org_id_pickup_time",
+                "Parent Relationship": "Outer",
+                "Actual Startup Time": 3.042,
+                "Actual Total Time": 3.09,
+                "Actual Rows": 17,
+                "Actual Loops": 1,
+                "Rows Removed by Filter": 0,
+                "Rows Removed by Index Recheck": 0,
+                "Shared Hit Blocks": 308,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Index Scan",
+                    "Relation Name": "patients",
+                    "Index Name": "patients_org_user_access_idx",
+                    "Parent Relationship": "SubPlan",
+                    "Actual Startup Time": 0.006,
+                    "Actual Total Time": 0.007,
+                    "Actual Rows": 0,
+                    "Actual Loops": 1,
+                    "Rows Removed by Index Recheck": 0,
+                    "Shared Hit Blocks": 2,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 0.005,
+                        "Actual Total Time": 0.005,
+                        "Actual Rows": 1,
+                        "Actual Loops": 1,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      },
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 1.752,
+                        "Actual Total Time": 1.752,
+                        "Actual Rows": 1,
+                        "Actual Loops": 1,
+                        "Shared Hit Blocks": 292,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      }
+                    ]
+                  },
+                  {
+                    "Node Type": "Seq Scan",
+                    "Relation Name": "organization_memberships",
+                    "Parent Relationship": "SubPlan",
+                    "Actual Startup Time": 0.897,
+                    "Actual Total Time": 0.899,
+                    "Actual Rows": 1,
+                    "Actual Loops": 1,
+                    "Rows Removed by Filter": 14,
+                    "Shared Hit Blocks": 6,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 0.004,
+                        "Actual Total Time": 0.004,
+                        "Actual Rows": 1,
+                        "Actual Loops": 1,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      },
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 0.885,
+                        "Actual Total Time": 0.885,
+                        "Actual Rows": 1,
+                        "Actual Loops": 1,
+                        "Shared Hit Blocks": 5,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      }
+                    ]
+                  },
+                  {
+                    "Node Type": "Seq Scan",
+                    "Relation Name": "drivers",
+                    "Parent Relationship": "SubPlan",
+                    "Actual Startup Time": 0,
+                    "Actual Total Time": 0,
+                    "Actual Rows": 0,
+                    "Actual Loops": 0,
+                    "Rows Removed by Filter": 0,
+                    "Shared Hit Blocks": 0,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 0,
+                        "Actual Total Time": 0,
+                        "Actual Rows": 0,
+                        "Actual Loops": 0,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      },
+                      {
+                        "Node Type": "Result",
+                        "Parent Relationship": "InitPlan",
+                        "Actual Startup Time": 0,
+                        "Actual Total Time": 0,
+                        "Actual Rows": 0,
+                        "Actual Loops": 0,
+                        "Shared Hit Blocks": 0,
+                        "Shared Read Blocks": 0,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "recent-activity",
+      "planning_ms": 3.365,
+      "execution_ms": 5.315,
+      "plan": {
+        "Node Type": "Limit",
+        "Actual Startup Time": 5.073,
+        "Actual Total Time": 5.081,
+        "Actual Rows": 5,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 306,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Index Scan",
+            "Relation Name": "trips",
+            "Index Name": "idx_trips_org_updated_at",
+            "Parent Relationship": "Outer",
+            "Actual Startup Time": 5.071,
+            "Actual Total Time": 5.079,
+            "Actual Rows": 5,
+            "Actual Loops": 1,
+            "Rows Removed by Filter": 0,
+            "Rows Removed by Index Recheck": 0,
+            "Shared Hit Blocks": 306,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0,
+            "Plans": [
+              {
+                "Node Type": "Index Scan",
+                "Relation Name": "patients",
+                "Index Name": "patients_org_user_access_idx",
+                "Parent Relationship": "SubPlan",
+                "Actual Startup Time": 0.006,
+                "Actual Total Time": 0.007,
+                "Actual Rows": 0,
+                "Actual Loops": 1,
+                "Rows Removed by Index Recheck": 0,
+                "Shared Hit Blocks": 2,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Result",
+                    "Parent Relationship": "InitPlan",
+                    "Actual Startup Time": 0.004,
+                    "Actual Total Time": 0.005,
+                    "Actual Rows": 1,
+                    "Actual Loops": 1,
+                    "Shared Hit Blocks": 0,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0
+                  },
+                  {
+                    "Node Type": "Result",
+                    "Parent Relationship": "InitPlan",
+                    "Actual Startup Time": 1.737,
+                    "Actual Total Time": 1.737,
+                    "Actual Rows": 1,
+                    "Actual Loops": 1,
+                    "Shared Hit Blocks": 295,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0
+                  }
+                ]
+              },
+              {
+                "Node Type": "Seq Scan",
+                "Relation Name": "organization_memberships",
+                "Parent Relationship": "SubPlan",
+                "Actual Startup Time": 0.802,
+                "Actual Total Time": 0.805,
+                "Actual Rows": 1,
+                "Actual Loops": 1,
+                "Rows Removed by Filter": 14,
+                "Shared Hit Blocks": 6,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Result",
+                    "Parent Relationship": "InitPlan",
+                    "Actual Startup Time": 0.006,
+                    "Actual Total Time": 0.007,
+                    "Actual Rows": 1,
+                    "Actual Loops": 1,
+                    "Shared Hit Blocks": 0,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0
+                  },
+                  {
+                    "Node Type": "Result",
+                    "Parent Relationship": "InitPlan",
+                    "Actual Startup Time": 0.787,
+                    "Actual Total Time": 0.787,
+                    "Actual Rows": 1,
+                    "Actual Loops": 1,
+                    "Shared Hit Blocks": 5,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0
+                  }
+                ]
+              },
+              {
+                "Node Type": "Seq Scan",
+                "Relation Name": "drivers",
+                "Parent Relationship": "SubPlan",
+                "Actual Startup Time": 0,
+                "Actual Total Time": 0,
+                "Actual Rows": 0,
+                "Actual Loops": 0,
+                "Rows Removed by Filter": 0,
+                "Shared Hit Blocks": 0,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Result",
+                    "Parent Relationship": "InitPlan",
+                    "Actual Startup Time": 0,
+                    "Actual Total Time": 0,
+                    "Actual Rows": 0,
+                    "Actual Loops": 0,
+                    "Shared Hit Blocks": 0,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0
+                  },
+                  {
+                    "Node Type": "Result",
+                    "Parent Relationship": "InitPlan",
+                    "Actual Startup Time": 0,
+                    "Actual Total Time": 0,
+                    "Actual Rows": 0,
+                    "Actual Loops": 0,
+                    "Shared Hit Blocks": 0,
+                    "Shared Read Blocks": 0,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "conclusions": [
+    "Both aggregate SELECTs use idx_trips_org_id_pickup_time. Recent activity uses idx_trips_org_updated_at. No new trip index is justified by these samples.",
+    "Isolated exact pg_timezone_names validation takes 787.874ms and explains the dominant wrapper overhead. The native timezone parser takes 1.472ms for the same canonical timezone but accepts a broader input grammar, so it is not a semantics-preserving replacement by itself.",
+    "All measured plan root shared-read and temporary block counts are zero. No disk-read or sort-spill bottleneck appears in these samples.",
+    "The organization_memberships sequential scan examines only 15 rows once in each visible aggregate/recent plan; existing org/user indexes are present. This does not justify adding a duplicate index."
+  ],
+  "limitations": [
+    "One sample per query under one admin identity and one primary organization; not a cold-cache benchmark, load test, or driver/restricted-role validation.",
+    "Aggregate ranges contain 45 and 17 visible trips. Existing model tests cover larger counts; these live samples do not demonstrate large-tenant scaling.",
+    "Function Scan hides PL/pgSQL nested statements. The exact inner aggregate was profiled separately under the same claims, role and range; cache and plan-initialization conditions can differ.",
+    "SQL execution timings exclude browser/PostgREST/auth/network transfer. CLI Management API wall time is deliberately excluded.",
+    "Supabase plugin access remains unavailable for this project, but the verified linked CLI route succeeded. Docker/local DB was not used."
+  ],
+  "references": [
+    "https://supabase.com/docs/guides/monitoring-and-debugging",
+    "https://supabase.com/docs/guides/database/postgres/row-level-security",
+    "https://www.postgresql.org/docs/current/sql-explain.html",
+    "https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-TIMEZONES",
+    "https://www.postgresql.org/docs/current/view-pg-timezone-names.html"
+  ],
+  "timezone_validation_isolation": [
+    {
+      "name": "timezone-validation",
+      "planning_ms": 1.482,
+      "execution_ms": 787.874,
+      "plan": {
+        "Node Type": "Result",
+        "Actual Startup Time": 787.685,
+        "Actual Total Time": 787.686,
+        "Actual Rows": 1,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 0,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0,
+        "Plans": [
+          {
+            "Node Type": "Function Scan",
+            "Function Name": "pg_timezone_names",
+            "Parent Relationship": "InitPlan",
+            "Actual Startup Time": 787.683,
+            "Actual Total Time": 787.683,
+            "Actual Rows": 1,
+            "Actual Loops": 1,
+            "Rows Removed by Filter": 1089,
+            "Shared Hit Blocks": 0,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Temp Read Blocks": 0,
+            "Temp Written Blocks": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "timezone-parser",
+      "planning_ms": 0.043,
+      "execution_ms": 1.472,
+      "plan": {
+        "Node Type": "Result",
+        "Actual Startup Time": 1.413,
+        "Actual Total Time": 1.414,
+        "Actual Rows": 1,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 0,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      }
+    }
+  ],
+  "invalid_timezone_parser_check": {
+    "rejected": true,
+    "sqlstate": "22023",
+    "synthetic_invalid_name": true
+  },
+  "proposed_followup": {
+    "applied": false,
+    "preferred": "Short-circuit the catalog scan only for the already verified canonical default America/Chicago; use the existing exact catalog membership check for every other non-null name. Use nested IF control flow, not a boolean expression whose evaluation order may be reordered.",
+    "semantics": "Reject null before the fast path; preserve exact string matching and the existing 22023 error for unsupported names. The preverified literal is already accepted by the deployed catalog. Keep timezone validation before aggregation so invalid inputs fail even for empty ranges.",
+    "unchanged_guards": [
+      "auth.uid required",
+      "organization membership required",
+      "SECURITY INVOKER and existing trip RLS",
+      "finite start/end with end greater than start",
+      "maximum62day range",
+      "day/hour enum only",
+      "maximum2day range when granularity=hour",
+      "half-open UTC filtering and requested local bucket formatting"
+    ],
+    "before_deployment": "Verify canonical fast-path literals against the target catalog; run authenticated admin/driver/restricted-role, nonmember, null/invalid timezone, alternate canonical timezone, empty-data, DST, range-cap and >1000trip aggregate regressions. Capture equivalent outputs and repeat plans. A migration is prepared locally but has not been applied.",
+    "alternative": "A managed canonical-name lookup cache can cover all zones but adds grants, refresh and timezone-database update concerns; not justified before validating the smaller default-zone fix."
+  },
+  "prepared_followup": {
+    "applied": false,
+    "migration": "supabase/migrations/20261013225316_dashboard_timezone_fast_path.sql",
+    "rollback": "reports/startup/rollback-dashboard-timezone-fast-path.sql",
+    "tests": "supabase/tests/dashboard_trip_buckets_rollback.sql",
+    "source_review": {
+      "deployed_body_matched_prior_source": true,
+      "only_timezone_validation_changed": true,
+      "signature_auth_membership_range_aggregation_unchanged": true,
+      "security_invoker_empty_search_path_preserved": true,
+      "no_grant_index_policy_changes": true,
+      "rollback_restores_exact_original_function": true,
+      "database_regression_suite_executed": false,
+      "database_regression_suite_blocker": "No local PostgreSQL tools or Docker daemon; remote writes explicitly prohibited."
+    }
+  }
+}
