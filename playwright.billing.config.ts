@@ -2,20 +2,22 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/billing-ui",
+  outputDir: "./test-results/billing-ui",
   fullyParallel: true,
   workers: 2,
   timeout: 90_000,
   expect: { timeout: 10_000 },
   reporter: "list",
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "http://localhost:5185",
     channel: "chrome",
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },
+  // Run npm run build first; billing regression coverage uses production output.
   webServer: {
-    command: "npm run dev -- --port 5173",
-    url: "http://localhost:5173",
+    command: "npm run preview -- --port 5185 --strictPort",
+    url: "http://localhost:5185",
     reuseExistingServer: true,
   },
   projects: [

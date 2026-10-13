@@ -75,6 +75,12 @@ test("billing and payment tables scroll locally and preserve reachable row actio
 
 test("opening a filter preserves page geometry and scroll position", async ({ page }) => {
   await openBilling(page);
+  await expect(page.getByRole("table", { name: "Billing records", exact: true })
+    .getByRole("button", { name: /View billing record QA-INVOICE/ })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Loading billing totals" })).toHaveCount(0);
+  // Measure settled content: late web fonts can move the trigger and cause
+  // Playwright to scroll it again before the click reaches the open menu.
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await page.addStyleTag({ content: "body { min-height: 180vh; }" });
   const filter = page.getByRole("combobox", { name: "Agency", exact: true });
   await filter.scrollIntoViewIfNeeded();

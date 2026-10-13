@@ -61,10 +61,13 @@ export async function mockBillingApp(page, { empty = false, failed = false } = {
     if (url.pathname.startsWith("/auth/")) return route.fulfill({ json: user });
     if (url.pathname.includes("/rpc/")) return route.fulfill({ json: null });
     const table = url.pathname.split("/").at(-1);
+    const organization = { id: ids.org, name: "Future Transportation", created_at: timestamp, timezone: "America/Chicago",
+      billing_enabled: true, brokers_enabled: false, npi: null, tax_id: null, billing_state: null,
+      sftp_enabled: false, mn_its_submitter_id: null };
     const tables = {
-      organizations: [{ id: ids.org, name: "Future Transportation", created_at: timestamp, timezone: "America/Chicago", billing_enabled: true }],
+      organizations: [organization],
       user_profiles: [{ user_id: ids.user, full_name: "Billing QA", default_org_id: ids.org, is_super_admin: false, phone: null, timezone: "America/Chicago", created_at: timestamp }],
-      organization_memberships: [{ id: id(9), org_id: ids.org, user_id: ids.user, role: "admin", is_primary: true, created_at: timestamp }],
+      organization_memberships: [{ id: id(9), org_id: ids.org, user_id: ids.user, role: "admin", is_primary: true, created_at: timestamp, organization }],
       patients: [client], billing_payers: [payer], billing_records: [record], billing_record_lines: [line],
       billing_payments: [payment], billing_payment_allocations: [{ ...allocation, payment }],
 
