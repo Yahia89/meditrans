@@ -595,4 +595,3 @@ export function WorkspacePage() {
     </OnboardingProvider>
   );
 }
-

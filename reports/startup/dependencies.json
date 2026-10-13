@@ -1,0 +1,586 @@
+[
+  {
+    "name": "@eslint/js",
+    "before": "9.39.1",
+    "after": "9.39.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "@hookform/resolvers",
+    "before": "5.2.2",
+    "after": "5.2.2",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@phosphor-icons/react",
+    "before": "2.1.10",
+    "after": "2.1.10",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@playwright/test",
+    "before": "1.63.0",
+    "after": "1.63.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "@radix-ui/react-alert-dialog",
+    "before": "1.1.15",
+    "after": "1.1.15",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-avatar",
+    "before": "1.1.11",
+    "after": "1.1.11",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-checkbox",
+    "before": "1.3.3",
+    "after": "1.3.3",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-collapsible",
+    "before": "1.1.12",
+    "after": "1.1.12",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-dialog",
+    "before": "1.1.15",
+    "after": "1.1.15",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-dropdown-menu",
+    "before": "2.1.16",
+    "after": "2.1.16",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-label",
+    "before": "2.1.8",
+    "after": "2.1.8",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-popover",
+    "before": "1.1.15",
+    "after": "1.1.15",
+    "directBefore": false,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-scroll-area",
+    "before": "1.2.10",
+    "after": "1.2.10",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-select",
+    "before": "2.2.6",
+    "after": "2.2.6",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-separator",
+    "before": "1.1.8",
+    "after": "1.1.8",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-slot",
+    "before": "1.2.4",
+    "after": "1.2.4",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-switch",
+    "before": "1.2.6",
+    "after": "1.2.6",
+    "directBefore": false,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-tabs",
+    "before": "1.1.13",
+    "after": "1.1.13",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@radix-ui/react-tooltip",
+    "before": "1.2.8",
+    "after": "1.2.8",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@react-google-maps/api",
+    "before": "2.20.8",
+    "after": "2.20.8",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@supabase/supabase-js",
+    "before": "2.90.1",
+    "after": "2.117.3",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@tailwindcss/postcss",
+    "before": "4.1.17",
+    "after": null,
+    "directBefore": true,
+    "directAfter": false,
+    "usage": "removed-direct"
+  },
+  {
+    "name": "@tailwindcss/vite",
+    "before": "4.1.17",
+    "after": "4.3.3",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "@tanstack/react-query",
+    "before": "5.90.12",
+    "after": "5.104.2",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@tanstack/react-query-devtools",
+    "before": "5.91.1",
+    "after": "5.104.2",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@tanstack/react-router",
+    "before": "1.140.0",
+    "after": "1.170.44",
+    "directBefore": false,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@tanstack/react-table",
+    "before": "8.21.3",
+    "after": "8.21.3",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@tanstack/react-virtual",
+    "before": "3.13.18",
+    "after": "3.13.18",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "@tanstack/router",
+    "before": "0.0.1-beta.53",
+    "after": null,
+    "directBefore": true,
+    "directAfter": false,
+    "usage": "removed-direct"
+  },
+  {
+    "name": "@tanstack/router-devtools",
+    "before": "1.140.0",
+    "after": null,
+    "directBefore": true,
+    "directAfter": false,
+    "usage": "removed-direct"
+  },
+  {
+    "name": "@tanstack/router-plugin",
+    "before": null,
+    "after": "1.168.45",
+    "directBefore": false,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "@types/google.maps",
+    "before": "3.58.1",
+    "after": "3.58.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "@types/node",
+    "before": "24.10.1",
+    "after": "24.10.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "@types/papaparse",
+    "before": "5.5.2",
+    "after": "5.5.2",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "@types/react",
+    "before": "19.2.7",
+    "after": "19.2.7",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "@types/react-dom",
+    "before": "19.2.3",
+    "after": "19.2.3",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "@types/react-signature-canvas",
+    "before": "1.0.7",
+    "after": "1.0.7",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "@vitejs/plugin-react",
+    "before": "5.1.1",
+    "after": "6.1.2",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "autoprefixer",
+    "before": "10.4.22",
+    "after": null,
+    "directBefore": true,
+    "directAfter": false,
+    "usage": "removed-direct"
+  },
+  {
+    "name": "class-variance-authority",
+    "before": "0.7.1",
+    "after": "0.7.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "clsx",
+    "before": "2.1.1",
+    "after": "2.1.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "cmdk",
+    "before": "1.1.1",
+    "after": "1.1.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "date-fns",
+    "before": "4.1.0",
+    "after": "4.1.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "date-fns-tz",
+    "before": "3.2.0",
+    "after": "3.2.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "eslint",
+    "before": "9.39.1",
+    "after": "9.39.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "eslint-plugin-react-hooks",
+    "before": "7.0.1",
+    "after": "7.0.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "eslint-plugin-react-refresh",
+    "before": "0.4.24",
+    "after": "0.4.24",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "gh-pages",
+    "before": "6.3.0",
+    "after": "6.3.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "globals",
+    "before": "16.5.0",
+    "after": "16.5.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "jspdf",
+    "before": "4.0.0",
+    "after": "4.2.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "jspdf-autotable",
+    "before": "5.0.7",
+    "after": "5.0.7",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "lucide-react",
+    "before": "0.556.0",
+    "after": "0.556.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "nuqs",
+    "before": "2.8.3",
+    "after": "2.8.3",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "papaparse",
+    "before": "5.5.3",
+    "after": "5.5.3",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "postcss",
+    "before": "8.5.6",
+    "after": "8.5.30",
+    "directBefore": true,
+    "directAfter": false,
+    "usage": "removed-direct"
+  },
+  {
+    "name": "radix-ui",
+    "before": "1.4.3",
+    "after": null,
+    "directBefore": true,
+    "directAfter": false,
+    "usage": "removed-direct"
+  },
+  {
+    "name": "react",
+    "before": "19.2.1",
+    "after": "19.2.8",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "react-dom",
+    "before": "19.2.1",
+    "after": "19.2.8",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "react-dropzone",
+    "before": "14.3.8",
+    "after": "14.3.8",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "react-hook-form",
+    "before": "7.68.0",
+    "after": "7.68.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "react-signature-canvas",
+    "before": "1.1.0-alpha.2",
+    "after": "1.1.0-alpha.2",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "recharts",
+    "before": "3.6.0",
+    "after": "3.6.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "sonner",
+    "before": "2.0.7",
+    "after": "2.0.7",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "supercluster",
+    "before": "8.0.1",
+    "after": "8.0.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "tailwind-merge",
+    "before": "3.4.0",
+    "after": "3.4.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "tailwindcss",
+    "before": "4.1.17",
+    "after": "4.3.3",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "tw-animate-css",
+    "before": "1.4.0",
+    "after": "1.4.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "typescript",
+    "before": "5.9.3",
+    "after": "5.9.3",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "typescript-eslint",
+    "before": "8.48.1",
+    "after": "8.48.1",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "use-supercluster",
+    "before": "1.2.0",
+    "after": "1.2.0",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "vite",
+    "before": "7.2.6",
+    "after": "8.3.4",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "tooling"
+  },
+  {
+    "name": "xlsx",
+    "before": "0.18.5",
+    "after": "0.20.3",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  },
+  {
+    "name": "zod",
+    "before": "4.1.13",
+    "after": "4.6.7",
+    "directBefore": true,
+    "directAfter": true,
+    "usage": "runtime"
+  }
+]

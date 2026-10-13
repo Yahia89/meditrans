@@ -1,0 +1,1418 @@
+{
+  "dashboard": {
+    "comparison-baseline:cold": {
+      "runs": 3,
+      "labels": [
+        "comparison-baseline-cold-1",
+        "comparison-baseline-cold-2",
+        "comparison-baseline-cold-3"
+      ],
+      "shellMs": {
+        "median": 567.7,
+        "min": 443.7,
+        "max": 926.7
+      },
+      "dashboardDataMs": {
+        "median": 3375.4,
+        "min": 1033.1,
+        "max": 3729.5
+      },
+      "loginMs": null,
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 144,
+        "min": 136,
+        "max": 160
+      },
+      "lcpMs": {
+        "median": 620,
+        "min": 492,
+        "max": 976
+      },
+      "cls": {
+        "median": 48.2,
+        "min": 47.2,
+        "max": 94.8
+      },
+      "requests": {
+        "median": 72,
+        "min": 70,
+        "max": 72
+      },
+      "apiExcludingPreflight": {
+        "median": 27,
+        "min": 26,
+        "max": 27
+      },
+      "networkBytes": {
+        "median": 631217,
+        "min": 631215,
+        "max": 631269
+      },
+      "scriptNetworkBytes": {
+        "median": 433732,
+        "min": 433732,
+        "max": 433732
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 1
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "comparison-baseline:warm": {
+      "runs": 3,
+      "labels": [
+        "comparison-baseline-warm-1",
+        "comparison-baseline-warm-2",
+        "comparison-baseline-warm-3"
+      ],
+      "shellMs": {
+        "median": 264.7,
+        "min": 251.8,
+        "max": 573
+      },
+      "dashboardDataMs": {
+        "median": 1131.5,
+        "min": 764.9,
+        "max": 17919.2
+      },
+      "loginMs": null,
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 104,
+        "min": 84,
+        "max": 108
+      },
+      "lcpMs": {
+        "median": 316,
+        "min": 288,
+        "max": 624
+      },
+      "cls": {
+        "median": 61.6,
+        "min": 34.7,
+        "max": 63.7
+      },
+      "requests": {
+        "median": 46,
+        "min": 46,
+        "max": 47
+      },
+      "apiExcludingPreflight": {
+        "median": 27,
+        "min": 27,
+        "max": 28
+      },
+      "networkBytes": {
+        "median": 41648,
+        "min": 41638,
+        "max": 42601
+      },
+      "scriptNetworkBytes": {
+        "median": 2148,
+        "min": 2148,
+        "max": 2148
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 1
+    },
+    "comparison-final:cold": {
+      "runs": 3,
+      "labels": [
+        "comparison-final-cold-1",
+        "comparison-final-cold-2",
+        "comparison-final-cold-3"
+      ],
+      "shellMs": {
+        "median": 337.9,
+        "min": 282,
+        "max": 758.3
+      },
+      "dashboardDataMs": {
+        "median": 658.2,
+        "min": 533.3,
+        "max": 1899.9
+      },
+      "loginMs": null,
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 148,
+        "min": 148,
+        "max": 296
+      },
+      "lcpMs": {
+        "median": 384,
+        "min": 316,
+        "max": 796
+      },
+      "cls": {
+        "median": 60.3,
+        "min": 43.5,
+        "max": 61.8
+      },
+      "requests": {
+        "median": 54,
+        "min": 54,
+        "max": 55
+      },
+      "apiExcludingPreflight": {
+        "median": 21,
+        "min": 21,
+        "max": 21
+      },
+      "networkBytes": {
+        "median": 601671,
+        "min": 601655,
+        "max": 602010
+      },
+      "scriptNetworkBytes": {
+        "median": 407652,
+        "min": 407652,
+        "max": 407652
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 1
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "comparison-final:warm": {
+      "runs": 3,
+      "labels": [
+        "comparison-final-warm-1",
+        "comparison-final-warm-2",
+        "comparison-final-warm-3"
+      ],
+      "shellMs": {
+        "median": 158.3,
+        "min": 151.8,
+        "max": 187
+      },
+      "dashboardDataMs": {
+        "median": 353.7,
+        "min": 348.9,
+        "max": 1103.1
+      },
+      "loginMs": null,
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 88,
+        "min": 84,
+        "max": 116
+      },
+      "lcpMs": {
+        "median": 204,
+        "min": 200,
+        "max": 236
+      },
+      "cls": {
+        "median": 61.3,
+        "min": 34.9,
+        "max": 90.1
+      },
+      "requests": {
+        "median": 34,
+        "min": 34,
+        "max": 34
+      },
+      "apiExcludingPreflight": {
+        "median": 21,
+        "min": 21,
+        "max": 21
+      },
+      "networkBytes": {
+        "median": 33756,
+        "min": 33752,
+        "max": 33763
+      },
+      "scriptNetworkBytes": {
+        "median": 1074,
+        "min": 1074,
+        "max": 1074
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    }
+  },
+  "login": {
+    "baseline-login:cold": {
+      "runs": 3,
+      "labels": [
+        "baseline-login-cold-1",
+        "baseline-login-cold-2",
+        "baseline-login-cold-3"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": {
+        "median": 99.3,
+        "min": 84.7,
+        "max": 179.5
+      },
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 140,
+        "min": 124,
+        "max": 180
+      },
+      "lcpMs": {
+        "median": 156,
+        "min": 140,
+        "max": 244
+      },
+      "cls": {
+        "median": 0.8,
+        "min": 0.6,
+        "max": 234.2
+      },
+      "requests": {
+        "median": 14,
+        "min": 14,
+        "max": 16
+      },
+      "apiExcludingPreflight": {
+        "median": 0,
+        "min": 0,
+        "max": 1
+      },
+      "networkBytes": {
+        "median": 508948,
+        "min": 508902,
+        "max": 508999
+      },
+      "scriptNetworkBytes": {
+        "median": 303190,
+        "min": 303190,
+        "max": 303190
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "baseline-login:warm": {
+      "runs": 3,
+      "labels": [
+        "baseline-login-warm-1",
+        "baseline-login-warm-2",
+        "baseline-login-warm-3"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": {
+        "median": 54.3,
+        "min": 48.5,
+        "max": 60.5
+      },
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 84,
+        "min": 80,
+        "max": 88
+      },
+      "lcpMs": {
+        "median": 96,
+        "min": 88,
+        "max": 100
+      },
+      "cls": {
+        "median": 233.2,
+        "min": 0,
+        "max": 233.2
+      },
+      "requests": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "apiExcludingPreflight": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "networkBytes": {
+        "median": 1634,
+        "min": 1634,
+        "max": 1634
+      },
+      "scriptNetworkBytes": {
+        "median": 1074,
+        "min": 1074,
+        "max": 1074
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "final-login:cold": {
+      "runs": 3,
+      "labels": [
+        "final-login-cold-1",
+        "final-login-cold-2",
+        "final-login-cold-3"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": {
+        "median": 108.8,
+        "min": 93.5,
+        "max": 293
+      },
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 148,
+        "min": 132,
+        "max": 304
+      },
+      "lcpMs": {
+        "median": 148,
+        "min": 148,
+        "max": 356
+      },
+      "cls": {
+        "median": 0.8,
+        "min": 0.8,
+        "max": 0.8
+      },
+      "requests": {
+        "median": 14,
+        "min": 14,
+        "max": 16
+      },
+      "apiExcludingPreflight": {
+        "median": 0,
+        "min": 0,
+        "max": 1
+      },
+      "networkBytes": {
+        "median": 477513,
+        "min": 477513,
+        "max": 477861
+      },
+      "scriptNetworkBytes": {
+        "median": 268209,
+        "min": 268209,
+        "max": 268209
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "final-login:warm": {
+      "runs": 3,
+      "labels": [
+        "final-login-warm-1",
+        "final-login-warm-2",
+        "final-login-warm-3"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": {
+        "median": 62.1,
+        "min": 57.4,
+        "max": 68.8
+      },
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 84,
+        "min": 72,
+        "max": 96
+      },
+      "lcpMs": {
+        "median": 108,
+        "min": 100,
+        "max": 112
+      },
+      "cls": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "requests": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "apiExcludingPreflight": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "networkBytes": {
+        "median": 1455,
+        "min": 1455,
+        "max": 1455
+      },
+      "scriptNetworkBytes": {
+        "median": 716,
+        "min": 716,
+        "max": 716
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    }
+  },
+  "trips": {
+    "routes-baseline-trips:cold": {
+      "runs": 2,
+      "labels": [
+        "routes-baseline-trips-cold-1",
+        "routes-baseline-trips-cold-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 846.1,
+        "min": 746,
+        "max": 946.1
+      },
+      "fcpMs": {
+        "median": 140,
+        "min": 132,
+        "max": 148
+      },
+      "lcpMs": {
+        "median": 898,
+        "min": 800,
+        "max": 996
+      },
+      "cls": {
+        "median": 1.8,
+        "min": 1.8,
+        "max": 1.8
+      },
+      "requests": {
+        "median": 59,
+        "min": 59,
+        "max": 59
+      },
+      "apiExcludingPreflight": {
+        "median": 16,
+        "min": 16,
+        "max": 16
+      },
+      "networkBytes": {
+        "median": 593097.5,
+        "min": 593097,
+        "max": 593098
+      },
+      "scriptNetworkBytes": {
+        "median": 377561,
+        "min": 377561,
+        "max": 377561
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "routes-baseline-trips:warm": {
+      "runs": 2,
+      "labels": [
+        "routes-baseline-trips-warm-1",
+        "routes-baseline-trips-warm-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 541.7,
+        "min": 535.5,
+        "max": 547.8
+      },
+      "fcpMs": {
+        "median": 88,
+        "min": 84,
+        "max": 92
+      },
+      "lcpMs": {
+        "median": 580,
+        "min": 576,
+        "max": 584
+      },
+      "cls": {
+        "median": 1.8,
+        "min": 1.8,
+        "max": 1.8
+      },
+      "requests": {
+        "median": 44,
+        "min": 44,
+        "max": 44
+      },
+      "apiExcludingPreflight": {
+        "median": 16,
+        "min": 16,
+        "max": 16
+      },
+      "networkBytes": {
+        "median": 61333,
+        "min": 61305,
+        "max": 61361
+      },
+      "scriptNetworkBytes": {
+        "median": 3759,
+        "min": 3759,
+        "max": 3759
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "routes-final-trips:cold": {
+      "runs": 2,
+      "labels": [
+        "routes-final-trips-cold-1",
+        "routes-final-trips-cold-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 677.2,
+        "min": 543.3,
+        "max": 811.1
+      },
+      "fcpMs": {
+        "median": 140,
+        "min": 140,
+        "max": 140
+      },
+      "lcpMs": {
+        "median": 724,
+        "min": 592,
+        "max": 856
+      },
+      "cls": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "requests": {
+        "median": 59,
+        "min": 59,
+        "max": 59
+      },
+      "apiExcludingPreflight": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "networkBytes": {
+        "median": 610130.5,
+        "min": 610118,
+        "max": 610143
+      },
+      "scriptNetworkBytes": {
+        "median": 390503,
+        "min": 390503,
+        "max": 390503
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "routes-final-trips:warm": {
+      "runs": 2,
+      "labels": [
+        "routes-final-trips-warm-1",
+        "routes-final-trips-warm-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 453.7,
+        "min": 443.3,
+        "max": 464.1
+      },
+      "fcpMs": {
+        "median": 92,
+        "min": 88,
+        "max": 96
+      },
+      "lcpMs": {
+        "median": 500,
+        "min": 488,
+        "max": 512
+      },
+      "cls": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "requests": {
+        "median": 48,
+        "min": 48,
+        "max": 48
+      },
+      "apiExcludingPreflight": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "networkBytes": {
+        "median": 63497,
+        "min": 63494,
+        "max": 63500
+      },
+      "scriptNetworkBytes": {
+        "median": 5191,
+        "min": 5191,
+        "max": 5191
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    }
+  },
+  "billing": {
+    "routes-baseline-billing:cold": {
+      "runs": 2,
+      "labels": [
+        "routes-baseline-billing-cold-1",
+        "routes-baseline-billing-cold-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 678.1,
+        "min": 640.2,
+        "max": 716.1
+      },
+      "fcpMs": {
+        "median": 138,
+        "min": 124,
+        "max": 152
+      },
+      "lcpMs": {
+        "median": 538,
+        "min": 508,
+        "max": 568
+      },
+      "cls": {
+        "median": 5.6,
+        "min": 5.6,
+        "max": 5.6
+      },
+      "requests": {
+        "median": 61,
+        "min": 61,
+        "max": 61
+      },
+      "apiExcludingPreflight": {
+        "median": 19,
+        "min": 19,
+        "max": 19
+      },
+      "networkBytes": {
+        "median": 514662,
+        "min": 514658,
+        "max": 514666
+      },
+      "scriptNetworkBytes": {
+        "median": 341496,
+        "min": 341496,
+        "max": 341496
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "routes-baseline-billing:warm": {
+      "runs": 2,
+      "labels": [
+        "routes-baseline-billing-warm-1",
+        "routes-baseline-billing-warm-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 383.4,
+        "min": 352.1,
+        "max": 414.6
+      },
+      "fcpMs": {
+        "median": 80,
+        "min": 76,
+        "max": 84
+      },
+      "lcpMs": {
+        "median": 306,
+        "min": 292,
+        "max": 320
+      },
+      "cls": {
+        "median": 5.6,
+        "min": 5.6,
+        "max": 5.6
+      },
+      "requests": {
+        "median": 43,
+        "min": 43,
+        "max": 43
+      },
+      "apiExcludingPreflight": {
+        "median": 19,
+        "min": 19,
+        "max": 19
+      },
+      "networkBytes": {
+        "median": 18222.5,
+        "min": 18220,
+        "max": 18225
+      },
+      "scriptNetworkBytes": {
+        "median": 3043,
+        "min": 3043,
+        "max": 3043
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "routes-final-billing:cold": {
+      "runs": 2,
+      "labels": [
+        "routes-final-billing-cold-1",
+        "routes-final-billing-cold-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 527.3,
+        "min": 449.3,
+        "max": 605.2
+      },
+      "fcpMs": {
+        "median": 148,
+        "min": 136,
+        "max": 160
+      },
+      "lcpMs": {
+        "median": 382,
+        "min": 320,
+        "max": 444
+      },
+      "cls": {
+        "median": 3.4,
+        "min": 3,
+        "max": 3.8
+      },
+      "requests": {
+        "median": 52,
+        "min": 52,
+        "max": 52
+      },
+      "apiExcludingPreflight": {
+        "median": 15,
+        "min": 15,
+        "max": 15
+      },
+      "networkBytes": {
+        "median": 516259.5,
+        "min": 516257,
+        "max": 516262
+      },
+      "scriptNetworkBytes": {
+        "median": 339007,
+        "min": 339007,
+        "max": 339007
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "routes-final-billing:warm": {
+      "runs": 2,
+      "labels": [
+        "routes-final-billing-warm-1",
+        "routes-final-billing-warm-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 286.9,
+        "min": 285.7,
+        "max": 288
+      },
+      "fcpMs": {
+        "median": 92,
+        "min": 92,
+        "max": 92
+      },
+      "lcpMs": {
+        "median": 234,
+        "min": 224,
+        "max": 244
+      },
+      "cls": {
+        "median": 3.8,
+        "min": 3.8,
+        "max": 3.8
+      },
+      "requests": {
+        "median": 38,
+        "min": 38,
+        "max": 38
+      },
+      "apiExcludingPreflight": {
+        "median": 15,
+        "min": 15,
+        "max": 15
+      },
+      "networkBytes": {
+        "median": 18790.5,
+        "min": 18784,
+        "max": 18797
+      },
+      "scriptNetworkBytes": {
+        "median": 2864,
+        "min": 2864,
+        "max": 2864
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    }
+  },
+  "client": {
+    "routes-baseline-client:cold": {
+      "runs": 2,
+      "labels": [
+        "routes-baseline-client-cold-1",
+        "routes-baseline-client-cold-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 660.3,
+        "min": 634.8,
+        "max": 685.8
+      },
+      "fcpMs": {
+        "median": 136,
+        "min": 132,
+        "max": 140
+      },
+      "lcpMs": {
+        "median": 704,
+        "min": 684,
+        "max": 724
+      },
+      "cls": {
+        "median": 1.8,
+        "min": 1.8,
+        "max": 1.8
+      },
+      "requests": {
+        "median": 82,
+        "min": 82,
+        "max": 82
+      },
+      "apiExcludingPreflight": {
+        "median": 19,
+        "min": 19,
+        "max": 19
+      },
+      "networkBytes": {
+        "median": 1110939,
+        "min": 1110456,
+        "max": 1111422
+      },
+      "scriptNetworkBytes": {
+        "median": 858543.5,
+        "min": 858064,
+        "max": 859023
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "routes-baseline-client:warm": {
+      "runs": 2,
+      "labels": [
+        "routes-baseline-client-warm-1",
+        "routes-baseline-client-warm-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 362,
+        "min": 359.1,
+        "max": 365
+      },
+      "fcpMs": {
+        "median": 96,
+        "min": 92,
+        "max": 100
+      },
+      "lcpMs": {
+        "median": 404,
+        "min": 400,
+        "max": 408
+      },
+      "cls": {
+        "median": 1.8,
+        "min": 1.8,
+        "max": 1.8
+      },
+      "requests": {
+        "median": 64,
+        "min": 64,
+        "max": 64
+      },
+      "apiExcludingPreflight": {
+        "median": 19,
+        "min": 19,
+        "max": 19
+      },
+      "networkBytes": {
+        "median": 19822.5,
+        "min": 19815,
+        "max": 19830
+      },
+      "scriptNetworkBytes": {
+        "median": 5191,
+        "min": 5191,
+        "max": 5191
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "routes-final-client:cold": {
+      "runs": 2,
+      "labels": [
+        "routes-final-client-cold-1",
+        "routes-final-client-cold-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 444.2,
+        "min": 431,
+        "max": 457.4
+      },
+      "fcpMs": {
+        "median": 150,
+        "min": 148,
+        "max": 152
+      },
+      "lcpMs": {
+        "median": 482,
+        "min": 468,
+        "max": 496
+      },
+      "cls": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "requests": {
+        "median": 104,
+        "min": 104,
+        "max": 104
+      },
+      "apiExcludingPreflight": {
+        "median": 15,
+        "min": 15,
+        "max": 15
+      },
+      "networkBytes": {
+        "median": 1156555,
+        "min": 1156400,
+        "max": 1156710
+      },
+      "scriptNetworkBytes": {
+        "median": 900064.5,
+        "min": 899912,
+        "max": 900217
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "routes-final-client:warm": {
+      "runs": 2,
+      "labels": [
+        "routes-final-client-warm-1",
+        "routes-final-client-warm-2"
+      ],
+      "shellMs": null,
+      "dashboardDataMs": null,
+      "loginMs": null,
+      "routeReadyMs": {
+        "median": 266.2,
+        "min": 234.2,
+        "max": 298.2
+      },
+      "fcpMs": {
+        "median": 92,
+        "min": 84,
+        "max": 100
+      },
+      "lcpMs": {
+        "median": 308,
+        "min": 284,
+        "max": 332
+      },
+      "cls": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "requests": {
+        "median": 90,
+        "min": 90,
+        "max": 90
+      },
+      "apiExcludingPreflight": {
+        "median": 15,
+        "min": 15,
+        "max": 15
+      },
+      "networkBytes": {
+        "median": 25942.5,
+        "min": 25942,
+        "max": 25943
+      },
+      "scriptNetworkBytes": {
+        "median": 10561,
+        "min": 10561,
+        "max": 10561
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    }
+  },
+  "refresh": {
+    "refresh-baseline:cold": {
+      "runs": 1,
+      "labels": [
+        "refresh-baseline-cold-1"
+      ],
+      "shellMs": {
+        "median": 777,
+        "min": 777,
+        "max": 777
+      },
+      "dashboardDataMs": {
+        "median": 2206.6,
+        "min": 2206.6,
+        "max": 2206.6
+      },
+      "loginMs": null,
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 204,
+        "min": 204,
+        "max": 204
+      },
+      "lcpMs": {
+        "median": 820,
+        "min": 820,
+        "max": 820
+      },
+      "cls": {
+        "median": 45.2,
+        "min": 45.2,
+        "max": 45.2
+      },
+      "requests": {
+        "median": 74,
+        "min": 74,
+        "max": 74
+      },
+      "apiExcludingPreflight": {
+        "median": 28,
+        "min": 28,
+        "max": 28
+      },
+      "networkBytes": {
+        "median": 633066,
+        "min": 633066,
+        "max": 633066
+      },
+      "scriptNetworkBytes": {
+        "median": 433732,
+        "min": 433732,
+        "max": 433732
+      },
+      "longTasks": {
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "refresh-baseline:warm": {
+      "runs": 1,
+      "labels": [
+        "refresh-baseline-warm-1"
+      ],
+      "shellMs": {
+        "median": 331.9,
+        "min": 331.9,
+        "max": 331.9
+      },
+      "dashboardDataMs": {
+        "median": 864.9,
+        "min": 864.9,
+        "max": 864.9
+      },
+      "loginMs": null,
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 88,
+        "min": 88,
+        "max": 88
+      },
+      "lcpMs": {
+        "median": 368,
+        "min": 368,
+        "max": 368
+      },
+      "cls": {
+        "median": 61.6,
+        "min": 61.6,
+        "max": 61.6
+      },
+      "requests": {
+        "median": 47,
+        "min": 47,
+        "max": 47
+      },
+      "apiExcludingPreflight": {
+        "median": 28,
+        "min": 28,
+        "max": 28
+      },
+      "networkBytes": {
+        "median": 43520,
+        "min": 43520,
+        "max": 43520
+      },
+      "scriptNetworkBytes": {
+        "median": 2148,
+        "min": 2148,
+        "max": 2148
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "refresh-final:cold": {
+      "runs": 1,
+      "labels": [
+        "refresh-final-cold-1"
+      ],
+      "shellMs": {
+        "median": 596.9,
+        "min": 596.9,
+        "max": 596.9
+      },
+      "dashboardDataMs": {
+        "median": 1647.2,
+        "min": 1647.2,
+        "max": 1647.2
+      },
+      "loginMs": null,
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 148,
+        "min": 148,
+        "max": 148
+      },
+      "lcpMs": {
+        "median": 648,
+        "min": 648,
+        "max": 648
+      },
+      "cls": {
+        "median": 43.5,
+        "min": 43.5,
+        "max": 43.5
+      },
+      "requests": {
+        "median": 56,
+        "min": 56,
+        "max": 56
+      },
+      "apiExcludingPreflight": {
+        "median": 22,
+        "min": 22,
+        "max": 22
+      },
+      "networkBytes": {
+        "median": 603372,
+        "min": 603372,
+        "max": 603372
+      },
+      "scriptNetworkBytes": {
+        "median": 407582,
+        "min": 407582,
+        "max": 407582
+      },
+      "longTasks": {
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    },
+    "refresh-final:warm": {
+      "runs": 1,
+      "labels": [
+        "refresh-final-warm-1"
+      ],
+      "shellMs": {
+        "median": 330.8,
+        "min": 330.8,
+        "max": 330.8
+      },
+      "dashboardDataMs": {
+        "median": 764.9,
+        "min": 764.9,
+        "max": 764.9
+      },
+      "loginMs": null,
+      "routeReadyMs": null,
+      "fcpMs": {
+        "median": 100,
+        "min": 100,
+        "max": 100
+      },
+      "lcpMs": {
+        "median": 384,
+        "min": 384,
+        "max": 384
+      },
+      "cls": {
+        "median": 43.3,
+        "min": 43.3,
+        "max": 43.3
+      },
+      "requests": {
+        "median": 35,
+        "min": 35,
+        "max": 35
+      },
+      "apiExcludingPreflight": {
+        "median": 22,
+        "min": 22,
+        "max": 22
+      },
+      "networkBytes": {
+        "median": 35574,
+        "min": 35574,
+        "max": 35574
+      },
+      "scriptNetworkBytes": {
+        "median": 1074,
+        "min": 1074,
+        "max": 1074
+      },
+      "longTasks": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "pageErrors": 0,
+      "consoleErrors": 0
+    }
+  }
+}

@@ -1,0 +1,975 @@
+{
+  "shell": {
+    "decoded": 896396,
+    "gzip": 278683,
+    "chunks": [
+      {
+        "file": "assets/index-B9Tyqu6J.js",
+        "decoded": 660834,
+        "gzip": 193722
+      },
+      {
+        "file": "assets/rolldown-runtime-hePW80VL.js",
+        "decoded": 716,
+        "gzip": 428
+      },
+      {
+        "file": "assets/clsx-C3gaeT4V.js",
+        "decoded": 7893,
+        "gzip": 3022
+      },
+      {
+        "file": "assets/jsx-runtime-NZYk81nU.js",
+        "decoded": 435,
+        "gzip": 306
+      },
+      {
+        "file": "assets/WorkspacePage-Cwh6nFoM.js",
+        "decoded": 44559,
+        "gzip": 13536
+      },
+      {
+        "file": "assets/createLucideIcon-C3Fw_dPT.js",
+        "decoded": 1223,
+        "gzip": 708
+      },
+      {
+        "file": "assets/arrow-right-DCAo7aa4.js",
+        "decoded": 165,
+        "gzip": 163
+      },
+      {
+        "file": "assets/clipboard-list-C2OA_pj2.js",
+        "decoded": 991,
+        "gzip": 495
+      },
+      {
+        "file": "assets/bell-CdtKKdMk.js",
+        "decoded": 290,
+        "gzip": 238
+      },
+      {
+        "file": "assets/building-2-lw5-B0NI.js",
+        "decoded": 383,
+        "gzip": 243
+      },
+      {
+        "file": "assets/car-0xBElvrg.js",
+        "decoded": 407,
+        "gzip": 288
+      },
+      {
+        "file": "assets/chevrons-up-down-D1pCsOmj.js",
+        "decoded": 174,
+        "gzip": 164
+      },
+      {
+        "file": "assets/circle-check-EMkLVmDO.js",
+        "decoded": 178,
+        "gzip": 170
+      },
+      {
+        "file": "assets/clock-Dp8hmQSg.js",
+        "decoded": 169,
+        "gzip": 169
+      },
+      {
+        "file": "assets/coins-Cj3oxOJQ.js",
+        "decoded": 279,
+        "gzip": 228
+      },
+      {
+        "file": "assets/credit-card-BVWwY0vF.js",
+        "decoded": 207,
+        "gzip": 189
+      },
+      {
+        "file": "assets/file-text-CR_hGSbm.js",
+        "decoded": 385,
+        "gzip": 252
+      },
+      {
+        "file": "assets/loader-circle-D-Rpvw2G.js",
+        "decoded": 144,
+        "gzip": 156
+      },
+      {
+        "file": "assets/plug-8bG0C6J7.js",
+        "decoded": 286,
+        "gzip": 204
+      },
+      {
+        "file": "assets/shield-DZ7AxouO.js",
+        "decoded": 272,
+        "gzip": 228
+      },
+      {
+        "file": "assets/upload--pGKT5od.js",
+        "decoded": 230,
+        "gzip": 193
+      },
+      {
+        "file": "assets/users-D783iD8v.js",
+        "decoded": 306,
+        "gzip": 226
+      },
+      {
+        "file": "assets/x-DsPmBCVM.js",
+        "decoded": 154,
+        "gzip": 152
+      },
+      {
+        "file": "assets/dist-CyBj4Cgx.js",
+        "decoded": 4367,
+        "gzip": 1903
+      },
+      {
+        "file": "assets/Combination-Cp4UeMKh.js",
+        "decoded": 19588,
+        "gzip": 7033
+      },
+      {
+        "file": "assets/tooltip-HzxD3B26.js",
+        "decoded": 8936,
+        "gzip": 3243
+      },
+      {
+        "file": "assets/dist-CqHzRAFg.js",
+        "decoded": 3079,
+        "gzip": 1394
+      },
+      {
+        "file": "assets/dist-DifOK5NS.js",
+        "decoded": 2131,
+        "gzip": 952
+      },
+      {
+        "file": "assets/dist-CFRxt54m.js",
+        "decoded": 26252,
+        "gzip": 10102
+      },
+      {
+        "file": "assets/dist-tUgWB9u2.js",
+        "decoded": 590,
+        "gzip": 376
+      },
+      {
+        "file": "assets/skeleton-BAPYEgq7.js",
+        "decoded": 247,
+        "gzip": 207
+      },
+      {
+        "file": "assets/input-CoACp-2d.js",
+        "decoded": 930,
+        "gzip": 511
+      },
+      {
+        "file": "assets/separator-hwJ0ijUW.js",
+        "decoded": 1246,
+        "gzip": 656
+      },
+      {
+        "file": "assets/field-QI5ViIh9.js",
+        "decoded": 3269,
+        "gzip": 1186
+      },
+      {
+        "file": "assets/label-C0QPYBqr.js",
+        "decoded": 1122,
+        "gzip": 660
+      },
+      {
+        "file": "assets/dist-D9lywvlz.js",
+        "decoded": 32595,
+        "gzip": 9145
+      },
+      {
+        "file": "assets/dist-Cj12MZ4-.js",
+        "decoded": 6711,
+        "gzip": 2561
+      },
+      {
+        "file": "assets/navigation-CARg4uv1.js",
+        "decoded": 933,
+        "gzip": 591
+      },
+      {
+        "file": "assets/usePermissions-BCKlA8Wn.js",
+        "decoded": 1197,
+        "gzip": 584
+      },
+      {
+        "file": "assets/zod-DqGL6kuX.js",
+        "decoded": 32753,
+        "gzip": 11496
+      },
+      {
+        "file": "assets/OnboardingContext-K0qbzW5u.js",
+        "decoded": 4331,
+        "gzip": 1885
+      },
+      {
+        "file": "assets/useAuditAccess-cVDQ0jNf.js",
+        "decoded": 296,
+        "gzip": 240
+      },
+      {
+        "file": "assets/dropdown-menu-3ZwerXnL.js",
+        "decoded": 20626,
+        "gzip": 6287
+      },
+      {
+        "file": "assets/dist-Bb3pjizG.js",
+        "decoded": 3668,
+        "gzip": 1624
+      },
+      {
+        "file": "assets/routes-DafE6K_b.js",
+        "decoded": 91,
+        "gzip": 95
+      },
+      {
+        "file": "assets/routes-BM1vZggl.js",
+        "decoded": 758,
+        "gzip": 472
+      }
+    ]
+  },
+  "dashboard": {
+    "decoded": 1054191,
+    "gzip": 326975,
+    "chunks": [
+      {
+        "file": "assets/index-B9Tyqu6J.js",
+        "decoded": 660834,
+        "gzip": 193722
+      },
+      {
+        "file": "assets/rolldown-runtime-hePW80VL.js",
+        "decoded": 716,
+        "gzip": 428
+      },
+      {
+        "file": "assets/clsx-C3gaeT4V.js",
+        "decoded": 7893,
+        "gzip": 3022
+      },
+      {
+        "file": "assets/jsx-runtime-NZYk81nU.js",
+        "decoded": 435,
+        "gzip": 306
+      },
+      {
+        "file": "assets/WorkspacePage-Cwh6nFoM.js",
+        "decoded": 44559,
+        "gzip": 13536
+      },
+      {
+        "file": "assets/createLucideIcon-C3Fw_dPT.js",
+        "decoded": 1223,
+        "gzip": 708
+      },
+      {
+        "file": "assets/arrow-right-DCAo7aa4.js",
+        "decoded": 165,
+        "gzip": 163
+      },
+      {
+        "file": "assets/clipboard-list-C2OA_pj2.js",
+        "decoded": 991,
+        "gzip": 495
+      },
+      {
+        "file": "assets/bell-CdtKKdMk.js",
+        "decoded": 290,
+        "gzip": 238
+      },
+      {
+        "file": "assets/building-2-lw5-B0NI.js",
+        "decoded": 383,
+        "gzip": 243
+      },
+      {
+        "file": "assets/car-0xBElvrg.js",
+        "decoded": 407,
+        "gzip": 288
+      },
+      {
+        "file": "assets/chevrons-up-down-D1pCsOmj.js",
+        "decoded": 174,
+        "gzip": 164
+      },
+      {
+        "file": "assets/circle-check-EMkLVmDO.js",
+        "decoded": 178,
+        "gzip": 170
+      },
+      {
+        "file": "assets/clock-Dp8hmQSg.js",
+        "decoded": 169,
+        "gzip": 169
+      },
+      {
+        "file": "assets/coins-Cj3oxOJQ.js",
+        "decoded": 279,
+        "gzip": 228
+      },
+      {
+        "file": "assets/credit-card-BVWwY0vF.js",
+        "decoded": 207,
+        "gzip": 189
+      },
+      {
+        "file": "assets/file-text-CR_hGSbm.js",
+        "decoded": 385,
+        "gzip": 252
+      },
+      {
+        "file": "assets/loader-circle-D-Rpvw2G.js",
+        "decoded": 144,
+        "gzip": 156
+      },
+      {
+        "file": "assets/plug-8bG0C6J7.js",
+        "decoded": 286,
+        "gzip": 204
+      },
+      {
+        "file": "assets/shield-DZ7AxouO.js",
+        "decoded": 272,
+        "gzip": 228
+      },
+      {
+        "file": "assets/upload--pGKT5od.js",
+        "decoded": 230,
+        "gzip": 193
+      },
+      {
+        "file": "assets/users-D783iD8v.js",
+        "decoded": 306,
+        "gzip": 226
+      },
+      {
+        "file": "assets/x-DsPmBCVM.js",
+        "decoded": 154,
+        "gzip": 152
+      },
+      {
+        "file": "assets/dist-CyBj4Cgx.js",
+        "decoded": 4367,
+        "gzip": 1903
+      },
+      {
+        "file": "assets/Combination-Cp4UeMKh.js",
+        "decoded": 19588,
+        "gzip": 7033
+      },
+      {
+        "file": "assets/tooltip-HzxD3B26.js",
+        "decoded": 8936,
+        "gzip": 3243
+      },
+      {
+        "file": "assets/dist-CqHzRAFg.js",
+        "decoded": 3079,
+        "gzip": 1394
+      },
+      {
+        "file": "assets/dist-DifOK5NS.js",
+        "decoded": 2131,
+        "gzip": 952
+      },
+      {
+        "file": "assets/dist-CFRxt54m.js",
+        "decoded": 26252,
+        "gzip": 10102
+      },
+      {
+        "file": "assets/dist-tUgWB9u2.js",
+        "decoded": 590,
+        "gzip": 376
+      },
+      {
+        "file": "assets/skeleton-BAPYEgq7.js",
+        "decoded": 247,
+        "gzip": 207
+      },
+      {
+        "file": "assets/input-CoACp-2d.js",
+        "decoded": 930,
+        "gzip": 511
+      },
+      {
+        "file": "assets/separator-hwJ0ijUW.js",
+        "decoded": 1246,
+        "gzip": 656
+      },
+      {
+        "file": "assets/field-QI5ViIh9.js",
+        "decoded": 3269,
+        "gzip": 1186
+      },
+      {
+        "file": "assets/label-C0QPYBqr.js",
+        "decoded": 1122,
+        "gzip": 660
+      },
+      {
+        "file": "assets/dist-D9lywvlz.js",
+        "decoded": 32595,
+        "gzip": 9145
+      },
+      {
+        "file": "assets/dist-Cj12MZ4-.js",
+        "decoded": 6711,
+        "gzip": 2561
+      },
+      {
+        "file": "assets/navigation-CARg4uv1.js",
+        "decoded": 933,
+        "gzip": 591
+      },
+      {
+        "file": "assets/usePermissions-BCKlA8Wn.js",
+        "decoded": 1197,
+        "gzip": 584
+      },
+      {
+        "file": "assets/zod-DqGL6kuX.js",
+        "decoded": 32753,
+        "gzip": 11496
+      },
+      {
+        "file": "assets/OnboardingContext-K0qbzW5u.js",
+        "decoded": 4331,
+        "gzip": 1885
+      },
+      {
+        "file": "assets/useAuditAccess-cVDQ0jNf.js",
+        "decoded": 296,
+        "gzip": 240
+      },
+      {
+        "file": "assets/dropdown-menu-3ZwerXnL.js",
+        "decoded": 20626,
+        "gzip": 6287
+      },
+      {
+        "file": "assets/dist-Bb3pjizG.js",
+        "decoded": 3668,
+        "gzip": 1624
+      },
+      {
+        "file": "assets/routes-DafE6K_b.js",
+        "decoded": 91,
+        "gzip": 95
+      },
+      {
+        "file": "assets/routes-BM1vZggl.js",
+        "decoded": 758,
+        "gzip": 472
+      },
+      {
+        "file": "assets/dashboard-DY7uKgp5.js",
+        "decoded": 72140,
+        "gzip": 18612
+      },
+      {
+        "file": "assets/check-CQDO5ugD.js",
+        "decoded": 124,
+        "gzip": 140
+      },
+      {
+        "file": "assets/select-4kk5f5_I.js",
+        "decoded": 23034,
+        "gzip": 7816
+      },
+      {
+        "file": "assets/dist-PqH-U6J6.js",
+        "decoded": 294,
+        "gzip": 211
+      },
+      {
+        "file": "assets/chevron-left-C4cuJYPk.js",
+        "decoded": 130,
+        "gzip": 146
+      },
+      {
+        "file": "assets/chevron-right-BTc5V6Fa.js",
+        "decoded": 130,
+        "gzip": 142
+      },
+      {
+        "file": "assets/eye-DMC4mPG7.js",
+        "decoded": 256,
+        "gzip": 203
+      },
+      {
+        "file": "assets/info-SnTXHo4y.js",
+        "decoded": 204,
+        "gzip": 179
+      },
+      {
+        "file": "assets/map-pin-V6uQdnRn.js",
+        "decoded": 259,
+        "gzip": 226
+      },
+      {
+        "file": "assets/plus-P_EZssWr.js",
+        "decoded": 153,
+        "gzip": 151
+      },
+      {
+        "file": "assets/trash-2-D1GaFx5k.js",
+        "decoded": 328,
+        "gzip": 217
+      },
+      {
+        "file": "assets/triangle-alert-D86ueHUe.js",
+        "decoded": 265,
+        "gzip": 216
+      },
+      {
+        "file": "assets/format-C0Mo6fqF.js",
+        "decoded": 19368,
+        "gzip": 5529
+      },
+      {
+        "file": "assets/timezone-DQcs0nho.js",
+        "decoded": 10815,
+        "gzip": 3776
+      },
+      {
+        "file": "assets/ArrowRight.es-IiFiYl7l.js",
+        "decoded": 1618,
+        "gzip": 649
+      },
+      {
+        "file": "assets/IconBase.es-CTUxyWZ3.js",
+        "decoded": 642,
+        "gzip": 428
+      },
+      {
+        "file": "assets/Car.es-BQXs-unR.js",
+        "decoded": 3465,
+        "gzip": 1129
+      },
+      {
+        "file": "assets/CaretRight.es-DgZnAQlk.js",
+        "decoded": 1466,
+        "gzip": 589
+      },
+      {
+        "file": "assets/CheckCircle.es-D47PgwMx.js",
+        "decoded": 2172,
+        "gzip": 759
+      },
+      {
+        "file": "assets/CloudArrowUp.es-Cg5XJjHQ.js",
+        "decoded": 3119,
+        "gzip": 1116
+      },
+      {
+        "file": "assets/IdentificationBadge.es-DIe71fB0.js",
+        "decoded": 3261,
+        "gzip": 1075
+      },
+      {
+        "file": "assets/Shield.es-BEhUuiTZ.js",
+        "decoded": 2773,
+        "gzip": 1078
+      },
+      {
+        "file": "assets/Trash.es-D8PUi4Qn.js",
+        "decoded": 2629,
+        "gzip": 826
+      },
+      {
+        "file": "assets/Users.es-WNy5yqHS.js",
+        "decoded": 3220,
+        "gzip": 1149
+      },
+      {
+        "file": "assets/Warning.es-DSweMUac.js",
+        "decoded": 3417,
+        "gzip": 1114
+      },
+      {
+        "file": "assets/credit-utils-k9YFnAyS.js",
+        "decoded": 2513,
+        "gzip": 816
+      }
+    ]
+  },
+  "chart": {
+    "decoded": 1384314,
+    "gzip": 423920,
+    "chunks": [
+      {
+        "file": "assets/index-B9Tyqu6J.js",
+        "decoded": 660834,
+        "gzip": 193722
+      },
+      {
+        "file": "assets/rolldown-runtime-hePW80VL.js",
+        "decoded": 716,
+        "gzip": 428
+      },
+      {
+        "file": "assets/clsx-C3gaeT4V.js",
+        "decoded": 7893,
+        "gzip": 3022
+      },
+      {
+        "file": "assets/jsx-runtime-NZYk81nU.js",
+        "decoded": 435,
+        "gzip": 306
+      },
+      {
+        "file": "assets/WorkspacePage-Cwh6nFoM.js",
+        "decoded": 44559,
+        "gzip": 13536
+      },
+      {
+        "file": "assets/createLucideIcon-C3Fw_dPT.js",
+        "decoded": 1223,
+        "gzip": 708
+      },
+      {
+        "file": "assets/arrow-right-DCAo7aa4.js",
+        "decoded": 165,
+        "gzip": 163
+      },
+      {
+        "file": "assets/clipboard-list-C2OA_pj2.js",
+        "decoded": 991,
+        "gzip": 495
+      },
+      {
+        "file": "assets/bell-CdtKKdMk.js",
+        "decoded": 290,
+        "gzip": 238
+      },
+      {
+        "file": "assets/building-2-lw5-B0NI.js",
+        "decoded": 383,
+        "gzip": 243
+      },
+      {
+        "file": "assets/car-0xBElvrg.js",
+        "decoded": 407,
+        "gzip": 288
+      },
+      {
+        "file": "assets/chevrons-up-down-D1pCsOmj.js",
+        "decoded": 174,
+        "gzip": 164
+      },
+      {
+        "file": "assets/circle-check-EMkLVmDO.js",
+        "decoded": 178,
+        "gzip": 170
+      },
+      {
+        "file": "assets/clock-Dp8hmQSg.js",
+        "decoded": 169,
+        "gzip": 169
+      },
+      {
+        "file": "assets/coins-Cj3oxOJQ.js",
+        "decoded": 279,
+        "gzip": 228
+      },
+      {
+        "file": "assets/credit-card-BVWwY0vF.js",
+        "decoded": 207,
+        "gzip": 189
+      },
+      {
+        "file": "assets/file-text-CR_hGSbm.js",
+        "decoded": 385,
+        "gzip": 252
+      },
+      {
+        "file": "assets/loader-circle-D-Rpvw2G.js",
+        "decoded": 144,
+        "gzip": 156
+      },
+      {
+        "file": "assets/plug-8bG0C6J7.js",
+        "decoded": 286,
+        "gzip": 204
+      },
+      {
+        "file": "assets/shield-DZ7AxouO.js",
+        "decoded": 272,
+        "gzip": 228
+      },
+      {
+        "file": "assets/upload--pGKT5od.js",
+        "decoded": 230,
+        "gzip": 193
+      },
+      {
+        "file": "assets/users-D783iD8v.js",
+        "decoded": 306,
+        "gzip": 226
+      },
+      {
+        "file": "assets/x-DsPmBCVM.js",
+        "decoded": 154,
+        "gzip": 152
+      },
+      {
+        "file": "assets/dist-CyBj4Cgx.js",
+        "decoded": 4367,
+        "gzip": 1903
+      },
+      {
+        "file": "assets/Combination-Cp4UeMKh.js",
+        "decoded": 19588,
+        "gzip": 7033
+      },
+      {
+        "file": "assets/tooltip-HzxD3B26.js",
+        "decoded": 8936,
+        "gzip": 3243
+      },
+      {
+        "file": "assets/dist-CqHzRAFg.js",
+        "decoded": 3079,
+        "gzip": 1394
+      },
+      {
+        "file": "assets/dist-DifOK5NS.js",
+        "decoded": 2131,
+        "gzip": 952
+      },
+      {
+        "file": "assets/dist-CFRxt54m.js",
+        "decoded": 26252,
+        "gzip": 10102
+      },
+      {
+        "file": "assets/dist-tUgWB9u2.js",
+        "decoded": 590,
+        "gzip": 376
+      },
+      {
+        "file": "assets/skeleton-BAPYEgq7.js",
+        "decoded": 247,
+        "gzip": 207
+      },
+      {
+        "file": "assets/input-CoACp-2d.js",
+        "decoded": 930,
+        "gzip": 511
+      },
+      {
+        "file": "assets/separator-hwJ0ijUW.js",
+        "decoded": 1246,
+        "gzip": 656
+      },
+      {
+        "file": "assets/field-QI5ViIh9.js",
+        "decoded": 3269,
+        "gzip": 1186
+      },
+      {
+        "file": "assets/label-C0QPYBqr.js",
+        "decoded": 1122,
+        "gzip": 660
+      },
+      {
+        "file": "assets/dist-D9lywvlz.js",
+        "decoded": 32595,
+        "gzip": 9145
+      },
+      {
+        "file": "assets/dist-Cj12MZ4-.js",
+        "decoded": 6711,
+        "gzip": 2561
+      },
+      {
+        "file": "assets/navigation-CARg4uv1.js",
+        "decoded": 933,
+        "gzip": 591
+      },
+      {
+        "file": "assets/usePermissions-BCKlA8Wn.js",
+        "decoded": 1197,
+        "gzip": 584
+      },
+      {
+        "file": "assets/zod-DqGL6kuX.js",
+        "decoded": 32753,
+        "gzip": 11496
+      },
+      {
+        "file": "assets/OnboardingContext-K0qbzW5u.js",
+        "decoded": 4331,
+        "gzip": 1885
+      },
+      {
+        "file": "assets/useAuditAccess-cVDQ0jNf.js",
+        "decoded": 296,
+        "gzip": 240
+      },
+      {
+        "file": "assets/dropdown-menu-3ZwerXnL.js",
+        "decoded": 20626,
+        "gzip": 6287
+      },
+      {
+        "file": "assets/dist-Bb3pjizG.js",
+        "decoded": 3668,
+        "gzip": 1624
+      },
+      {
+        "file": "assets/routes-DafE6K_b.js",
+        "decoded": 91,
+        "gzip": 95
+      },
+      {
+        "file": "assets/routes-BM1vZggl.js",
+        "decoded": 758,
+        "gzip": 472
+      },
+      {
+        "file": "assets/dashboard-DY7uKgp5.js",
+        "decoded": 72140,
+        "gzip": 18612
+      },
+      {
+        "file": "assets/check-CQDO5ugD.js",
+        "decoded": 124,
+        "gzip": 140
+      },
+      {
+        "file": "assets/select-4kk5f5_I.js",
+        "decoded": 23034,
+        "gzip": 7816
+      },
+      {
+        "file": "assets/dist-PqH-U6J6.js",
+        "decoded": 294,
+        "gzip": 211
+      },
+      {
+        "file": "assets/chevron-left-C4cuJYPk.js",
+        "decoded": 130,
+        "gzip": 146
+      },
+      {
+        "file": "assets/chevron-right-BTc5V6Fa.js",
+        "decoded": 130,
+        "gzip": 142
+      },
+      {
+        "file": "assets/eye-DMC4mPG7.js",
+        "decoded": 256,
+        "gzip": 203
+      },
+      {
+        "file": "assets/info-SnTXHo4y.js",
+        "decoded": 204,
+        "gzip": 179
+      },
+      {
+        "file": "assets/map-pin-V6uQdnRn.js",
+        "decoded": 259,
+        "gzip": 226
+      },
+      {
+        "file": "assets/plus-P_EZssWr.js",
+        "decoded": 153,
+        "gzip": 151
+      },
+      {
+        "file": "assets/trash-2-D1GaFx5k.js",
+        "decoded": 328,
+        "gzip": 217
+      },
+      {
+        "file": "assets/triangle-alert-D86ueHUe.js",
+        "decoded": 265,
+        "gzip": 216
+      },
+      {
+        "file": "assets/format-C0Mo6fqF.js",
+        "decoded": 19368,
+        "gzip": 5529
+      },
+      {
+        "file": "assets/timezone-DQcs0nho.js",
+        "decoded": 10815,
+        "gzip": 3776
+      },
+      {
+        "file": "assets/ArrowRight.es-IiFiYl7l.js",
+        "decoded": 1618,
+        "gzip": 649
+      },
+      {
+        "file": "assets/IconBase.es-CTUxyWZ3.js",
+        "decoded": 642,
+        "gzip": 428
+      },
+      {
+        "file": "assets/Car.es-BQXs-unR.js",
+        "decoded": 3465,
+        "gzip": 1129
+      },
+      {
+        "file": "assets/CaretRight.es-DgZnAQlk.js",
+        "decoded": 1466,
+        "gzip": 589
+      },
+      {
+        "file": "assets/CheckCircle.es-D47PgwMx.js",
+        "decoded": 2172,
+        "gzip": 759
+      },
+      {
+        "file": "assets/CloudArrowUp.es-Cg5XJjHQ.js",
+        "decoded": 3119,
+        "gzip": 1116
+      },
+      {
+        "file": "assets/IdentificationBadge.es-DIe71fB0.js",
+        "decoded": 3261,
+        "gzip": 1075
+      },
+      {
+        "file": "assets/Shield.es-BEhUuiTZ.js",
+        "decoded": 2773,
+        "gzip": 1078
+      },
+      {
+        "file": "assets/Trash.es-D8PUi4Qn.js",
+        "decoded": 2629,
+        "gzip": 826
+      },
+      {
+        "file": "assets/Users.es-WNy5yqHS.js",
+        "decoded": 3220,
+        "gzip": 1149
+      },
+      {
+        "file": "assets/Warning.es-DSweMUac.js",
+        "decoded": 3417,
+        "gzip": 1114
+      },
+      {
+        "file": "assets/credit-utils-k9YFnAyS.js",
+        "decoded": 2513,
+        "gzip": 816
+      },
+      {
+        "file": "assets/PerformanceChartPlot-CcwQd-yZ.js",
+        "decoded": 330123,
+        "gzip": 96945
+      }
+    ]
+  }
+}

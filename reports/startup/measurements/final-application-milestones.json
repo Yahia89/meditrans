@@ -1,0 +1,29 @@
+{
+  "scenario": "Forced refresh, warm cache, final production build",
+  "marks": [
+    {
+      "name": "future-nemt:session-resolved",
+      "startTime": 190.09999999962747
+    },
+    {
+      "name": "future-nemt:organization-ready",
+      "startTime": 296.29999999981374
+    },
+    {
+      "name": "future-nemt:identity-ready",
+      "startTime": 296.29999999981374
+    },
+    {
+      "name": "future-nemt:usable-shell",
+      "startTime": 314.5
+    },
+    {
+      "name": "future-nemt:route-primary-data-ready",
+      "startTime": 434
+    },
+    {
+      "name": "future-nemt:chart-ready",
+      "startTime": 764.9000000003725
+    }
+  ]
+}

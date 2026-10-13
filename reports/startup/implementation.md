@@ -1,0 +1,80 @@
+# Web startup and dependency upgrade — 2026-10-13
+
+Implementation branch: `perf/web-startup-upgrade-20261013`. Starting commit: `d577707186a7f97997398273becfb41b8d84f45c`.
+
+The final code is `febad46`, preserved at `/tmp/meditrans-startup-handoff`; final dashboard measurements use it. The preceding `64a69c1` candidate remains at `/tmp/meditrans-startup-release-candidate` and supplied the explicitly labeled login/secondary-route/media/billing evidence. Later commit `8edb88a` records authenticated database measurements and a proposed SQL follow-up; that SQL is unapplied and is not included as a deployed optimization in the browser results.
+
+The supplied findings matched the initial source and rebuilt asset hashes. The raw HAR was not present; its supplied sanitized findings were treated as a historical trace, not as Web Vitals or the current benchmark. Both supplied Markdown files remain untouched and untracked. Work is local: no deployment, remote schema/data migration, financial transaction, hosting change, or native-project change was performed. The supplied account was used through an isolated Chromium profile for read-only live-data checks; normal authentication/presence requests still occur. Credentials and response bodies are absent from these reports.
+
+## What changed
+
+- Removed the unused beta router and router devtools, the aggregate `radix-ui` dependency, and the duplicate Tailwind PostCSS/autoprefixer pipeline. Popover and Switch use explicit Radix packages. Shell icons use Lucide; feature-specific Phosphor icons remain supported.
+- One user-keyed, abortable Query bootstrap now owns profile, membership/organization summaries and driver identity. It loads the three reads in parallel, validates actual response shape against generated row types, caches a confirmed absent driver, and excludes memberships whose organizations are hidden by RLS. It does not fetch organization integration secrets or operational data. Auth callbacks remain synchronous; refresh object changes do not refetch identity. Session revisions, pending logout intent, and user/org cache cancellation prevent late responses from reopening private content.
+- Organization context derives its authorized selection from the shared bootstrap. User/org changes remount private content and clear private Query data. Unknown or failed membership stays behind a non-sensitive loading/error view. Retry works even when the initial session lookup failed.
+- Driver identity has no location side effects. A single explicitly enabled location owner runs only in authorized Trips/detail workflows for an active driver association, including managers who also have a driver record. Dashboard, Billing and account startup do not start GPS. Presence subscriptions use stable IDs and preserve cleanup.
+- Noncritical onboarding work runs after browser idle and uses bounded threshold reads. It is not part of authenticated navigation readiness.
+- Credit notification and alert consumers share the same user/org/month/timezone query. Pagination uses total count and actual page size, including servers with lower row caps. Different RPC ranges remain separate. Credit failures stay visible in both the alert card and notification bell.
+- Chart code and data start together near the viewport. The resolved plot export is rendered directly; preloading a module and then initializing a fresh React.lazy boundary had still introduced a roughly 300 ms fallback delay. The equivalent route preload/render issue is also removed. Empty, error and ready states remain distinct.
+- Stable React TanStack Router owns page/detail/modal/history state, typed search validation, early access decisions and route errors. A compatibility search parser keeps existing `/?page=...`, repeated filters and auth fragments. Remaining list filters use the official nuqs Router adapter. Batched page+ID updates create one history entry. Access is checked before loading and synchronously before rendering, including membership changes and employee-detail restrictions.
+- Failed deployment chunks produce an explicit manual refresh action, without an automatic reload loop. Refresh warns that unsaved changes can be discarded. Existing dialog cancel/form behavior is preserved; no blanket dirty-form policy was introduced.
+- Vite 8/Rolldown replaces Vite 7/Rollup. Two groups merge only the static workspace/dashboard dependencies; dynamic chart, dialog, map, PDF and spreadsheet boundaries remain separate. This avoids the dozens of tiny shared requests produced by automatic splitting in this app. Browser targets explicitly retain the previous Vite 7 floor: Chrome/Edge107, Firefox104, Safari16.
+
+## Dependency decisions
+
+Exact direct-dependency resolved versions, including retained packages, are recorded in [dependencies.json](dependencies.json). `directBefore` distinguishes an earlier transitive install from an earlier direct dependency; removing direct PostCSS does not remove Vite's internal PostCSS.
+
+| Group | Before → after | Decision and verification |
+| --- | --- | --- |
+| Runtime | React/DOM19.2.1 →19.2.8 | Same minor, aligned patch; production Chromium/WebKit suites. React19.3 migration deferred. |
+| Routing | unused beta0.0.1-beta.53 / devtools1.140.0 → react-router1.170.44 + router-plugin1.168.45 | Stable Router, file route generation/code splitting, compatible peers verified. No TanStack Start/SSR/server. |
+| Query |5.90.12 →5.104.2; Query devtools5.91.1 →5.104.2 | Shared client, existing invalidation prefixes retained; production devtools exclusion verified. |
+| Supabase JS |2.90.1 →2.117.3 | Session refresh/logout/multi-tab/disabled-access tests. New PostgREST automatic retries explicitly disabled with supported `db.retry:false`, preserving existing Query-owned retry behavior and timely error views. Auth refresh/persistence remain enabled. |
+| Build | Vite7.2.6 →8.3.4; React plugin5.1.1 →6.1.2 | Native Rolldown/Oxc configuration, typecheck/build plus production browser checks. |
+| Styling | Tailwind/Vite plugin4.1.17 →4.3.3 | One CSS pipeline, plugin peers support Vite8. No component-library migration. |
+| Workbooks | npm xlsx0.18.5 →official vendor0.20.3 tarball | Registry package was stale; vendor URL/integrity in lockfile. Real CSV/XLS/XLSX parsing and export round-trip tested. |
+| PDF | jsPDF4.0.0 →4.2.1 | Kept AutoTable5.0.7/signatures; actual synthetic signed and absent-evidence reports rendered and visually inspected. Compatible dompurify/fflate transitive patches updated. |
+| Validation | Zod4.1.13 →4.6.7 resolved within existing v4 range | Runtime bootstrap validators and all domain tests. |
+| Retained | nuqs2.8.3, React Hook Form7.68.0, Recharts3.6.0, Maps/clustering, PapaParse, signatures, date-fns/timezones, table/virtualizer | Existing capabilities remain. No broad rewrite or blanket audit-force update. |
+| Node | current24.20.0 | `.nvmrc` selects24; manifest requires >=22.12, satisfying Vite/plugin and Supabase SDK floors. |
+
+`npm audit --omit=dev` reported zero advisories after the scoped dependency updates. The full audit still reports tooling advisories (including the existing gh-pages/globby chain); this is not a claim that every installed development package is advisory-free. No forced major/downgrade changes were applied to deployment tooling.
+
+Primary references checked: [Vite migration](https://vite.dev/guide/migration), [Rolldown splitting](https://rolldown.rs/reference/OutputOptions.codeSplitting), [Router code splitting](https://tanstack.com/router/latest/docs/framework/react/guide/automatic-code-splitting), [nuqs adapters](https://nuqs.dev/docs/adapters), [Supabase auth callbacks](https://supabase.com/docs/reference/javascript/auth-onauthstatechange), [Supabase retry](https://supabase.com/docs/reference/javascript/retry), [SheetJS installation](https://docs.sheetjs.com/docs/getting-started/installation/nodejs/), [jsPDF releases](https://github.com/parallax/jsPDF/releases).
+
+## Measurements
+
+See [measurements.md](measurements.md) for repeated final comparison, ranges, network counts and limitations. JSON import graphs are saved per stage: baseline, cleanup, router, Vite8 default splitting, and final grouping. Router adoption alone is not counted as a speed improvement: its code cost is explicitly included. The `shell` graph includes the split workspace component, not only the small HTML entry. Sizes are decoded JS and reproducible local gzip estimates, not Cloudflare transfer sizes.
+
+The passive [benchmark script](../../scripts/benchmark-startup.mjs) launches isolated Chrome and observes sanitized timing/network metadata. All real application navigation and input were driven through Argent. Cold means HTTP cache cleared, with auth and DNS/TLS/system caches preserved; warm means retained browser cache. Each dashboard run waits for an actual visible chart, then uses the same2.5-second observation interval. No networkidle acceptance or field-p75/INP claim is made. Earlier exploratory runs are retained and labeled separately; they are not mixed into the final comparison.
+
+Vite's reported build time was 6.96s baseline, 8.11s cleanup, 6.26s Router on Vite7, and **880ms** in the Vite8 candidate run; the final handoff rebuilt in **858ms** (`/tmp/meditrans-handoff-build.log`). These are single local compiler observations, excluding typecheck and affected by cache/system load; they do not prove end-user speed.
+
+## Database and authorization evidence
+
+The application's project was verified as `devszzjyobijwldayicb`. The Supabase plugin's explicitly targeted read-only request was denied, and no query was run against the unrelated project it listed. Profiling subsequently succeeded through the repository's verified linked Supabase CLI connection. The supplied account's admin membership, matching authenticated identity, enabled row security and absence of `BYPASSRLS` were checked. Measurements ran in read-only transactions with timeouts and `ROLLBACK`; no live data, schema, policies, indexes or migrations changed.
+
+The [authenticated database measurements](database-measurements.md), recorded in `8edb88a`, identify timezone validation as the dominant measured RPC cost: the deployed `pg_timezone_names` predicate took **787.874ms**, while the exact trip aggregates took **3.667–6.812ms** using the existing `idx_trips_org_id_pickup_time`. The complete RPC samples took 812.595ms and 829.493ms. Recent activity took 5.315ms using `idx_trips_org_updated_at`. These single sequential samples cover one admin, one organization and small current ranges, with shared-buffer hits and no disk reads or temporary spills. They do not establish cold-cache, concurrent, restricted-role or large-tenant performance. The plans do not justify a new trip index.
+
+The prepared [timezone fast-path migration](../../supabase/migrations/20261013225316_dashboard_timezone_fast_path.sql) is **unapplied**. It bypasses the catalog lookup only for the already accepted exact default `America/Chicago`; other non-null names retain catalog validation, without broadening acceptance to parser-only offsets or abbreviations. Source comparison preserves the RPC signature, `SECURITY INVOKER`, empty search path, authenticated-user/membership checks, trip RLS, date/granularity caps, half-open aggregate and EXECUTE grants. There are no new indexes or policy changes. Its [26-check SQL rollback regression suite](../../supabase/tests/dashboard_trip_buckets_rollback.sql) is also **unexecuted**: local PostgreSQL tools/Docker were unavailable, and live fixture writes were outside this task. Run those actual-function checks in a disposable database and repeat authenticated profiles before considering deployment; no predicted SQL improvement is counted as achieved.
+
+The reusable [read-only profiling procedure](database-profile.sql) and [sanitized plans and timings](database-measurements.json) accompany the report. Raw plans and identifiers remain private under `/tmp/meditrans-db-profile/`. Browser SDK requests and synthetic authorization tests are recorded separately from the authenticated SQL evidence.
+
+## Hosting, rollout and rollback
+
+Production `https://nemt.futrans.us/billing` returned404, and a missing hashed-asset probe also returned404. Therefore canonical path routing is deferred: existing query bookmarks remain valid without any hosting changes. The local preview fallback is not proof of deployed deep-link support. A future path rollout must first verify real host rewrites, root/deep-link reload, OAuth/reset fragments and asset404 handling. Never rewrite missing JS files to HTML.
+
+For a separately authorized hosting change: use long `public, max-age=31536000, immutable` caching only for content-hashed static assets; revalidate entry HTML (`no-cache` or equivalent edge rule). Preserve previous assets for stale tabs/rollback. The four-hour/MISS finding came from the supplied HAR, not a changed live cache rule. Review Cloudflare cache eligibility, HTML bypass and origin headers on the actual host before applying anything. No rules were changed here.
+
+Stage commits are reviewable with `git log d577707..HEAD`. Revert in reverse order when rolling back the full change; keep the SDK retry configuration with its SDK upgrade. Reverting only Router requires reverting its adapter/navigation consumers and restoring the earlier lockfile/config together. Restore the original deployment artifact for a production rollback. No database rollback is needed for the client changes because the SQL follow-up is unapplied; if that proposal is later deployed, its separate [function rollback](rollback-dashboard-timezone-fast-path.sql) restores the previous definition. No push or deployment was performed.
+
+## Reproduction and checks
+
+Use Node24 and `npm ci`, then `npm run build -- --manifest`. Commands and browser results are recorded in [validation.md](validation.md). `test:startup:ui`, `test:dashboard:ui`, `test:router:ui` and `test:billing:ui` use production preview. Most network responses in those regression suites are synthetic; live-account checks are listed separately. Original unit/domain tests remain in place.
+
+For bundle graphs: `node scripts/measure-startup-bundles.mjs dist`. For repeat runs: start `node scripts/benchmark-startup.mjs --output reports/startup/measurements`, use its loopback `/arm` and `/save` controller around Argent actions, and summarize matching scenario prefixes with `node scripts/summarize-startup.mjs`. Never persist authentication state, a raw HAR, production screenshots/traces, request bodies or sensitive URLs in shared artifacts.
+
+The Router suite passed **8/8 checks** on `febad46` in Chromium and WebKit, covering history/query preservation, presence continuity, deferred optional modules, an open trip draft across token refresh and manual stale-deployment recovery. The latter publishes new asset URLs, as a real deployment would: WebKit retained a failed import at its unchanged URL across reload, so same-URL recovery is not claimed. See the [suite notes](../../tests/router-ui/README.md).
+
+The configured Firefox projects in the startup/dashboard/billing suites could not launch on this host: Playwright's installed Firefox exits with `Could not find profile folder`, including a bounded `/tmp` retry. The Router suite currently targets Chromium and WebKit. Their results do not substitute for Firefox. No OS privacy settings or browser binaries were altered. Re-run the Firefox projects on a working host before release; relevant upstream reports are [Playwright42768](https://github.com/microsoft/playwright/issues/42768) and [Mozilla2062988](https://bugzilla.mozilla.org/show_bug.cgi?id=2062988).
+
+The final code commit is `febad46`: its independently bounded ETA lookup/SMS task no longer holds the GPS-write lock, and identity changes abort both streams. Three new lifecycle regressions cover stalled work, identity switching and timeout. The final handoff rebuild and dashboard comparisons include this safeguard; other measured scenarios identify their preceding candidate explicitly.
