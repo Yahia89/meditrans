@@ -61,8 +61,11 @@ function locationHarness() {
   const watches = [];
   const cleared = [];
   const writes = [];
+  const reads = [];
   const eta = [];
   let holdUpdate;
+  let holdTrip;
+  let holdEta;
   Object.defineProperty(globalThis, "navigator", { configurable: true, value: { geolocation: {
     watchPosition(callback) { watches.push(callback); return watches.length; },
     clearWatch(id) { cleared.push(id); },
@@ -72,12 +75,12 @@ function locationHarness() {
       const request = { table, filters: {} };
       const query = {
         update(values) { request.values = values; writes.push(request); return query; },
-        select() { return query; }, eq(field, value) { request.filters[field] = value; return query; },
+        select() { reads.push(request); return query; }, eq(field, value) { request.filters[field] = value; return query; },
         abortSignal(signal) { request.signal = signal; return query; }, maybeSingle() { return query; },
-        then(yes, no) { return Promise.resolve(table === "drivers" && holdUpdate ? holdUpdate : { data: table === "trips" ? { id: "trip-a" } : null, error: null }).then(yes, no); },
+        then(yes, no) { return Promise.resolve(table === "drivers" && holdUpdate ? holdUpdate : table === "trips" && holdTrip ? holdTrip : { data: table === "trips" ? { id: "trip-a" } : null, error: null }).then(yes, no); },
       }; return query;
     },
-    functions: { invoke(name, args) { eta.push({ name, args }); return Promise.resolve({ error: null }); } },
+    functions: { invoke(name, args) { eta.push({ name, args }); return holdEta ?? Promise.resolve({ error: null }); } },
   };
   const hooks = loadSource("./useDriverLocation.ts", {
     react: harness.react,
@@ -85,9 +88,12 @@ function locationHarness() {
     "@/contexts/OrganizationContext": { useOrganization: () => state.org },
     "@/lib/supabase": { supabase },
   });
-  return { ...harness, state, watches, cleared, writes, eta, hooks, hold(promise) { holdUpdate = promise; } };
+  return { ...harness, state, watches, cleared, writes, reads, eta, hooks,
+    hold(promise) { holdUpdate = promise; }, holdTrip(promise) { holdTrip = promise; }, holdEta(promise) { holdEta = promise; } };
 }
 const position = { coords: { latitude: 44, longitude: -93 } };
+const movedPosition = { coords: { latitude: 44.01, longitude: -93 } };
+const flushTasks = () => new Promise((resolve) => setImmediate(resolve));
 
 test("shared driver identity reads have no GPS or network side effects for any role", () => {
   const h = locationHarness();
@@ -145,9 +151,88 @@ test("token refresh does not restart GPS; a valid workflow preserves ETA checks"
   h.render(() => h.hooks.useDriverLocation({ enabled: true }));
   assert.equal(h.watches.length, 1);
   await h.watches[0](position);
+  await flushTasks();
   assert.equal(h.writes.length, 1);
   assert.equal(h.eta[0].name, "send_eta_sms");
   h.cleanup();
+});
+
+test("stalled trip lookup or ETA/SMS never blocks GPS writes or creates duplicate ETA tasks", async () => {
+  for (const stage of ["lookup", "sms"]) {
+    const h = locationHarness();
+    let resolve;
+    const held = new Promise((done) => { resolve = done; });
+    if (stage === "lookup") h.holdTrip(held); else h.holdEta(held);
+    try {
+      h.render(() => h.hooks.useDriverLocation({ enabled: true }));
+      await h.watches[0](position);
+      await flushTasks();
+      assert.equal(h.reads.length, 1);
+      assert.equal(h.eta.length, stage === "sms" ? 1 : 0);
+      await h.watches[0](movedPosition);
+      await flushTasks();
+      assert.equal(h.writes.length, 2, `GPS must continue during stalled ${stage}`);
+      assert.equal(h.writes[1].values.current_lat, movedPosition.coords.latitude);
+      assert.equal(h.reads.length, 1, "only one ETA task may be in flight");
+      h.cleanup();
+      const signal = stage === "lookup" ? h.reads[0].signal : h.eta[0].args.signal;
+      assert.equal(signal.aborted, true);
+    } finally {
+      h.cleanup();
+      resolve({ data: { id: "trip-a" }, error: null });
+      await flushTasks();
+    }
+    assert.equal(h.eta.length, stage === "sms" ? 1 : 0, "cleanup must not continue a late lookup into SMS");
+  }
+});
+
+test("changing drivers aborts old ETA work while the new identity can update and check ETA", async () => {
+  const h = locationHarness();
+  let resolve;
+  h.holdTrip(new Promise((done) => { resolve = done; }));
+  try {
+    h.render(() => h.hooks.useDriverLocation({ enabled: true }));
+    await h.watches[0](position);
+    await flushTasks();
+    const oldLookup = h.reads[0];
+    h.state.auth.bootstrap.drivers = [{ id: "driver-b", user_id: "user-a", org_id: "org-b", active: true, disabled_at: null }];
+    h.state.org.currentOrganization = { id: "org-b" };
+    h.holdTrip(null);
+    h.render(() => h.hooks.useDriverLocation({ enabled: true }));
+    assert.equal(oldLookup.signal.aborted, true);
+    await h.watches[0](movedPosition);
+    assert.equal(h.writes.length, 1, "the old GPS callback stays stopped");
+    await h.watches[1](position);
+    await flushTasks();
+    assert.deepEqual(h.writes[1].filters, { id: "driver-b", org_id: "org-b", user_id: "user-a" });
+    assert.deepEqual(h.reads[1].filters, { org_id: "org-b", driver_id: "driver-b", status: "en_route" });
+    assert.equal(h.eta.length, 1);
+    resolve({ data: { id: "old-trip" }, error: null });
+    await flushTasks();
+    assert.equal(h.eta.length, 1, "a late old lookup must not send another ETA request");
+  } finally { h.cleanup(); resolve({ data: null, error: null }); }
+});
+
+test("ETA timeout aborts a stalled lookup and late results cannot trigger SMS", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const h = locationHarness();
+  let resolve;
+  h.holdTrip(new Promise((done) => { resolve = done; }));
+  try {
+    h.render(() => h.hooks.useDriverLocation({ enabled: true }));
+    await h.watches[0](position);
+    await flushTasks();
+    t.mock.timers.tick(30_000);
+    assert.equal(h.reads[0].signal.aborted, true);
+    resolve({ data: { id: "expired-trip" }, error: null });
+    await flushTasks();
+    assert.equal(h.eta.length, 0);
+    h.holdTrip(null);
+    await h.watches[0](movedPosition);
+    await flushTasks();
+    assert.equal(h.writes.length, 2);
+    assert.equal(h.eta.length, 1, "a settled timeout permits a subsequent bounded check");
+  } finally { h.cleanup(); resolve({ data: null, error: null }); }
 });
 
 test("presence switch cleans the original company and refreshed tokens do not duplicate setup", async () => {

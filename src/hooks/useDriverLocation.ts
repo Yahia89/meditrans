@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 
 const UPDATE_INTERVAL = 60 * 1000;
 const DISTANCE_THRESHOLD = 0.001;
+const ETA_CHECK_TIMEOUT = 30 * 1000;
 
 /** Read-only shared identity. A confirmed missing driver never starts a new read. */
 export function useDriverIdentity() {
@@ -30,6 +31,26 @@ export function useDriverLocation({ enabled = false }: { enabled?: boolean } = {
     let updating = false;
     let lastUpdate = 0;
     let lastPosition: { lat: number; lng: number } | null = null;
+    let etaController: AbortController | null = null;
+    const checkEta = async () => {
+      if (!active || etaController) return;
+      const taskController = new AbortController();
+      etaController = taskController;
+      const timeout = setTimeout(() => taskController.abort(), ETA_CHECK_TIMEOUT);
+      try {
+        const { data: activeTrip, error: tripError } = await supabase.from("trips").select("id")
+          .eq("org_id", orgId).eq("driver_id", driverId).eq("status", "en_route")
+          .abortSignal(taskController.signal).maybeSingle();
+        if (active && !taskController.signal.aborted && !tripError && activeTrip) {
+          await supabase.functions.invoke("send_eta_sms", { body: { trip_id: activeTrip.id }, signal: taskController.signal });
+        }
+      } catch {
+        if (active && !taskController.signal.aborted) console.warn("Unable to check driver ETA.");
+      } finally {
+        clearTimeout(timeout);
+        etaController = null;
+      }
+    };
     const watchId = navigator.geolocation.watchPosition(async (position) => {
       if (!active || updating) return;
       const now = Date.now();
@@ -46,12 +67,9 @@ export function useDriverLocation({ enabled = false }: { enabled?: boolean } = {
         if (error || !active) return;
         lastUpdate = now;
         lastPosition = { lat: latitude, lng: longitude };
-        const { data: activeTrip, error: tripError } = await supabase.from("trips").select("id")
-          .eq("org_id", orgId).eq("driver_id", driverId).eq("status", "en_route")
-          .abortSignal(controller.signal).maybeSingle();
-        if (active && !tripError && activeTrip) {
-          await supabase.functions.invoke("send_eta_sms", { body: { trip_id: activeTrip.id }, signal: controller.signal });
-        }
+        // One bounded ETA task may run independently; a slow SMS service must
+        // never hold the location-write lock or accumulate duplicate checks.
+        void checkEta();
       } catch {
         // A stopped watch must never continue into ETA/SMS for the old identity.
         if (active) console.warn("Unable to sync driver location.");
@@ -62,6 +80,7 @@ export function useDriverLocation({ enabled = false }: { enabled?: boolean } = {
     return () => {
       active = false;
       controller.abort();
+      etaController?.abort();
       navigator.geolocation.clearWatch(watchId);
     };
   }, [canTrack, driverId, orgId, userId]);
