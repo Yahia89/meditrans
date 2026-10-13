@@ -30,6 +30,8 @@ test('preload errors remain observable by the route error boundary', async () =>
     return calls === 1 ? Promise.reject(failure) : Promise.resolve({ default: () => React.createElement('p', null, 'Recovered') });
   });
   await assert.rejects(load(), error => error === failure);
+  assert.throws(() => renderToStaticMarkup(React.createElement(load.Component)), error => error === failure);
+  assert.equal(calls, 1, 'rendering a failed component must not silently retry its import');
   await load();
   assert.equal(calls, 2, 'an explicit retry can re-request a failed preload');
   assert.match(renderToStaticMarkup(React.createElement(load.Component)), /Recovered/);

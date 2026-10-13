@@ -10,25 +10,21 @@ export default defineConfig({
   plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
+  // Merge static workspace/dashboard dependencies to avoid dozens of tiny requests.
+  // Dynamic feature imports (charts, dialogs, PDF, maps, XLSX) stay separate.
+  // Keep the Vite 7 browser floor while upgrading the build engine.
   build: {
-    rollupOptions: {
+    target: ['chrome107', 'edge107', 'firefox104', 'safari16'],
+    rolldownOptions: {
       output: {
-        // Keep shared helpers out of optional vendors such as PDF generation.
-        // Otherwise a shell dependency can pull the entire PDF chunk at startup.
-        onlyExplicitManualChunks: true,
-        manualChunks(id) {
-          // Group package modules, not their entire dependency graphs. In particular,
-          // Vite's shared preload helper must not be captured by the PDF vendor.
-          if (!id.includes('/node_modules/')) return;
-          if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'vendor-react';
-          if (id.includes('/node_modules/@supabase/')) return 'vendor-supabase';
-          if (/\/node_modules\/@tanstack\/(react-query|query-core)\//.test(id)) return 'vendor-query';
-          if (/\/node_modules\/(date-fns|date-fns-tz)\//.test(id)) return 'vendor-date';
-          if (/\/node_modules\/(jspdf|jspdf-autotable)\//.test(id)) return 'vendor-pdf';
-          if (/\/node_modules\/@tanstack\/(react-table|table-core)\//.test(id)) return 'vendor-table';
+        codeSplitting: {
+          groups: [
+            { name: 'workspace', test: /[/\\]src[/\\]router[/\\]WorkspacePage\.tsx$/, priority: 20 },
+            { name: 'dashboard', test: /[/\\]src[/\\]components[/\\]dashboard\.tsx$/, priority: 10 },
+          ],
         },
       },
     },

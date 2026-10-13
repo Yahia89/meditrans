@@ -12,6 +12,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Create a single supabase client for interacting with your database
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  // TanStack Query owns read retries. Preserve the previous SDK's behavior so
+  // transport backoff cannot multiply each Query attempt or delay error UI.
+  db: { retry: false },
   auth: {
     // Persist auth session in localStorage
     persistSession: true,

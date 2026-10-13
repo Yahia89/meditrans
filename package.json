@@ -16,7 +16,13 @@
     "test:billing:ui": "playwright test --config playwright.billing.config.ts",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "sh -c 'echo nemt.futrans.us > dist/CNAME && gh-pages -d dist'"
+    "deploy": "sh -c 'echo nemt.futrans.us > dist/CNAME && gh-pages -d dist'",
+    "test:startup": "node --test src/lib/identity-bootstrap.test.mjs src/hooks/identity-lifecycle.test.mjs src/components/credits/credit-alert-data.test.mjs src/components/dashboard/tripBuckets.test.mjs src/router/navigation.test.mjs src/lib/chunk-errors.test.mjs src/lib/preloaded-component.test.mjs",
+    "test:startup:ui": "playwright test --config playwright.startup.config.ts",
+    "test:dashboard:ui": "playwright test --config playwright.dashboard.config.ts",
+    "test:imports": "node --test src/components/trips/file-parser.test.mjs",
+    "measure:startup": "node scripts/measure-startup-bundles.mjs",
+    "test:router:ui": "playwright test --config playwright.router.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -37,9 +43,9 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-google-maps/api": "^2.20.8",
-    "@supabase/supabase-js": "^2.90.1",
-    "@tanstack/react-query": "^5.90.12",
-    "@tanstack/react-query-devtools": "^5.91.1",
+    "@supabase/supabase-js": "^2.117.3",
+    "@tanstack/react-query": "^5.104.2",
+    "@tanstack/react-query-devtools": "^5.104.2",
     "@tanstack/react-router": "^1.170.44",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.18",
@@ -53,8 +59,8 @@
     "lucide-react": "^0.556.0",
     "nuqs": "^2.8.3",
     "papaparse": "^5.5.3",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.68.0",
     "react-signature-canvas": "^1.1.0-alpha.2",
@@ -69,7 +75,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@playwright/test": "1.63.0",
-    "@tailwindcss/vite": "^4.1.17",
+    "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-plugin": "^1.168.45",
     "@types/google.maps": "^3.58.1",
     "@types/node": "^24.10.1",
@@ -77,16 +83,19 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@types/react-signature-canvas": "^1.0.7",
-    "@vitejs/plugin-react": "^5.1.1",
+    "@vitejs/plugin-react": "^6.1.2",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "gh-pages": "^6.3.0",
     "globals": "^16.5.0",
-    "tailwindcss": "^4.1.17",
+    "tailwindcss": "^4.3.3",
     "tw-animate-css": "^1.4.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^8.3.4"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }
