@@ -1,0 +1,395 @@
+{
+  "shell": {
+    "decoded": 739640,
+    "gzip": 222653,
+    "chunks": [
+      {
+        "file": "assets/index-CDXUtrqv.js",
+        "decoded": 347646,
+        "gzip": 108990
+      },
+      {
+        "file": "assets/vendor-react-CRNAf-Pk.js",
+        "decoded": 193007,
+        "gzip": 60541
+      },
+      {
+        "file": "assets/vendor-query-YCsKbiKh.js",
+        "decoded": 34897,
+        "gzip": 10324
+      },
+      {
+        "file": "assets/vendor-supabase-LedVb_pO.js",
+        "decoded": 164090,
+        "gzip": 42798
+      }
+    ]
+  },
+  "dashboard": {
+    "decoded": 922177,
+    "gzip": 277840,
+    "chunks": [
+      {
+        "file": "assets/index-CDXUtrqv.js",
+        "decoded": 347646,
+        "gzip": 108990
+      },
+      {
+        "file": "assets/vendor-react-CRNAf-Pk.js",
+        "decoded": 193007,
+        "gzip": 60541
+      },
+      {
+        "file": "assets/vendor-query-YCsKbiKh.js",
+        "decoded": 34897,
+        "gzip": 10324
+      },
+      {
+        "file": "assets/vendor-supabase-LedVb_pO.js",
+        "decoded": 164090,
+        "gzip": 42798
+      },
+      {
+        "file": "assets/dashboard-CjtU0OFO.js",
+        "decoded": 69058,
+        "gzip": 16715
+      },
+      {
+        "file": "assets/eye-HBpxjmos.js",
+        "decoded": 252,
+        "gzip": 197
+      },
+      {
+        "file": "assets/info-BhPY958I.js",
+        "decoded": 200,
+        "gzip": 177
+      },
+      {
+        "file": "assets/check-CTuDt12y.js",
+        "decoded": 120,
+        "gzip": 137
+      },
+      {
+        "file": "assets/Plus.es-FIAV42AJ.js",
+        "decoded": 1572,
+        "gzip": 581
+      },
+      {
+        "file": "assets/IconBase.es-Dy8XoJME.js",
+        "decoded": 589,
+        "gzip": 398
+      },
+      {
+        "file": "assets/ArrowRight.es-QXfoKzk-.js",
+        "decoded": 1569,
+        "gzip": 626
+      },
+      {
+        "file": "assets/Bell.es-BKGjbBbJ.js",
+        "decoded": 2792,
+        "gzip": 1019
+      },
+      {
+        "file": "assets/Car.es-qapN1R2f.js",
+        "decoded": 3416,
+        "gzip": 1102
+      },
+      {
+        "file": "assets/CheckCircle.es-B_y0CgU4.js",
+        "decoded": 2123,
+        "gzip": 733
+      },
+      {
+        "file": "assets/ClipboardText.es-CUWv0W4M.js",
+        "decoded": 3124,
+        "gzip": 1046
+      },
+      {
+        "file": "assets/CreditCard.es-CTybSOIq.js",
+        "decoded": 2391,
+        "gzip": 768
+      },
+      {
+        "file": "assets/IdentificationBadge.es-jiSDamr6.js",
+        "decoded": 3212,
+        "gzip": 1050
+      },
+      {
+        "file": "assets/Shield.es-WgdqJZui.js",
+        "decoded": 2724,
+        "gzip": 1053
+      },
+      {
+        "file": "assets/Trash.es-BKRdelGR.js",
+        "decoded": 2580,
+        "gzip": 803
+      },
+      {
+        "file": "assets/X.es-qrrwXbjm.js",
+        "decoded": 1965,
+        "gzip": 668
+      },
+      {
+        "file": "assets/Warning.es-DBC-OTrl.js",
+        "decoded": 3368,
+        "gzip": 1090
+      },
+      {
+        "file": "assets/credit-utils-Dw2Ce4G_.js",
+        "decoded": 2415,
+        "gzip": 803
+      },
+      {
+        "file": "assets/CircleNotch.es-CA8QQw2N.js",
+        "decoded": 1953,
+        "gzip": 800
+      },
+      {
+        "file": "assets/timezone-Dbhxa3es.js",
+        "decoded": 2083,
+        "gzip": 692
+      },
+      {
+        "file": "assets/vendor-date-C6A8HFHa.js",
+        "decoded": 34483,
+        "gzip": 10216
+      },
+      {
+        "file": "assets/select-C5_weFUB.js",
+        "decoded": 22888,
+        "gzip": 8000
+      },
+      {
+        "file": "assets/index-CKwOTMyL.js",
+        "decoded": 239,
+        "gzip": 175
+      },
+      {
+        "file": "assets/CalendarBlank.es-Z95p52YT.js",
+        "decoded": 2246,
+        "gzip": 716
+      },
+      {
+        "file": "assets/CaretDown.es-C-dMNTij.js",
+        "decoded": 1402,
+        "gzip": 571
+      },
+      {
+        "file": "assets/CaretLeft.es--eu5Mlwl.js",
+        "decoded": 1342,
+        "gzip": 547
+      },
+      {
+        "file": "assets/CaretRight.es-CKbXxaU2.js",
+        "decoded": 1417,
+        "gzip": 567
+      },
+      {
+        "file": "assets/Clock.es-I4hpE-qV.js",
+        "decoded": 1836,
+        "gzip": 647
+      },
+      {
+        "file": "assets/MapPin.es-CdwKY9mi.js",
+        "decoded": 2937,
+        "gzip": 1075
+      },
+      {
+        "file": "assets/CloudArrowUp.es-CP2u9BtD.js",
+        "decoded": 3070,
+        "gzip": 1092
+      },
+      {
+        "file": "assets/Users.es-Cbu5_4vr.js",
+        "decoded": 3171,
+        "gzip": 1123
+      }
+    ]
+  },
+  "chart": {
+    "decoded": 1263518,
+    "gzip": 380504,
+    "chunks": [
+      {
+        "file": "assets/index-CDXUtrqv.js",
+        "decoded": 347646,
+        "gzip": 108990
+      },
+      {
+        "file": "assets/vendor-react-CRNAf-Pk.js",
+        "decoded": 193007,
+        "gzip": 60541
+      },
+      {
+        "file": "assets/vendor-query-YCsKbiKh.js",
+        "decoded": 34897,
+        "gzip": 10324
+      },
+      {
+        "file": "assets/vendor-supabase-LedVb_pO.js",
+        "decoded": 164090,
+        "gzip": 42798
+      },
+      {
+        "file": "assets/dashboard-CjtU0OFO.js",
+        "decoded": 69058,
+        "gzip": 16715
+      },
+      {
+        "file": "assets/eye-HBpxjmos.js",
+        "decoded": 252,
+        "gzip": 197
+      },
+      {
+        "file": "assets/info-BhPY958I.js",
+        "decoded": 200,
+        "gzip": 177
+      },
+      {
+        "file": "assets/check-CTuDt12y.js",
+        "decoded": 120,
+        "gzip": 137
+      },
+      {
+        "file": "assets/Plus.es-FIAV42AJ.js",
+        "decoded": 1572,
+        "gzip": 581
+      },
+      {
+        "file": "assets/IconBase.es-Dy8XoJME.js",
+        "decoded": 589,
+        "gzip": 398
+      },
+      {
+        "file": "assets/ArrowRight.es-QXfoKzk-.js",
+        "decoded": 1569,
+        "gzip": 626
+      },
+      {
+        "file": "assets/Bell.es-BKGjbBbJ.js",
+        "decoded": 2792,
+        "gzip": 1019
+      },
+      {
+        "file": "assets/Car.es-qapN1R2f.js",
+        "decoded": 3416,
+        "gzip": 1102
+      },
+      {
+        "file": "assets/CheckCircle.es-B_y0CgU4.js",
+        "decoded": 2123,
+        "gzip": 733
+      },
+      {
+        "file": "assets/ClipboardText.es-CUWv0W4M.js",
+        "decoded": 3124,
+        "gzip": 1046
+      },
+      {
+        "file": "assets/CreditCard.es-CTybSOIq.js",
+        "decoded": 2391,
+        "gzip": 768
+      },
+      {
+        "file": "assets/IdentificationBadge.es-jiSDamr6.js",
+        "decoded": 3212,
+        "gzip": 1050
+      },
+      {
+        "file": "assets/Shield.es-WgdqJZui.js",
+        "decoded": 2724,
+        "gzip": 1053
+      },
+      {
+        "file": "assets/Trash.es-BKRdelGR.js",
+        "decoded": 2580,
+        "gzip": 803
+      },
+      {
+        "file": "assets/X.es-qrrwXbjm.js",
+        "decoded": 1965,
+        "gzip": 668
+      },
+      {
+        "file": "assets/Warning.es-DBC-OTrl.js",
+        "decoded": 3368,
+        "gzip": 1090
+      },
+      {
+        "file": "assets/credit-utils-Dw2Ce4G_.js",
+        "decoded": 2415,
+        "gzip": 803
+      },
+      {
+        "file": "assets/CircleNotch.es-CA8QQw2N.js",
+        "decoded": 1953,
+        "gzip": 800
+      },
+      {
+        "file": "assets/timezone-Dbhxa3es.js",
+        "decoded": 2083,
+        "gzip": 692
+      },
+      {
+        "file": "assets/vendor-date-C6A8HFHa.js",
+        "decoded": 34483,
+        "gzip": 10216
+      },
+      {
+        "file": "assets/select-C5_weFUB.js",
+        "decoded": 22888,
+        "gzip": 8000
+      },
+      {
+        "file": "assets/index-CKwOTMyL.js",
+        "decoded": 239,
+        "gzip": 175
+      },
+      {
+        "file": "assets/CalendarBlank.es-Z95p52YT.js",
+        "decoded": 2246,
+        "gzip": 716
+      },
+      {
+        "file": "assets/CaretDown.es-C-dMNTij.js",
+        "decoded": 1402,
+        "gzip": 571
+      },
+      {
+        "file": "assets/CaretLeft.es--eu5Mlwl.js",
+        "decoded": 1342,
+        "gzip": 547
+      },
+      {
+        "file": "assets/CaretRight.es-CKbXxaU2.js",
+        "decoded": 1417,
+        "gzip": 567
+      },
+      {
+        "file": "assets/Clock.es-I4hpE-qV.js",
+        "decoded": 1836,
+        "gzip": 647
+      },
+      {
+        "file": "assets/MapPin.es-CdwKY9mi.js",
+        "decoded": 2937,
+        "gzip": 1075
+      },
+      {
+        "file": "assets/CloudArrowUp.es-CP2u9BtD.js",
+        "decoded": 3070,
+        "gzip": 1092
+      },
+      {
+        "file": "assets/Users.es-Cbu5_4vr.js",
+        "decoded": 3171,
+        "gzip": 1123
+      },
+      {
+        "file": "assets/PerformanceChartPlot-BZuYaxfH.js",
+        "decoded": 341341,
+        "gzip": 102664
+      }
+    ]
+  }
+}

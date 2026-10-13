@@ -1,0 +1,165 @@
+{
+  "shell": {
+    "decoded": 1092700,
+    "gzip": 300776,
+    "chunks": [
+      {
+        "file": "assets/index-CojUyAhD.js",
+        "decoded": 273691,
+        "gzip": 85293
+      },
+      {
+        "file": "assets/vendor-react-D8NtCtv_.js",
+        "decoded": 193007,
+        "gzip": 60542
+      },
+      {
+        "file": "assets/vendor-query-TiUIs87B.js",
+        "decoded": 34897,
+        "gzip": 10325
+      },
+      {
+        "file": "assets/vendor-radix-DLak3P-M.js",
+        "decoded": 110147,
+        "gzip": 29938
+      },
+      {
+        "file": "assets/vendor-icons-BpleB3Th.js",
+        "decoded": 316868,
+        "gzip": 71880
+      },
+      {
+        "file": "assets/vendor-supabase-Cm3aEAp1.js",
+        "decoded": 164090,
+        "gzip": 42798
+      }
+    ]
+  },
+  "dashboard": {
+    "decoded": 1188924,
+    "gzip": 326318,
+    "chunks": [
+      {
+        "file": "assets/index-CojUyAhD.js",
+        "decoded": 273691,
+        "gzip": 85293
+      },
+      {
+        "file": "assets/vendor-react-D8NtCtv_.js",
+        "decoded": 193007,
+        "gzip": 60542
+      },
+      {
+        "file": "assets/vendor-query-TiUIs87B.js",
+        "decoded": 34897,
+        "gzip": 10325
+      },
+      {
+        "file": "assets/vendor-radix-DLak3P-M.js",
+        "decoded": 110147,
+        "gzip": 29938
+      },
+      {
+        "file": "assets/vendor-icons-BpleB3Th.js",
+        "decoded": 316868,
+        "gzip": 71880
+      },
+      {
+        "file": "assets/vendor-supabase-Cm3aEAp1.js",
+        "decoded": 164090,
+        "gzip": 42798
+      },
+      {
+        "file": "assets/dashboard-QXsFb9_K.js",
+        "decoded": 53587,
+        "gzip": 12564
+      },
+      {
+        "file": "assets/credit-utils-Dw2Ce4G_.js",
+        "decoded": 2415,
+        "gzip": 803
+      },
+      {
+        "file": "assets/timezone-Dbhxa3es.js",
+        "decoded": 2083,
+        "gzip": 692
+      },
+      {
+        "file": "assets/vendor-date-C6A8HFHa.js",
+        "decoded": 34483,
+        "gzip": 10216
+      },
+      {
+        "file": "assets/select-B81Sr_MW.js",
+        "decoded": 3656,
+        "gzip": 1267
+      }
+    ]
+  },
+  "chart": {
+    "decoded": 1530335,
+    "gzip": 429013,
+    "chunks": [
+      {
+        "file": "assets/index-CojUyAhD.js",
+        "decoded": 273691,
+        "gzip": 85293
+      },
+      {
+        "file": "assets/vendor-react-D8NtCtv_.js",
+        "decoded": 193007,
+        "gzip": 60542
+      },
+      {
+        "file": "assets/vendor-query-TiUIs87B.js",
+        "decoded": 34897,
+        "gzip": 10325
+      },
+      {
+        "file": "assets/vendor-radix-DLak3P-M.js",
+        "decoded": 110147,
+        "gzip": 29938
+      },
+      {
+        "file": "assets/vendor-icons-BpleB3Th.js",
+        "decoded": 316868,
+        "gzip": 71880
+      },
+      {
+        "file": "assets/vendor-supabase-Cm3aEAp1.js",
+        "decoded": 164090,
+        "gzip": 42798
+      },
+      {
+        "file": "assets/dashboard-QXsFb9_K.js",
+        "decoded": 53587,
+        "gzip": 12564
+      },
+      {
+        "file": "assets/credit-utils-Dw2Ce4G_.js",
+        "decoded": 2415,
+        "gzip": 803
+      },
+      {
+        "file": "assets/timezone-Dbhxa3es.js",
+        "decoded": 2083,
+        "gzip": 692
+      },
+      {
+        "file": "assets/vendor-date-C6A8HFHa.js",
+        "decoded": 34483,
+        "gzip": 10216
+      },
+      {
+        "file": "assets/select-B81Sr_MW.js",
+        "decoded": 3656,
+        "gzip": 1267
+      },
+      {
+        "file": "assets/PerformanceChartPlot-BfddGb8x.js",
+        "decoded": 341411,
+        "gzip": 102695
+      }
+    ]
+  }
+}

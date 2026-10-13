@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import type { SetupChecklistItem } from "@/contexts/OnboardingContext";
-import { Check, ArrowRight, RocketLaunch } from "@phosphor-icons/react";
+import { Check, ArrowRight, Rocket } from "lucide-react";
 
 interface SetupChecklistProps {
   className?: string;
@@ -35,7 +35,7 @@ export function SetupChecklist({ className }: SetupChecklistProps) {
         <div className="flex items-start justify-between mb-8">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <RocketLaunch size={24} weight="duotone" />
+              <Rocket size={24} />
               <h2 className="text-xl font-bold tracking-tight">
                 Onboarding Navigator
               </h2>
@@ -82,7 +82,7 @@ export function SetupChecklist({ className }: SetupChecklistProps) {
         <div className="p-4 bg-gradient-to-r from-emerald-50 to-green-50 border-t border-emerald-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white">
-              <Check size={20} weight="bold" />
+              <Check size={20} />
             </div>
             <div>
               <p className="font-semibold text-emerald-900">All set!</p>
@@ -119,7 +119,7 @@ function ChecklistItem({ item, index }: ChecklistItemProps) {
             : "bg-slate-100 text-slate-500 border-2 border-slate-200"
         )}
       >
-        {item.completed ? <Check size={16} weight="bold" /> : index}
+        {item.completed ? <Check size={16} /> : index}
       </div>
 
       {/* Content */}
@@ -151,7 +151,7 @@ function ChecklistItem({ item, index }: ChecklistItemProps) {
       >
         {item.ctaLabel}
         {!item.completed && (
-          <ArrowRight size={14} weight="bold" className="ml-1" />
+          <ArrowRight size={14} className="ml-1" />
         )}
       </Button>
     </div>

@@ -2,22 +2,22 @@
 
 import * as React from "react";
 import {
-  UsersThree,
-  CarProfile,
-  UploadSimple,
-  ChartLine,
-  UserList,
+  Users,
+  Car,
+  Upload,
+  ChartNoAxesCombined,
+  Contact,
   Shield,
-  MapTrifold,
+  Map,
   Coins,
   Clock,
   FileText,
-  Broadcast,
-  Buildings,
-  FilePdf,
-  PlugsConnected,
-  ClipboardText,
-} from "@phosphor-icons/react";
+  Radio,
+  Building2,
+  FileChartColumn,
+  Plug,
+  ClipboardList,
+} from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
 import {
@@ -42,52 +42,52 @@ const data = {
     {
       title: "Dashboard",
       url: "dashboard" as Page,
-      icon: ChartLine,
+      icon: ChartNoAxesCombined,
     },
     {
       title: "Trips",
       url: "trips" as Page,
-      icon: MapTrifold,
+      icon: Map,
     },
     {
       title: "Brokers",
       url: "broker-integrations" as Page,
-      icon: PlugsConnected,
+      icon: Plug,
     },
     {
       title: "Live",
       url: "live-tracking" as Page,
-      icon: Broadcast,
+      icon: Radio,
     },
     {
       title: "Patients",
       url: "patients" as Page,
-      icon: UsersThree,
+      icon: Users,
     },
     {
       title: "Drivers",
       url: "drivers" as Page,
-      icon: CarProfile,
+      icon: Car,
     },
     {
       title: "STS Inspection",
       url: "sts-inspection" as Page,
-      icon: ClipboardText,
+      icon: ClipboardList,
     },
     {
       title: "Employees",
       url: "employees" as Page,
-      icon: UserList,
+      icon: Contact,
     },
     {
       title: "Upload",
       url: "upload" as Page,
-      icon: UploadSimple,
+      icon: Upload,
     },
     {
       title: "Summary",
       url: "summary" as Page,
-      icon: FilePdf,
+      icon: FileChartColumn,
     },
   ],
 };
@@ -164,7 +164,7 @@ export function AppSidebar({
       {
         title: "Companies",
         url: "companies" as Page,
-        icon: Buildings,
+        icon: Building2,
       },
       {
         title: "Founder Tool",
@@ -173,7 +173,7 @@ export function AppSidebar({
       },
     ];
     // Founder access alone is insufficient; a company membership is required.
-    if (canManageAudit) navItems.push({ title: "STS Inspection", url: "sts-inspection", icon: ClipboardText });
+    if (canManageAudit) navItems.push({ title: "STS Inspection", url: "sts-inspection", icon: ClipboardList });
   }
 
   return (
@@ -186,7 +186,7 @@ export function AppSidebar({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               {/* <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
-                <Heartbeat weight="duotone" className="size-5" />
+                <Heartbeat className="size-5" />
               </div> */}
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">
@@ -227,7 +227,7 @@ export function AppSidebar({
                   tooltip={item.title}
                   size="lg"
                 >
-                  <Icon weight="duotone" className="!size-7" />
+                  <Icon className="!size-7" />
                   <span>{item.title}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -241,7 +241,7 @@ export function AppSidebar({
           onClick={() => onNavigate("company")}
           tooltip="Company"
           size="lg"
-        ><Buildings weight="duotone" className="!size-7" /><span>Company</span></SidebarMenuButton></SidebarMenuItem></SidebarMenu>}
+        ><Building2 className="!size-7" /><span>Company</span></SidebarMenuButton></SidebarMenuItem></SidebarMenu>}
         <NavUser />
       </SidebarFooter>
     </Sidebar>

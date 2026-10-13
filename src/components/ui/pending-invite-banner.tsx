@@ -3,11 +3,11 @@ import { useAuth } from "@/contexts/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import {
-  EnvelopeOpen,
-  CheckCircle,
+  MailOpen,
+  CircleCheck,
   X,
   ArrowRight,
-} from "@phosphor-icons/react";
+} from "lucide-react";
 import { Loader2 } from "lucide-react";
 
 interface PendingInvite {
@@ -161,12 +161,12 @@ export function PendingInviteBanner({ onAccepted }: PendingInviteBannerProps) {
             onClick={() => handleDismiss(invite.id)}
             className="absolute top-2 right-2 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-white/60 transition-colors"
           >
-            <X size={14} weight="bold" />
+            <X size={14} />
           </button>
 
           {/* Icon */}
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm">
-            <EnvelopeOpen size={22} weight="duotone" />
+            <MailOpen size={22} />
           </div>
 
           {/* Content */}
@@ -197,9 +197,9 @@ export function PendingInviteBanner({ onAccepted }: PendingInviteBannerProps) {
               </>
             ) : (
               <>
-                <CheckCircle size={16} weight="bold" />
+                <CircleCheck size={16} />
                 Accept Invite
-                <ArrowRight size={14} weight="bold" />
+                <ArrowRight size={14} />
               </>
             )}
           </Button>
@@ -221,7 +221,7 @@ export function NoAccessState() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-600 mb-6">
-        <EnvelopeOpen size={32} weight="duotone" />
+        <MailOpen size={32} />
       </div>
       <h2 className="text-xl font-bold text-slate-900 mb-2">
         No Organization Access

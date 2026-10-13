@@ -26,8 +26,6 @@ export default defineConfig({
           if (id.includes('/node_modules/@supabase/')) return 'vendor-supabase';
           if (/\/node_modules\/@tanstack\/(react-query|query-core)\//.test(id)) return 'vendor-query';
           if (/\/node_modules\/(date-fns|date-fns-tz)\//.test(id)) return 'vendor-date';
-          if (id.includes('/node_modules/@radix-ui/')) return 'vendor-radix';
-          if (id.includes('/node_modules/lucide-react/') || id.includes('/node_modules/@phosphor-icons/react/')) return 'vendor-icons';
           if (/\/node_modules\/(jspdf|jspdf-autotable)\//.test(id)) return 'vendor-pdf';
           if (/\/node_modules\/@tanstack\/(react-table|table-core)\//.test(id)) return 'vendor-table';
         },

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "@/contexts/OnboardingContext";
-import { Eye, EyeSlash, Info } from "@phosphor-icons/react";
+import { Eye, EyeOff, Info } from "lucide-react";
 
 interface DemoModeBannerProps {
   className?: string;
@@ -26,7 +26,7 @@ export function DemoModeBanner({ className }: DemoModeBannerProps) {
         <div className="relative flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-              <Eye size={20} weight="duotone" className="text-amber-700" />
+              <Eye size={20} className="text-amber-700" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-amber-900">
@@ -62,7 +62,7 @@ export function DemoModeBanner({ className }: DemoModeBannerProps) {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 border border-slate-100">
-            <Info size={20} weight="duotone" className="text-slate-400" />
+            <Info size={20} className="text-slate-400" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900">
@@ -79,7 +79,7 @@ export function DemoModeBanner({ className }: DemoModeBannerProps) {
           onClick={() => setDemoMode(true)}
           className="gap-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all font-bold shadow-none"
         >
-          <Eye size={14} weight="duotone" />
+          <Eye size={14} />
           Try Demo Mode
         </Button>
       </div>
@@ -108,12 +108,12 @@ export function DemoModeToggle({ className }: { className?: string }) {
     >
       {isDemoMode ? (
         <>
-          <EyeSlash size={14} weight="duotone" />
+          <EyeOff size={14} />
           Exit Demo
         </>
       ) : (
         <>
-          <Eye size={14} weight="duotone" />
+          <Eye size={14} />
           Demo Mode
         </>
       )}

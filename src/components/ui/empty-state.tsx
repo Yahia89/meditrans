@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { ArrowRight } from '@phosphor-icons/react'
+import { ArrowRight } from 'lucide-react'
 
 interface EmptyStateProps {
     icon: ReactNode
@@ -123,7 +123,7 @@ export function EmptyState({
                         >
                             {primaryAction.icon}
                             {primaryAction.label}
-                            <ArrowRight size={18} weight="bold" className="ml-1" />
+                            <ArrowRight size={18} className="ml-1" />
                         </Button>
                     )}
                     {secondaryAction && (
