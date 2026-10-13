@@ -22,7 +22,7 @@
     "test:dashboard:ui": "playwright test --config playwright.dashboard.config.ts",
     "test:imports": "node --test src/components/trips/file-parser.test.mjs",
     "measure:startup": "node scripts/measure-startup-bundles.mjs",
-    "test:router:ui": "playwright test --config playwright.router.config.ts",
+    "test:router:ui": "playwright test --config playwright.router.config.ts --project chromium --project webkit",
     "test:firefox:ui": "node tests/firefox-ui/run.mjs"
   },
   "dependencies": {
