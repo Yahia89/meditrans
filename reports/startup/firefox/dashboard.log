@@ -1,0 +1,14 @@
+[WebServer] (node:38287) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 2 workers
+
+(node:38289) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38288) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [firefox] › tests/dashboard-ui/dashboard-startup.spec.mjs:69:1 › off-screen chart reserves space and waits until near the viewport (1.9s)
+  ✓  2 [firefox] › tests/dashboard-ui/dashboard-startup.spec.mjs:40:1 › visible chart starts its module before its RPC finishes and credit consumers share reads (1.8s)
+  ✓  3 [firefox] › tests/dashboard-ui/dashboard-startup.spec.mjs:90:1 › failed credit reads never claim healthy balances (8.0s)
+
+  3 passed (12.9s)

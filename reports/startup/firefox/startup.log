@@ -1,0 +1,22 @@
+[WebServer] (node:38189) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 2 workers
+
+(node:38197) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38198) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 [firefox] › tests/startup-ui/startup.spec.mjs:17:1 › signed-out startup performs no private bootstrap; successful sign-in resolves one shared identity (1.7s)
+  ✓   1 [firefox] › tests/startup-ui/startup.spec.mjs:30:1 › a slow membership response keeps audit deep links and private data blocked until access resolves (1.6s)
+  ✓   4 [firefox] › tests/startup-ui/startup.spec.mjs:58:1 › confirmed no-driver identity survives token refresh and navigation without duplicate reads or GPS (659ms)
+  ✓   5 [firefox] › tests/startup-ui/startup.spec.mjs:72:1 › expired returning session refreshes once before the shared bootstrap (365ms)
+  ✓   6 [firefox] › tests/startup-ui/startup.spec.mjs:81:1 › driver access rejects a billing deep link and disabled driver records do not start GPS (480ms)
+  ✓   3 [firefox] › tests/startup-ui/startup.spec.mjs:45:1 › membership errors stay distinct from an empty company and the retry restores the requested route (1.9s)
+  ✓   7 [firefox] › tests/startup-ui/startup.spec.mjs:90:1 › membership removal on revalidation unmounts private details and falls back to the account (843ms)
+  ✓   8 [firefox] › tests/startup-ui/startup.spec.mjs:103:1 › a multi-tab account switch clears previous-user detail data while the next identity is pending (1.3s)
+  ✓   9 [firefox] › tests/startup-ui/startup.spec.mjs:121:1 › changing the default company on revalidation replaces tenant queries and visible context (947ms)
+  ✓  11 [firefox] › tests/startup-ui/startup.spec.mjs:150:1 › a self-membership whose organization is hidden by RLS cannot mount an audit route (605ms)
+  ✓  10 [firefox] › tests/startup-ui/startup.spec.mjs:133:1 › sign-out in one tab removes protected UI from both tabs (1.7s)
+
+  11 passed (9.5s)
