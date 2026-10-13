@@ -6,7 +6,7 @@ export function createWorkflowFixture({ role = "owner", status = "assigned", ass
   const createdAt = new Date().toISOString();
   const user = { id: ids.user, aud: "authenticated", role: "authenticated", email: "web-workflow-qa@example.invalid", created_at: createdAt, app_metadata: {}, user_metadata: {} };
   const patient = { id: ids.patient, org_id: ids.org, full_name: "Synthetic QA Rider", phone: null, email: null, user_id: null, created_at: createdAt, disabled: false, medicaid_id: "QA-ONLY" };
-  const driver = { id: ids.driver, org_id: ids.org, full_name: "Synthetic QA Driver", phone: null, email: null, user_id: assignedDriver ? ids.user : ids.driverUser, created_at: createdAt, vehicle_info: "QA accessible van", vehicle_type: "wheelchair", vehicle_make: "QA", vehicle_model: "Van", license_plate: "QA-ONLY", is_active: true, current_lat: null, current_lng: null };
+  const driver = { id: ids.driver, org_id: ids.org, full_name: "Synthetic QA Driver", phone: null, email: null, user_id: assignedDriver ? ids.user : ids.driverUser, created_at: createdAt, vehicle_info: "QA accessible van", vehicle_type: "wheelchair", vehicle_make: "QA", vehicle_model: "Van", license_plate: "QA-ONLY", is_active: true, active: true, disabled_at: null, current_lat: null, current_lng: null };
   const trip = { id: ids.trip, org_id: ids.org, patient_id: ids.patient, driver_id: ids.driver, pickup_location: "100 Synthetic Pickup Avenue, Minneapolis, MN", dropoff_location: "200 Synthetic Clinic Avenue, Minneapolis, MN", pickup_time: createdAt, trip_type: "one_way", status, notes: "Synthetic QA only. No real rider, trip, signature, or location.", distance_miles: 5.4, duration_minutes: 18, created_at: createdAt, updated_at: createdAt, actual_distance_miles: null, total_waiting_minutes: null, patient, driver };
   return { role, user, patient, driver, trip, history: [], requests: [], blockedRequests: [], nextRpcError: null };
 }
@@ -98,15 +98,26 @@ export async function installWorkflowFixtures(context, getState) {
       return route.fulfill({ json: null });
     }
     const createdAt = state.trip.created_at;
+    const organization = { id: ids.org, name: "Synthetic QA Transportation", created_at: createdAt,
+      timezone: "America/Chicago", billing_enabled: true, brokers_enabled: false,
+      npi: null, tax_id: null, billing_state: null, sftp_enabled: false, mn_its_submitter_id: null };
     const tables = {
-      organizations: [{ id: ids.org, name: "Synthetic QA Transportation", created_at: createdAt, timezone: "America/Chicago", billing_enabled: true }],
+      organizations: [organization],
       user_profiles: [{ user_id: ids.user, full_name: "Synthetic QA Office", default_org_id: ids.org, is_super_admin: false, phone: null, timezone: "America/Chicago", created_at: createdAt }],
-      organization_memberships: [{ id: uuid(9), org_id: ids.org, user_id: ids.user, role: state.role, is_primary: true, created_at: createdAt }],
+      organization_memberships: [{ id: uuid(9), org_id: ids.org, user_id: ids.user, role: state.role, is_primary: true, created_at: createdAt, organization }],
       patients: [state.patient], drivers: [state.driver], trips: [state.trip], trip_status_history: state.history,
       employees: [], org_uploads: [], notification_states: [], organization_fees: [], patient_credit_accounts: [],
       trip_cancellation_audits: state.trip.cancel_reason ? [{ id: uuid(10), trip_id: ids.trip, reason: state.trip.cancel_reason, explanation: state.trip.cancel_explanation, created_at: state.trip.updated_at }] : [],
     };
-    let data = filterRows(tables[name] || [], url.searchParams);
+    let rows = tables[name] || [];
+    // The historical fixture represents a live company above checklist thresholds.
+    // New bounded GET id reads replace the old exact-count HEAD requests.
+    if (["patients", "drivers", "employees"].includes(name)
+      && url.searchParams.get("select") === "id" && url.searchParams.get("limit") === "5"
+      && !url.searchParams.has("user_id")) {
+      rows = Array.from({ length: 5 }, (_, index) => ({ id: uuid(300 + index), org_id: ids.org }));
+    }
+    let data = filterRows(rows, url.searchParams);
     const count = request.method() === "HEAD" && ["patients", "drivers", "employees"].includes(name) ? 5 : data.length;
     if (url.searchParams.has("limit")) data = data.slice(0, Number(url.searchParams.get("limit")));
     if (request.method() === "PATCH" && name === "trips") Object.assign(state.trip, body);

@@ -1,28 +1,20 @@
 import {
   MapPin,
   ArrowRight,
-  CircleNotch,
+  LoaderCircle,
   ListChecks,
   ArrowUpRight,
-} from "@phosphor-icons/react";
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { dashboardClient } from "./dashboard-client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/contexts/auth-context";
 import { useQueryState } from "nuqs";
 
-interface RecentActivityTrip {
-  id: string;
-  status: string;
-  updated_at: string;
-  pickup_location: string;
-  dropoff_location: string;
-  patient: { full_name: string | null } | null;
-  driver: { full_name: string | null } | null;
-}
-
 export function RecentActivity() {
+  const { user } = useAuth();
   const { currentOrganization } = useOrganization();
   const [, setPage] = useQueryState("page");
   const [, setTripId] = useQueryState("tripId");
@@ -30,9 +22,11 @@ export function RecentActivity() {
   const [, setSection] = useQueryState("section");
 
   const { data: activities, isLoading, isError } = useQuery({
-    queryKey: ["trips", currentOrganization?.id, "dashboard", "recent-activity"],
+    queryKey: ["trips", currentOrganization?.id, "dashboard", "recent-activity", user?.id],
     queryFn: async ({ signal }) => {
-      const { data, error } = await supabase
+      const orgId = currentOrganization?.id;
+      if (!orgId) throw new Error("An organization is required");
+      const { data, error } = await dashboardClient
         .from("trips")
         .select(
           `
@@ -45,15 +39,15 @@ export function RecentActivity() {
           driver:drivers(full_name)
         `
         )
-        .eq("org_id", currentOrganization?.id)
+        .eq("org_id", orgId)
         .order("updated_at", { ascending: false })
         .limit(5)
         .abortSignal(signal);
 
       if (error) throw error;
-      return data as unknown as RecentActivityTrip[];
+      return data;
     },
-    enabled: !!currentOrganization?.id,
+    enabled: !!currentOrganization?.id && !!user?.id,
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
@@ -61,7 +55,7 @@ export function RecentActivity() {
   if (isLoading) {
     return (
       <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm col-span-1 lg:col-span-2 flex items-center justify-center h-[400px]">
-        <CircleNotch size={32} className="animate-spin text-slate-300" />
+        <LoaderCircle size={32} className="animate-spin text-slate-300" />
       </div>
     );
   }
@@ -156,7 +150,7 @@ export function RecentActivity() {
                   </span>
                   <ArrowRight
                     size={14}
-                    weight="bold"
+
                     className="text-slate-300 group-hover:text-lime-500 transition-colors"
                   />
                   <span className="text-sm font-medium text-slate-500 truncate">
@@ -164,7 +158,7 @@ export function RecentActivity() {
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400">
-                  <MapPin size={14} weight="fill" className="text-slate-300" />
+                  <MapPin size={14} className="text-slate-300" />
                   <span className="truncate">
                     {activity.pickup_location} → {activity.dropoff_location}
                   </span>
@@ -173,9 +167,9 @@ export function RecentActivity() {
 
               <div className="text-right flex flex-col items-end gap-1.5">
                 <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-                  {formatDistanceToNow(new Date(activity.updated_at), {
+                  {activity.updated_at ? formatDistanceToNow(new Date(activity.updated_at), {
                     addSuffix: true,
-                  })}
+                  }) : "Update time unavailable"}
                 </span>
                 <span
                   className={cn(
@@ -187,7 +181,7 @@ export function RecentActivity() {
                       : "bg-slate-50 text-slate-600 border-slate-200"
                   )}
                 >
-                  {activity.status.replace("_", " ")}
+                  {activity.status?.replaceAll("_", " ") ?? "Unknown"}
                 </span>
               </div>
             </div>

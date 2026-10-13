@@ -6,15 +6,15 @@ import {
   ArrowRight,
   X,
   Shield,
-  FirstAid,
+  HeartPulse,
   Car,
-  Certificate,
-  IdentificationBadge,
+  BadgeCheck,
+  IdCard,
   CreditCard,
-  Trash,
-  CheckCircle,
-  ClipboardText,
-} from "@phosphor-icons/react";
+  Trash2,
+  CircleCheck,
+  ClipboardList,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDriverAlerts, type DriverAlert } from "./DriverExpirationAlerts";
 import { useQuery } from "@tanstack/react-query";
@@ -22,26 +22,22 @@ import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useNotificationStates } from "@/hooks/useNotificationStates";
 import { usePermissions } from "@/hooks/usePermissions";
-import {
-  calculateCreditStatus,
-  calculateTripCost,
-  type OrganizationFees,
-} from "@/lib/credit-utils";
+import { useCreditAlerts } from "../credits/useCreditAlerts";
 
 /* ─── Icon helper ─── */
 function alertIcon(type: DriverAlert["type"]) {
-  const props = { size: 16, weight: "duotone" as const };
+  const props = { size: 16 };
   switch (type) {
     case "dot_medical":
-      return <FirstAid {...props} />;
+      return <HeartPulse {...props} />;
     case "insurance":
       return <Shield {...props} />;
     case "driver_record":
-      return <Certificate {...props} />;
+      return <BadgeCheck {...props} />;
     case "inspection":
       return <Car {...props} />;
     case "license":
-      return <IdentificationBadge {...props} />;
+      return <IdCard {...props} />;
   }
 }
 
@@ -57,13 +53,6 @@ interface NotificationBellProps {
   onNavigateToDriver?: (driverId: string) => void;
   onNavigateToCredits?: () => void;
   onNavigateToPatient?: (patientId: string) => void;
-}
-
-interface CreditAlert {
-  id: string;
-  patientName: string;
-  percentRemaining: number;
-  severity: "expired" | "critical" | "warning";
 }
 
 interface SalAlert {
@@ -105,80 +94,7 @@ export function NotificationBell({
   // ─ Credit alerts (slim version) ─
   const { currentOrganization } = useOrganization();
 
-  const { data: fees } = useQuery({
-    queryKey: ["organization_fees", currentOrganization?.id],
-    queryFn: async () => {
-      if (!currentOrganization?.id) return null;
-      const { data, error } = await supabase
-        .from("organization_fees")
-        .select("*")
-        .eq("org_id", currentOrganization.id)
-        .single();
-      if (error && error.code !== "PGRST116") throw error;
-      return data as OrganizationFees;
-    },
-    enabled: !!currentOrganization?.id,
-  });
-
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-  );
-
-  const { data: creditAlertsRaw = [] } = useQuery<CreditAlert[]>({
-    queryKey: ["bell-credit-alerts", currentOrganization?.id],
-    queryFn: async () => {
-      if (!currentOrganization?.id) return [];
-      const { data: patients, error: pe } = await supabase
-        .from("patients")
-        .select("id, full_name, monthly_credit")
-        .eq("org_id", currentOrganization.id)
-        .not("monthly_credit", "is", null);
-      if (pe) throw pe;
-      if (!patients?.length) return [];
-
-      const { data: trips, error: te } = await supabase
-        .from("trips")
-        .select(
-          "id, patient_id, status, trip_type, actual_distance_miles, distance_miles, total_waiting_minutes",
-        )
-        .eq("org_id", currentOrganization.id)
-        .eq("status", "completed")
-        .gte("pickup_time", startOfMonth.toISOString())
-        .lte("pickup_time", endOfMonth.toISOString());
-      if (te) throw te;
-
-      const results: CreditAlert[] = [];
-      patients.forEach((p) => {
-        const pTrips = trips?.filter((t) => t.patient_id === p.id) || [];
-        const spent = pTrips.reduce(
-          (s, t) => s + calculateTripCost(t, fees || null),
-          0,
-        );
-        const credit = p.monthly_credit || 0;
-        const info = calculateCreditStatus(credit, spent);
-        if (info.status !== "good" && info.status !== "none") {
-          const pct = info.percentage / 100;
-          results.push({
-            id: p.id,
-            patientName: p.full_name,
-            percentRemaining: pct,
-            severity:
-              pct <= 0.05 ? "expired" : pct <= 0.25 ? "critical" : "warning",
-          });
-        }
-      });
-      return results.sort((a, b) => a.percentRemaining - b.percentRemaining);
-    },
-    enabled: !!currentOrganization?.id && fees !== undefined,
-    refetchInterval: 60000,
-  });
+  const { data: creditAlertsRaw, isError: creditError, isLoading: creditsLoading } = useCreditAlerts();
 
   // ─ SAL status alerts ─
   const { data: salAlertsRaw = [] } = useQuery<SalAlert[]>({
@@ -296,7 +212,6 @@ export function NotificationBell({
       >
         <Bell
           size={20}
-          weight={open ? "fill" : "duotone"}
           className={cn(
             bellColor,
             "transition-colors w-5 h-5 md:w-6 md:h-6 min-w-[20px] min-h-[20px] md:min-w-[24px] md:min-h-[24px]",
@@ -343,7 +258,7 @@ export function NotificationBell({
                     : "bg-amber-100 text-amber-600",
                 )}
               >
-                <Bell size={18} weight="fill" className="w-[18px] h-[18px]" />
+                <Bell size={18} className="w-[18px] h-[18px]" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
@@ -368,7 +283,7 @@ export function NotificationBell({
                 onClick={() => setOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600"
               >
-                <X size={16} weight="bold" />
+                <X size={16} />
               </button>
             </div>
           </div>
@@ -379,7 +294,7 @@ export function NotificationBell({
             {driverAlerts.length > 0 && (
               <div className="p-4 pb-2">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <Shield size={12} weight="duotone" />
+                  <Shield size={12} />
                   Driver Compliance
                 </h4>
                 <div className="space-y-1.5">
@@ -428,7 +343,7 @@ export function NotificationBell({
                           )}
                         >
                           {isRead ? (
-                            <CheckCircle size={16} weight="duotone" />
+                            <CircleCheck size={16} />
                           ) : (
                             alertIcon(alert.type)
                           )}
@@ -475,16 +390,16 @@ export function NotificationBell({
                             )}
                             title="Dismiss"
                           >
-                            <Trash
+                            <Trash2
                               size={14}
-                              weight="bold"
+
                               className="w-3.5 h-3.5 min-w-[14px] min-h-[14px]"
                             />
                           </button>
                           {canViewDrivers && (
                             <ArrowRight
                               size={12}
-                              weight="bold"
+
                               className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all pointer-events-none"
                             />
                           )}
@@ -498,7 +413,7 @@ export function NotificationBell({
                       className="w-full py-2 px-3 mt-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all border border-dashed border-slate-200 hover:border-slate-300 flex items-center justify-center gap-2 uppercase tracking-tight"
                     >
                       Show {driverAlerts.length - driverLimit} more drivers
-                      <ArrowRight size={10} weight="bold" />
+                      <ArrowRight size={10} />
                     </button>
                   )}
                 </div>
@@ -506,13 +421,15 @@ export function NotificationBell({
             )}
 
             {/* Credit alerts section */}
+            {creditError && <p role="alert" className="px-5 py-3 text-sm text-slate-500">Unable to check credit balances.</p>}
+            {creditsLoading && <p className="px-5 py-3 text-sm text-slate-500">Checking credit balances…</p>}
             {creditAlerts.length > 0 && (
               <div className="p-4 pt-2">
                 {driverAlerts.length > 0 && (
                   <div className="h-px bg-slate-100 mb-3" />
                 )}
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <CreditCard size={12} weight="duotone" />
+                  <CreditCard size={12} />
                   Patient Credits
                 </h4>
                 <div className="space-y-1.5">
@@ -562,9 +479,9 @@ export function NotificationBell({
                           )}
                         >
                           {isRead ? (
-                            <CheckCircle size={16} weight="duotone" />
+                            <CircleCheck size={16} />
                           ) : (
-                            <CreditCard size={16} weight="duotone" />
+                            <CreditCard size={16} />
                           )}
                         </div>
 
@@ -609,16 +526,16 @@ export function NotificationBell({
                             )}
                             title="Dismiss"
                           >
-                            <Trash
+                            <Trash2
                               size={14}
-                              weight="bold"
+
                               className="w-3.5 h-3.5 min-w-[14px] min-h-[14px]"
                             />
                           </button>
                           {canViewBilling && (
                             <ArrowRight
                               size={12}
-                              weight="bold"
+
                               className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all pointer-events-none"
                             />
                           )}
@@ -632,7 +549,7 @@ export function NotificationBell({
                       className="w-full py-2 px-3 mt-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all border border-dashed border-slate-200 hover:border-slate-300 flex items-center justify-center gap-2 uppercase tracking-tight"
                     >
                       Show {creditAlerts.length - creditLimit} more patient credits
-                      <ArrowRight size={10} weight="bold" />
+                      <ArrowRight size={10} />
                     </button>
                   )}
                 </div>
@@ -646,7 +563,7 @@ export function NotificationBell({
                   <div className="h-px bg-slate-100 mb-3" />
                 )}
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <ClipboardText size={12} weight="duotone" />
+                  <ClipboardList size={12} />
                   SAL Status
                 </h4>
                 <div className="space-y-1.5">
@@ -692,9 +609,9 @@ export function NotificationBell({
                           )}
                         >
                           {isRead ? (
-                            <CheckCircle size={16} weight="duotone" />
+                            <CircleCheck size={16} />
                           ) : (
-                            <ClipboardText size={16} weight="duotone" />
+                            <ClipboardList size={16} />
                           )}
                         </div>
 
@@ -738,16 +655,16 @@ export function NotificationBell({
                             )}
                             title="Dismiss"
                           >
-                            <Trash
+                            <Trash2
                               size={14}
-                              weight="bold"
+
                               className="w-3.5 h-3.5 min-w-[14px] min-h-[14px]"
                             />
                           </button>
                           {canViewPatients && (
                             <ArrowRight
                               size={12}
-                              weight="bold"
+
                               className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all pointer-events-none"
                             />
                           )}
@@ -761,7 +678,7 @@ export function NotificationBell({
                       className="w-full py-2 px-3 mt-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all border border-dashed border-slate-200 hover:border-slate-300 flex items-center justify-center gap-2 uppercase tracking-tight"
                     >
                       Show {salAlerts.length - salLimit} more SAL status
-                      <ArrowRight size={10} weight="bold" />
+                      <ArrowRight size={10} />
                     </button>
                   )}
                 </div>
@@ -769,10 +686,10 @@ export function NotificationBell({
             )}
 
             {/* Empty state after all dismissed */}
-            {driverAlerts.length === 0 && creditAlerts.length === 0 && salAlerts.length === 0 && (
+            {driverAlerts.length === 0 && creditAlerts.length === 0 && salAlerts.length === 0 && !creditError && !creditsLoading && (
               <div className="p-8 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle size={24} weight="duotone" />
+                  <CircleCheck size={24} />
                 </div>
                 <p className="text-sm font-semibold text-slate-700">
                   All clear!

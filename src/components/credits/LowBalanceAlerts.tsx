@@ -1,131 +1,20 @@
 "use client";
 
-import { CreditCard, Warning, ArrowRight } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { CreditCard, TriangleAlert, ArrowRight, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useOrganization } from "@/contexts/OrganizationContext";
-import { Loader2 } from "lucide-react";
-import {
-  calculateCreditStatus,
-  calculateTripCost,
-  type OrganizationFees,
-} from "@/lib/credit-utils";
 import { usePermissions } from "@/hooks/usePermissions";
-
-interface LowBalancePatient {
-  id: string;
-  full_name: string;
-  monthly_credit: number;
-  remainingBalance: number;
-  percentRemaining: number;
-}
-
-// Thresholds and cost moved to credit-utils.ts
+import { useCreditAlerts } from "./useCreditAlerts";
 
 export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
-  const { currentOrganization } = useOrganization();
-
-  // Get current month range
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-  );
-
-  // Fetch organization fees
-  const { data: fees } = useQuery({
-    queryKey: ["organization_fees", currentOrganization?.id],
-    queryFn: async () => {
-      if (!currentOrganization?.id) return null;
-      const { data, error } = await supabase
-        .from("organization_fees")
-        .select("*")
-        .eq("org_id", currentOrganization.id)
-        .single();
-
-      if (error && error.code !== "PGRST116") throw error;
-      return data as OrganizationFees;
-    },
-    enabled: !!currentOrganization?.id,
-  });
-
-  // Fetch patients with credits
-  const { data: lowBalancePatients = [], isLoading } = useQuery({
-    queryKey: ["low-balance-patients", currentOrganization?.id],
-    queryFn: async () => {
-      if (!currentOrganization?.id) return [];
-
-      // Fetch patients with credits
-      const { data: patients, error: patientsError } = await supabase
-        .from("patients")
-        .select("id, full_name, monthly_credit, notes")
-        .eq("org_id", currentOrganization.id)
-        .not("monthly_credit", "is", null);
-
-      if (patientsError) throw patientsError;
-      if (!patients?.length) return [];
-
-      // Fetch completed trips for this month with details for calculation
-      const { data: trips, error: tripsError } = await supabase
-        .from("trips")
-        .select(
-          "id, patient_id, status, trip_type, actual_distance_miles, distance_miles, total_waiting_minutes",
-        )
-        .eq("org_id", currentOrganization.id)
-        .eq("status", "completed")
-        .gte("pickup_time", startOfMonth.toISOString())
-        .lte("pickup_time", endOfMonth.toISOString());
-
-      if (tripsError) throw tripsError;
-
-      // Calculate low balance patients
-      const lowBalance: LowBalancePatient[] = [];
-
-      patients.forEach((patient) => {
-        const patientTrips =
-          trips?.filter((t) => t.patient_id === patient.id) || [];
-
-        // Calculate total spend using organization fees
-        const totalSpend = patientTrips.reduce(
-          (sum, trip) => sum + calculateTripCost(trip, fees || null),
-          0,
-        );
-
-        const monthlyCredit = patient.monthly_credit || 0;
-        const creditInfo = calculateCreditStatus(monthlyCredit, totalSpend);
-
-        if (creditInfo.status !== "good" && creditInfo.status !== "none") {
-          lowBalance.push({
-            id: patient.id,
-            full_name: patient.full_name,
-            monthly_credit: monthlyCredit,
-            remainingBalance: monthlyCredit - totalSpend,
-            percentRemaining: creditInfo.percentage / 100,
-          });
-        }
-      });
-
-      // Sort by percentage remaining (lowest first)
-      return lowBalance.sort((a, b) => a.percentRemaining - b.percentRemaining);
-    },
-    enabled: !!currentOrganization?.id && fees !== undefined,
-    refetchInterval: 60000, // Refresh every minute
-  });
+  const { data: lowBalancePatients, isLoading, isError } = useCreditAlerts();
 
   const { canViewBilling } = usePermissions();
 
   if (isLoading) {
-// ... existing lines until buttons ...
     return (
       <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
         <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-          <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+          <LoaderCircle className="w-5 h-5 animate-spin text-slate-400" />
         </div>
         <div className="flex-1">
           <h4 className="font-bold text-slate-900 text-sm">Loading...</h4>
@@ -137,11 +26,15 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
     );
   }
 
+  if (isError) {
+    return <p role="alert" className="p-4 text-sm text-slate-500">Unable to check credit balances. Please try again.</p>;
+  }
+
   if (lowBalancePatients.length === 0) {
     return (
       <div className="flex items-start gap-4 p-4 rounded-xl bg-emerald-50 border border-emerald-100 transition-all">
         <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
-          <CreditCard size={20} weight="duotone" />
+          <CreditCard size={20} />
         </div>
         <div className="flex-1">
           <h4 className="font-bold text-slate-900 text-sm">
@@ -182,9 +75,9 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
         )}
       >
         {criticalCount > 0 ? (
-          <Warning size={20} weight="fill" />
+          <TriangleAlert size={20} />
         ) : (
-          <CreditCard size={20} weight="duotone" />
+          <CreditCard size={20} />
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -207,7 +100,7 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <p className="text-xs text-slate-500 mt-1 leading-relaxed">
           {lowBalancePatients.length === 1
-            ? `${lowBalancePatients[0].full_name} has ${(
+            ? `${lowBalancePatients[0].patientName} has ${(
                 lowBalancePatients[0].percentRemaining * 100
               ).toFixed(0)}% credit remaining`
             : `${lowBalancePatients.length} clients are below 50% credit`}
@@ -222,7 +115,7 @@ export function LowBalanceAlerts({ onNavigate }: { onNavigate?: () => void }) {
             <span>View details</span>
             <ArrowRight
               size={12}
-              weight="bold"
+
               className="group-hover:translate-x-1 transition-transform"
             />
           </div>

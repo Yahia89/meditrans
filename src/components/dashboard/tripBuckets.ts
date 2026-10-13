@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { addDays, format, parseISO } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
 
@@ -11,6 +12,20 @@ export interface TripBucket {
   pending: number;
   cancelled: number;
   no_show: number;
+}
+
+const tripBucketSchema = z.object({
+  bucket: z.string(),
+  total: z.number().int().nonnegative(),
+  completed: z.number().int().nonnegative(),
+  assigned: z.number().int().nonnegative(),
+  pending: z.number().int().nonnegative(),
+  cancelled: z.number().int().nonnegative(),
+  no_show: z.number().int().nonnegative(),
+});
+
+export function parseTripBuckets(data: unknown): TripBucket[] {
+  return z.array(tripBucketSchema).parse(data);
 }
 
 export interface DashboardChartPoint {

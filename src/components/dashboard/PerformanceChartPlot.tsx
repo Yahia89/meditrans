@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { markStartup } from "@/lib/startup-performance";
 import {
   AreaChart,
   Area,
@@ -11,6 +13,10 @@ import {
 import type { DashboardChartPoint, TimeRange } from "./tripBuckets";
 
 export default function PerformanceChartPlot({ chartData, timeRange }: { chartData: DashboardChartPoint[]; timeRange: TimeRange }) {
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => markStartup("chart-ready"));
+    return () => cancelAnimationFrame(frame);
+  }, []);
   // Custom Legend to match "trips badges" style logic
   const renderLegend = (props: { payload?: readonly { color?: string; value?: string }[] }) => {
     const { payload = [] } = props;

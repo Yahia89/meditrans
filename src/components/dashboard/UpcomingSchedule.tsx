@@ -1,13 +1,15 @@
+import { supabase } from "@/lib/supabase";
+import { parseTripBuckets } from "./tripBuckets";
 import {
-  CalendarBlank,
-  CaretLeft,
-  CaretRight,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   MapPin,
-  CircleNotch,
-  CaretDown,
-  CaretUp,
-} from "@phosphor-icons/react";
+  LoaderCircle,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import {
   format,
   startOfWeek,
@@ -17,10 +19,10 @@ import {
   eachDayOfInterval,
   parseISO,
 } from "date-fns";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { dashboardClient } from "./dashboard-client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { useQueryState } from "nuqs";
@@ -31,20 +33,12 @@ import {
   parseZonedTime,
 } from "@/lib/timezone";
 
-import type { TripBucket } from "./tripBuckets";
-
-interface ScheduleTrip {
-  id: string;
-  pickup_time: string;
-  status: string;
-  pickup_location: string;
-  patient: { full_name: string | null } | null;
-  driver: { full_name: string | null } | null;
-}
+import { markStartup } from "@/lib/startup-performance";
 
 export function UpcomingSchedule() {
   const { currentOrganization } = useOrganization();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const orgId = currentOrganization?.id;
   const activeTimezone = getActiveTimezone(profile, currentOrganization);
   const [selectedDate, setSelectedDate] = useState(() => parseISO(formatInUserTimezone(new Date(), activeTimezone, "yyyy-MM-dd")));
   const [isMonthExpanded, setIsMonthExpanded] = useState(false);
@@ -70,26 +64,27 @@ export function UpcomingSchedule() {
   const lastCalendarDay = format(calendarDates[calendarDates.length - 1], "yyyy-MM-dd");
 
   // The database returns at most 42 buckets instead of every trip in the month.
-  const { data: tripCounts = {} } = useQuery({
-    queryKey: ["trips", currentOrganization?.id, "dashboard", "calendar", firstCalendarDay, lastCalendarDay, activeTimezone],
+  const { data: tripCounts = {}, isError: calendarError } = useQuery({
+    queryKey: ["trips", currentOrganization?.id, "dashboard", "calendar", firstCalendarDay, lastCalendarDay, activeTimezone, user?.id],
     queryFn: async ({ signal }) => {
+      if (!orgId) throw new Error("An organization is required");
       const { data, error } = await supabase.rpc("dashboard_trip_buckets", {
-        p_org_id: currentOrganization!.id,
+        p_org_id: orgId,
         p_start: parseZonedTime(firstCalendarDay, "00:00", activeTimezone).toISOString(),
         p_end: parseZonedTime(format(addDays(parseISO(lastCalendarDay), 1), "yyyy-MM-dd"), "00:00", activeTimezone).toISOString(),
         p_timezone: activeTimezone,
         p_granularity: "day",
       }).abortSignal(signal);
       if (error) throw error;
-      return Object.fromEntries((data as TripBucket[]).map((bucket) => [bucket.bucket, Number(bucket.total)]));
+      return Object.fromEntries(parseTripBuckets(data).map((bucket) => [bucket.bucket, Number(bucket.total)]));
     },
-    enabled: !!currentOrganization?.id,
+    enabled: !!orgId && !!user?.id,
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
 
   // Fetch trips for selected date
-  const { data: trips, isLoading, isError } = useQuery({
+  const { data: trips, isPending, isError, isSuccess } = useQuery({
     queryKey: [
       "trips",
       currentOrganization?.id,
@@ -97,8 +92,10 @@ export function UpcomingSchedule() {
       "schedule",
       format(selectedDate, "yyyy-MM-dd"),
       activeTimezone,
+      user?.id,
     ],
     queryFn: async ({ signal }) => {
+      if (!orgId) throw new Error("An organization is required");
       const dateStr = format(selectedDate, "yyyy-MM-dd");
       const startStr = parseZonedTime(
         dateStr,
@@ -111,7 +108,7 @@ export function UpcomingSchedule() {
         activeTimezone,
       ).toISOString();
 
-      const { data, error } = await supabase
+      const { data, error } = await dashboardClient
         .from("trips")
         .select(
           `
@@ -123,19 +120,23 @@ export function UpcomingSchedule() {
           driver:drivers(full_name)
         `,
         )
-        .eq("org_id", currentOrganization?.id)
+        .eq("org_id", orgId)
         .gte("pickup_time", startStr)
         .lt("pickup_time", endStr)
         .order("pickup_time", { ascending: true })
         .abortSignal(signal);
 
       if (error) throw error;
-      return data as unknown as ScheduleTrip[];
+      return data;
     },
-    enabled: !!currentOrganization?.id,
+    enabled: !!orgId && !!user?.id,
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
+
+  useEffect(() => {
+    if (isSuccess) markStartup("route-primary-data-ready");
+  }, [isSuccess]);
 
   const handlePrev = () => {
     setSelectedDate(addDays(selectedDate, isMonthExpanded ? -30 : -7));
@@ -165,15 +166,17 @@ export function UpcomingSchedule() {
         <div className="flex items-center gap-3">
           <button
             onClick={handlePrev}
+            aria-label="Previous schedule period"
             className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition-all active:scale-95"
           >
-            <CaretLeft size={20} weight="bold" />
+            <ChevronLeft size={20} />
           </button>
           <button
             onClick={handleNext}
+            aria-label="Next schedule period"
             className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition-all active:scale-95"
           >
-            <CaretRight size={20} weight="bold" />
+            <ChevronRight size={20} />
           </button>
         </div>
       </div>
@@ -233,6 +236,8 @@ export function UpcomingSchedule() {
         })}
       </div>
 
+      {calendarError && <p role="alert" className="mb-4 text-sm text-slate-500">Daily trip counts are unavailable. The selected-day schedule is shown below.</p>}
+
       {/* Shy Toggle - Styled button */}
       <div className="absolute left-1/2 -translate-x-1/2 -bottom-4">
         <Button
@@ -243,12 +248,12 @@ export function UpcomingSchedule() {
         >
           {isMonthExpanded ? (
             <div className="flex items-center gap-2">
-              <CaretUp size={14} weight="bold" />
+              <ChevronUp size={14} />
               <span>Compact View</span>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <CaretDown size={14} weight="bold" />
+              <ChevronDown size={14} />
               <span>Full Calendar</span>
             </div>
           )}
@@ -256,16 +261,16 @@ export function UpcomingSchedule() {
       </div>
 
       <div className="mt-4 pt-4 border-t border-slate-50 space-y-4">
-        {isLoading ? (
+        {isPending ? (
           <div className="flex flex-col items-center justify-center py-16">
-            <CircleNotch size={32} className="animate-spin text-lime-500" />
+            <LoaderCircle size={32} className="animate-spin text-lime-500" />
           </div>
         ) : isError ? (
           <p role="alert" className="py-12 text-center text-sm text-slate-500">Unable to load the schedule. Please try again.</p>
         ) : !trips || trips.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100/50 shadow-inner">
-              <CalendarBlank size={32} className="text-slate-300" />
+              <CalendarDays size={32} className="text-slate-300" />
             </div>
             <p className="text-slate-500 font-bold">No trips scheduled.</p>
             <p className="text-xs text-slate-400 max-w-[180px] mt-1">
@@ -283,12 +288,12 @@ export function UpcomingSchedule() {
                 <div className="bg-lime-50 text-lime-700 w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 border border-lime-100">
                   <span className="text-xs font-black leading-none uppercase">
                     {formatInUserTimezone(
-                      trip.pickup_time,
+                      trip.pickup_time ?? "",
                       activeTimezone,
                       "HH:mm",
                     )}
                   </span>
-                  <Clock size={16} weight="bold" className="mt-0.5" />
+                  <Clock size={16} className="mt-0.5" />
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -298,7 +303,7 @@ export function UpcomingSchedule() {
                   <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 mt-1">
                     <MapPin
                       size={14}
-                      weight="fill"
+
                       className="text-red-400/70"
                     />
                     <span className="truncate">{trip.pickup_location}</span>

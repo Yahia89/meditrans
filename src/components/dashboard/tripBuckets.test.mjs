@@ -34,3 +34,10 @@ test("hourly chart maps database buckets to 24 wall-clock labels", () => {
   assert.equal(points[9].total, 6);
   assert.equal(points[10].total, 0);
 });
+
+test("malformed dashboard responses fail validation instead of becoming empty chart counts", async () => {
+  const { parseTripBuckets } = await import("./tripBuckets.ts");
+  assert.deepEqual(parseTripBuckets([]), []);
+  assert.throws(() => parseTripBuckets(null));
+  assert.throws(() => parseTripBuckets([{ bucket: "2026-10-13", total: -1 }]));
+});
