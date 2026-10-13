@@ -7,27 +7,16 @@ import {
   useRef,
 } from "react";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
-import { supabase, type MembershipRole } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
-// Types
-interface UserProfile {
-  user_id: string;
-  full_name: string | null;
-  phone: string | null;
-  default_org_id: string | null;
-  is_super_admin: boolean;
-  timezone: string | null;
-  created_at: string;
-}
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  clearPrivateQueries, fetchIdentityBootstrap, identityQueryKey, reconcileIdentityAccess,
+  type IdentityBootstrap, type UserProfile, type OrganizationMembership,
+} from "@/lib/identity-bootstrap";
+import { markStartup } from "@/lib/startup-performance";
 
-interface OrganizationMembership {
-  id: string;
-  org_id: string;
-  user_id: string;
-  role: MembershipRole;
-  is_primary: boolean;
-  created_at: string;
-}
+const EMPTY_MEMBERSHIPS: OrganizationMembership[] = [];
 
 interface AuthContextType {
   user: User | null;
@@ -35,6 +24,8 @@ interface AuthContextType {
   profile: UserProfile | null;
   memberships: OrganizationMembership[];
   loading: boolean;
+  error: Error | null;
+  bootstrap: IdentityBootstrap | undefined;
   signIn: (
     email: string,
     password: string,
@@ -59,106 +50,65 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [memberships, setMemberships] = useState<OrganizationMembership[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const [authState, setAuthState] = useState<{ session: Session | null; resolved: boolean; error: Error | null }>({
+    session: null, resolved: false, error: null,
+  });
+  const sessionRevision = useRef(0);
+  const currentUserId = useRef<string | null | undefined>(undefined);
+  const session = authState.session;
+  const user = session?.user ?? null;
+  const userId = user?.id ?? null;
+  const identityQuery = useQuery({
+    queryKey: identityQueryKey(userId),
+    enabled: authState.resolved && !!userId,
+    queryFn: async ({ signal }) => {
+      if (!userId) throw new Error("Sign in to load your workspace.");
+      const identity = await fetchIdentityBootstrap(supabase, userId, signal);
+      return reconcileIdentityAccess(queryClient, identity);
+    },
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+  const bootstrap = identityQuery.data?.userId === userId ? identityQuery.data : undefined;
+  const profile = bootstrap?.profile ?? null;
+  const memberships = bootstrap?.memberships ?? EMPTY_MEMBERSHIPS;
+  const loading = !authState.resolved || (!!userId && identityQuery.isPending);
+  const error = authState.error ?? identityQuery.error;
 
-  // Ref to prevent multiple simultaneous fetch calls during race conditions
-  const isFetchingData = useRef(false);
-
-  const fetchUserData = useCallback(async (userId: string) => {
-    if (isFetchingData.current) return;
-    isFetchingData.current = true;
-
-    try {
-      const [profileRes, driverRes, membershipRes] = await Promise.all([
-        supabase
-          .from("user_profiles")
-          .select("*")
-          .eq("user_id", userId)
-          .maybeSingle(),
-        supabase
-          .from("drivers")
-          .select("full_name, phone")
-          .eq("user_id", userId)
-          .maybeSingle(),
-        supabase
-          .from("organization_memberships")
-          .select("*")
-          .eq("user_id", userId)
-          .order("is_primary", { ascending: false }),
-      ]);
-
-      let finalProfile = profileRes.data;
-
-      if (driverRes.data) {
-        if (!finalProfile) {
-          finalProfile = {
-            user_id: userId,
-            full_name: driverRes.data.full_name,
-            phone: driverRes.data.phone,
-            default_org_id: null,
-            is_super_admin: false,
-            created_at: new Date().toISOString(),
-          };
-        } else {
-          finalProfile.full_name =
-            finalProfile.full_name || driverRes.data.full_name;
-          finalProfile.phone = finalProfile.phone || driverRes.data.phone;
-        }
-      }
-
-      setProfile(finalProfile || null);
-      setMemberships(membershipRes.data || []);
-    } catch (error) {
-      console.error("Auth Data Fetch Error:", error);
-    } finally {
-      isFetchingData.current = false;
-      setLoading(false);
+  // This callback remains synchronous: no Supabase requests under the auth lock.
+  const applySession = useCallback((nextSession: Session | null, sessionError: Error | null = null) => {
+    sessionRevision.current += 1;
+    const nextUserId = nextSession?.user.id ?? null;
+    if (currentUserId.current !== nextUserId) {
+      clearPrivateQueries(queryClient);
+      currentUserId.current = nextUserId;
     }
-  }, []);
+    setAuthState({ session: nextSession, resolved: true, error: sessionError });
+    markStartup("session-resolved");
+  }, [queryClient]);
 
-  // Effect 1: Handle Initial Session and Auth State Listener
-  // Using the native v2.90+ getSession (safe now due to lockAcquisitionTimeout)
   useEffect(() => {
     let mounted = true;
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (!session) setLoading(false);
+    let eventVersion = 0;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      eventVersion += 1;
+      if (mounted) applySession(nextSession);
     });
-
-    // Synchronous listener - no await inside to avoid holding locks
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (!mounted) return;
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      if (!newSession) {
-        setProfile(null);
-        setMemberships([]);
-        setLoading(false);
-      }
+    const versionAtRead = eventVersion;
+    const revisionAtRead = sessionRevision.current;
+    void supabase.auth.getSession().then(({ data, error: sessionError }) => {
+      // A late initial read must not resurrect a session after SIGNED_OUT.
+      if (mounted && eventVersion === versionAtRead && sessionRevision.current === revisionAtRead) applySession(data.session, sessionError);
+    }).catch(() => {
+      if (mounted && eventVersion === versionAtRead && sessionRevision.current === revisionAtRead) applySession(null, new Error("Unable to resolve your session."));
     });
+    return () => { mounted = false; subscription.unsubscribe(); };
+  }, [applySession]);
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // Effect 2: Reactively fetch profile data when user changes
-  // This separates data fetching from the auth listener to avoid holding locks
   useEffect(() => {
-    if (user?.id) {
-      fetchUserData(user.id);
-    }
-  }, [user?.id, fetchUserData]);
+    if (bootstrap) markStartup("identity-ready");
+  }, [bootstrap]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -179,13 +129,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    setLoading(true);
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setProfile(null);
-    setMemberships([]);
-    setLoading(false);
+    // Remove protected UI and data before waiting for the remote logout request.
+    applySession(null);
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) throw signOutError;
   };
 
   const resetPassword = async (email: string) => {
@@ -200,7 +147,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const refresh = async () => {
-    if (user) await fetchUserData(user.id);
+    if (!userId) {
+      const revisionAtRead = ++sessionRevision.current;
+      setAuthState((previous) => ({ ...previous, resolved: false, error: null }));
+      try {
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (sessionRevision.current === revisionAtRead) applySession(data.session, sessionError);
+      } catch {
+        if (sessionRevision.current === revisionAtRead) applySession(null, new Error("Unable to resolve your session."));
+      }
+      return;
+    }
+    // Retain known identity while refreshing; all consumers share this request.
+    await queryClient.invalidateQueries({ queryKey: identityQueryKey(userId), exact: true });
   };
 
   const value = {
@@ -209,6 +168,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     profile,
     memberships,
     loading,
+    error,
+    bootstrap,
     signIn,
     signUp,
     signOut,

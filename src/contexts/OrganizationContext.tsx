@@ -1,168 +1,56 @@
-import { createContext, useContext, useEffect, useState, useMemo } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./auth-context";
-import { supabase, type MembershipRole } from "@/lib/supabase";
+import type { MembershipRole } from "@/lib/supabase";
+import { clearPrivateQueries, resolveOrganization, type OrganizationSummary } from "@/lib/identity-bootstrap";
+import { markStartup } from "@/lib/startup-performance";
 
-// Types
-interface Organization {
-  id: string;
-  name: string;
-  created_at: string;
-  npi?: string;
-  tax_id?: string;
-  billing_state?: string;
-  billing_enabled?: boolean;
-  brokers_enabled?: boolean;
-  timezone: string;
-  sftp_enabled?: boolean;
-  sftp_host?: string;
-  sftp_username?: string;
-  mn_its_submitter_id?: string;
-}
+type Organization = OrganizationSummary;
+const EMPTY_ORGANIZATIONS: Organization[] = [];
 
 interface OrganizationContextType {
   currentOrganization: Organization | null;
   organizations: Organization[];
   userRole: MembershipRole | null;
   loading: boolean;
+  error: Error | null;
   setCurrentOrganization: (org: Organization | null) => void;
   refreshOrganization: () => Promise<void>;
 }
 
-const OrganizationContext = createContext<OrganizationContextType | undefined>(
-  undefined,
-);
+const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
 export const useOrganization = () => {
   const context = useContext(OrganizationContext);
-  if (context === undefined) {
-    throw new Error(
-      "useOrganization must be used within an OrganizationProvider",
-    );
-  }
+  if (context === undefined) throw new Error("useOrganization must be used within an OrganizationProvider");
   return context;
 };
 
-interface OrganizationProviderProps {
-  children: React.ReactNode;
-}
+export const OrganizationProvider = ({ children }: { children: React.ReactNode }) => {
+  const { user, bootstrap, loading, error, refresh } = useAuth();
+  const queryClient = useQueryClient();
+  const [selected, setSelected] = useState<{ userId: string; orgId: string } | null>(null);
+  const organizations = bootstrap?.organizations ?? EMPTY_ORGANIZATIONS;
+  // Selection is derived from the same validated response as membership; there
+  // is no render in which unknown membership looks like a resolved empty org.
+  const currentOrganization = resolveOrganization(bootstrap, selected);
+  const userRole = bootstrap?.memberships.find((membership) =>
+    membership.user_id === user?.id && membership.org_id === currentOrganization?.id)?.role ?? null;
 
-export const OrganizationProvider = ({
-  children,
-}: OrganizationProviderProps) => {
-  const { user, memberships, profile } = useAuth();
-  const [currentOrganization, setCurrentOrganization] =
-    useState<Organization | null>(null);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [loading, setLoading] = useState(true);
+  const setCurrentOrganization = useCallback((organization: Organization | null) => {
+    if (!user || !organization || !organizations.some((org) => org.id === organization.id)) return;
+    if (organization.id === currentOrganization?.id) return;
+    // Clear even legacy feature keys and cancel requests before changing tenant.
+    clearPrivateQueries(queryClient, true);
+    setSelected({ userId: user.id, orgId: organization.id });
+  }, [user, organizations, currentOrganization?.id, queryClient]);
 
-  // Fetch organizations based on user's memberships
   useEffect(() => {
-    const fetchOrganizations = async () => {
-      if (!user || memberships.length === 0) {
-        setOrganizations([]);
-        setCurrentOrganization(null);
-        setLoading(false);
-        return;
-      }
+    if (!loading && !error && bootstrap) markStartup("organization-ready");
+  }, [loading, error, bootstrap]);
 
-      try {
-        // Get all organization IDs from memberships
-        const orgIds = memberships.map((m) => m.org_id);
-
-        // Fetch organization details
-        const { data, error } = await supabase
-          .from("organizations")
-          .select("*")
-          .in("id", orgIds);
-
-        if (error) throw error;
-
-        setOrganizations(data || []);
-
-        // Set current organization based on user's default or first membership
-        if (data && data.length > 0) {
-          // Try to use the default org from profile
-          if (profile?.default_org_id) {
-            const defaultOrg = data.find(
-              (org) => org.id === profile.default_org_id,
-            );
-            if (defaultOrg) {
-              setCurrentOrganization(defaultOrg);
-              setLoading(false);
-              return;
-            }
-          }
-
-          // Otherwise, use the primary membership's organization
-          const primaryMembership = memberships.find((m) => m.is_primary);
-          if (primaryMembership) {
-            const primaryOrg = data.find(
-              (org) => org.id === primaryMembership.org_id,
-            );
-            if (primaryOrg) {
-              setCurrentOrganization(primaryOrg);
-              setLoading(false);
-              return;
-            }
-          }
-
-          // Fallback to first organization
-          setCurrentOrganization(data[0]);
-        }
-      } catch (error) {
-        console.error("Error fetching organizations:", error);
-        setOrganizations([]);
-        setCurrentOrganization(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrganizations();
-  }, [user, memberships, profile]);
-
-  const refreshOrganization = async () => {
-    if (!currentOrganization?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("organizations")
-        .select("*")
-        .eq("id", currentOrganization.id)
-        .single();
-
-      if (error) throw error;
-      if (data) {
-        setCurrentOrganization(data);
-        setOrganizations((prev) =>
-          prev.map((org) => (org.id === data.id ? data : org)),
-        );
-      }
-    } catch (error) {
-      console.error("Error refreshing organization:", error);
-    }
-  };
-
-  const userRole = useMemo(() => {
-    if (!currentOrganization || memberships.length === 0) return null;
-    const membership = memberships.find(
-      (m) => m.org_id === currentOrganization.id,
-    );
-    return membership?.role || null;
-  }, [currentOrganization, memberships]);
-
-  const value = {
-    currentOrganization,
-    organizations,
-    userRole,
-    loading,
-    setCurrentOrganization,
-    refreshOrganization,
-  };
-
-  return (
-    <OrganizationContext.Provider value={value}>
-      {children}
-    </OrganizationContext.Provider>
-  );
+  return <OrganizationContext.Provider value={{
+    currentOrganization, organizations, userRole, loading, error,
+    setCurrentOrganization, refreshOrganization: refresh,
+  }}>{children}</OrganizationContext.Provider>;
 };

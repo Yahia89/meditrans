@@ -40,7 +40,8 @@ const mocks = {
   "./components/error-boundary": { ErrorBoundary: passThrough },
   "@/hooks/usePermissions": { usePermissions: () => ({ isDriver: state.role === "driver", isSuperAdmin: !!state.founder }) },
   "@/hooks/usePresence": { usePresence() {} },
-  "@/hooks/useDriverLocation": { useDriverLocation: () => ({ driverId: null }) },
+  "@/hooks/useDriverLocation": { useDriverIdentity: () => ({ driverId: null }), useDriverLocation: () => ({ driverId: null }) },
+  "@/lib/startup-performance": { markStartup() {} },
   sonner: { Toaster: noContent },
 };
 const sources = {

@@ -1,12 +1,15 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from './auth-context'
 import { useOrganization } from './OrganizationContext'
 import { supabase } from '@/lib/supabase'
+import { usePermissions } from '@/hooks/usePermissions'
+import { ONBOARDING_LIMITS, onboardingDataState } from '@/lib/onboarding-summary'
 
 // Data state progression: empty → onboarding → live
 export type DataState = 'empty' | 'onboarding' | 'live'
 
+/** Counts are capped at checklist thresholds and must not be used for reporting. */
 export interface DataCounts {
     patients: number
     drivers: number
@@ -86,41 +89,58 @@ function writeCachedDemoMode(v: boolean) {
 export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderProps) => {
     const { currentOrganization } = useOrganization()
     const { user } = useAuth()
+    const { isAdmin } = usePermissions()
     const orgId = currentOrganization?.id
     const [isDemoMode, setIsDemoMode] = useState(readCachedDemoMode)
+
+    const scope = user && orgId ? `${user.id}:${orgId}` : null
+    const [idleScope, setIdleScope] = useState<string | null>(null)
+    useEffect(() => {
+        if (!scope || !isAdmin) return
+        // Let primary route requests and the first shell paint start first.
+        if ('requestIdleCallback' in window) {
+            const handle = window.requestIdleCallback(() => setIdleScope(scope))
+            return () => window.cancelIdleCallback(handle)
+        }
+        const handle = requestAnimationFrame(() => setIdleScope(scope))
+        return () => cancelAnimationFrame(handle)
+    }, [scope, isAdmin])
+    const enabled = !!scope && idleScope === scope && isAdmin
 
     // Cache server data per user and company; never seed another company's counts.
     const countsQuery = useQuery({
         queryKey: ['onboarding', 'counts', user?.id, orgId],
-        enabled: !!orgId && !!user,
+        enabled,
         staleTime: 5 * 60_000,
         queryFn: async ({ signal }): Promise<DataCounts> => {
+            if (!orgId || !user) throw new Error("A workspace is required.")
             const responses = await Promise.all([
-                supabase.from('patients').select('id', { count: 'exact', head: true }).eq('org_id', orgId!).abortSignal(signal),
-                supabase.from('drivers').select('id', { count: 'exact', head: true }).eq('org_id', orgId!).abortSignal(signal),
-                supabase.from('employees').select('id', { count: 'exact', head: true }).eq('org_id', orgId!).abortSignal(signal),
-                supabase.from('trips').select('id', { count: 'exact', head: true }).eq('org_id', orgId!).abortSignal(signal),
+                supabase.from('patients').select('id').eq('org_id', orgId).limit(ONBOARDING_LIMITS.patients).abortSignal(signal),
+                supabase.from('drivers').select('id').eq('org_id', orgId).limit(ONBOARDING_LIMITS.drivers).abortSignal(signal),
+                supabase.from('employees').select('id').eq('org_id', orgId).limit(ONBOARDING_LIMITS.employees).abortSignal(signal),
+                supabase.from('trips').select('id').eq('org_id', orgId).limit(ONBOARDING_LIMITS.trips).abortSignal(signal),
             ])
             for (const response of responses) {
                 if (response.error) throw response.error
             }
             return {
-                patients: responses[0].count ?? 0,
-                drivers: responses[1].count ?? 0,
-                employees: responses[2].count ?? 0,
-                trips: responses[3].count ?? 0,
+                patients: responses[0].data?.length ?? 0,
+                drivers: responses[1].data?.length ?? 0,
+                employees: responses[2].data?.length ?? 0,
+                trips: responses[3].data?.length ?? 0,
             }
         },
     })
     const uploadsQuery = useQuery({
         queryKey: ['onboarding', 'uploads', user?.id, orgId],
-        enabled: !!orgId && !!user,
+        enabled,
         staleTime: 5 * 60_000,
         queryFn: async ({ signal }): Promise<UploadRecord[]> => {
+            if (!orgId || !user) throw new Error("A workspace is required.")
             const { data, error } = await supabase
                 .from('org_uploads')
                 .select('id, source, original_filename, status, created_at, processed_at, notes')
-                .eq('org_id', orgId!)
+                .eq('org_id', orgId)
                 .order('created_at', { ascending: false })
                 .limit(10)
                 .abortSignal(signal)
@@ -131,7 +151,7 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
     const dataCounts = countsQuery.data ?? EMPTY_COUNTS
     const recentUploads = uploadsQuery.data ?? EMPTY_UPLOADS
     // A failed count request should not claim an established company is empty.
-    const isLoading = !!orgId && countsQuery.data === undefined
+    const isLoading = !enabled || countsQuery.data === undefined
     const { refetch: refetchCounts } = countsQuery
     const { refetch: refetchUploads } = uploadsQuery
     const refreshDataCounts = useCallback(async () => { if (orgId) await refetchCounts() }, [orgId, refetchCounts])
@@ -154,22 +174,7 @@ export const OnboardingProvider = ({ children, onNavigate }: OnboardingProviderP
     const hasUploadedEmployees = uploadedTypes.has('employees')
     const hasUploadedTrips = uploadedTypes.has('trips')
 
-    // Determine data state based on counts
-    const getDataState = useCallback((counts: DataCounts): DataState => {
-        const totalRecords = counts.patients + counts.drivers + counts.employees
-        const hasTrips = counts.trips > 0
-
-        if (totalRecords === 0) {
-            return 'empty'
-        } else if (!hasTrips || totalRecords < 5) {
-            // Onboarding: has some data but not enough to be "live"
-            return 'onboarding'
-        } else {
-            return 'live'
-        }
-    }, [])
-
-    const dataState = getDataState(dataCounts)
+    const dataState = onboardingDataState(dataCounts)
 
     // Navigate helper
     const navigateTo = useCallback((page: string) => {

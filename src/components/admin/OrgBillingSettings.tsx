@@ -1,4 +1,8 @@
 import React from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/auth-context";
+import type { Database } from "@/types/supabase";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -41,6 +45,24 @@ type BillingFormData = z.infer<typeof billingSchema>;
 
 export function OrgbillingSettings() {
   const { currentOrganization, refreshOrganization } = useOrganization();
+  const { user } = useAuth();
+  const { isAdmin } = usePermissions();
+  const queryClient = useQueryClient();
+  const orgId = currentOrganization?.id;
+  const integrationKey = ["organization-integration-settings", user?.id, orgId];
+  const integration = useQuery({
+    queryKey: integrationKey,
+    enabled: !!orgId && !!user && isAdmin,
+    staleTime: 5 * 60_000,
+    queryFn: async ({ signal }) => {
+      if (!orgId || !user || !isAdmin) throw new Error("Organization access is required.");
+      const { data, error } = await supabase.from("organizations")
+        .select("sftp_host,sftp_username").eq("id", orgId).abortSignal(signal)
+        .returns<Pick<Database["public"]["Tables"]["organizations"]["Row"], "sftp_host" | "sftp_username">[]>().single();
+      if (error) throw error;
+      return data;
+    },
+  });
   const [isSaving, setIsSaving] = React.useState(false);
 
   const {
@@ -57,8 +79,8 @@ export function OrgbillingSettings() {
       tax_id: currentOrganization?.tax_id || "",
       billing_enabled: currentOrganization?.billing_enabled ?? true,
       sftp_enabled: currentOrganization?.sftp_enabled || false,
-      sftp_host: currentOrganization?.sftp_host || "",
-      sftp_username: currentOrganization?.sftp_username || "",
+      sftp_host: integration.data?.sftp_host || "",
+      sftp_username: integration.data?.sftp_username || "",
       sftp_password_enc: "",
       mn_its_submitter_id: currentOrganization?.mn_its_submitter_id || "",
     },
@@ -73,16 +95,16 @@ export function OrgbillingSettings() {
         tax_id: currentOrganization.tax_id || "",
         billing_enabled: currentOrganization.billing_enabled ?? true,
         sftp_enabled: currentOrganization.sftp_enabled || false,
-        sftp_host: currentOrganization.sftp_host || "",
-        sftp_username: currentOrganization.sftp_username || "",
+        sftp_host: integration.data?.sftp_host || "",
+        sftp_username: integration.data?.sftp_username || "",
         sftp_password_enc: "",
         mn_its_submitter_id: currentOrganization.mn_its_submitter_id || "",
       });
     }
-  }, [currentOrganization, reset]);
+  }, [currentOrganization, integration.data, reset]);
 
   const onSubmit = async (data: BillingFormData) => {
-    if (!currentOrganization?.id) return;
+    if (!currentOrganization?.id || !isAdmin || !integration.data) return;
 
     setIsSaving(true);
     try {
@@ -104,7 +126,7 @@ export function OrgbillingSettings() {
 
       if (error) throw error;
 
-      await refreshOrganization();
+      await Promise.all([refreshOrganization(), queryClient.invalidateQueries({ queryKey: integrationKey })]);
       alert("Billing setup updated successfully");
     } catch (error: any) {
       console.error("Error updating billing settings:", error);
@@ -113,6 +135,13 @@ export function OrgbillingSettings() {
       setIsSaving(false);
     }
   };
+
+  if (integration.isPending || integration.isError) {
+    return <div role="status" className="p-6 text-sm text-muted-foreground">
+      {integration.isError ? "Unable to load billing settings." : "Loading billing settings…"}
+      {integration.isError && <Button variant="outline" className="ml-3" onClick={() => integration.refetch()}>Try again</Button>}
+    </div>;
+  }
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto p-4 sm:p-6 bg-transparent">

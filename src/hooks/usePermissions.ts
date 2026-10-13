@@ -2,13 +2,17 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAuth } from "@/contexts/auth-context";
 
 export function usePermissions() {
-  const { userRole } = useOrganization();
-  const { profile, user } = useAuth();
+  const { userRole: resolvedRole, loading: orgLoading, error: orgError } = useOrganization();
+  const { profile, user, loading: authLoading, error: authError } = useAuth();
+  const identityReady = !!user && !authLoading && !authError;
+  const userRole = identityReady && !orgLoading && !orgError ? resolvedRole : null;
+  const founderEmail = import.meta.env.VITE_FOUNDER_EMAIL;
+  const isSuperAdmin = identityReady && !!(profile?.is_super_admin || (founderEmail && user?.email === founderEmail));
 
   const can = (action: string): boolean => {
     // Super admins can do everything
-    const isFOUNDER = user?.email === import.meta.env.VITE_FOUNDER_EMAIL;
-    if (profile?.is_super_admin || isFOUNDER) return true;
+    if (!identityReady || orgLoading || orgError) return false;
+    if (isSuperAdmin) return true;
 
     if (!userRole) return false;
 
@@ -59,10 +63,6 @@ export function usePermissions() {
     return false;
   };
 
-  const isSuperAdmin = !!(
-    profile?.is_super_admin ||
-    user?.email === import.meta.env.VITE_FOUNDER_EMAIL
-  );
   const isOwner = userRole === "owner" || isSuperAdmin;
   const isAdmin = userRole === "admin" || isOwner;
   const isDispatchOnly = userRole === "dispatch";

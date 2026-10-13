@@ -19,7 +19,8 @@ import { useAuditAccess } from "@/hooks/useAuditAccess";
 import { usePresence } from "@/hooks/usePresence";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
-import { useDriverLocation } from "@/hooks/useDriverLocation";
+import { useDriverIdentity, useDriverLocation } from "@/hooks/useDriverLocation";
+import { markStartup } from "@/lib/startup-performance";
 import { ErrorBoundary } from "./components/error-boundary";
 import { pages, type Page } from "@/lib/pages";
 
@@ -75,9 +76,9 @@ function DialogLoader() {
 }
 
 function AppContent() {
-  const { user, loading: authLoading } = useAuth();
-  const { driverId: currentDriverId } = useDriverLocation(); // Enables driver tracking and SMS trigger
-  const { loading: orgLoading, userRole } = useOrganization();
+  const { user, loading: authLoading, error: authError, refresh } = useAuth();
+  const { driverId: currentDriverId } = useDriverIdentity();
+  const { loading: orgLoading, userRole, currentOrganization } = useOrganization();
   const { isDriver, isSuperAdmin } = usePermissions();
   const auditAccess = useAuditAccess();
 
@@ -108,6 +109,11 @@ function AppContent() {
   const [fromPage, setFromPage] = useQueryState("from");
   const [, setSection] = useQueryState("section");
   const [, setDate] = useQueryState("date");
+
+  useDriverLocation({ enabled: !loading && !authError && (currentPage === "trips" || currentPage === "trip-details") });
+  useEffect(() => {
+    if (!loading && !authError && user && currentOrganization) markStartup("usable-shell");
+  }, [loading, authError, user, currentOrganization]);
 
   // Centralized Access Control and Redirection
   useEffect(() => {
@@ -191,6 +197,14 @@ function AppContent() {
         </div>
       </div>
     );
+  }
+
+  if (authError) {
+    return <div role="alert" className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <h1 className="text-xl font-semibold">Unable to load your workspace</h1>
+      <p className="text-muted-foreground">Your session or company access could not be verified. Please try again.</p>
+      <button className="rounded-md bg-slate-900 px-4 py-2 text-white" onClick={() => void refresh()}>Try again</button>
+    </div>;
   }
 
   // Handle invitation acceptance regardless of auth status (will show login prompt inside if needed)
@@ -452,9 +466,7 @@ function AppContent() {
         if (isDriver && !currentDriverId) {
           return (
             <DashboardPage title="Trips Management">
-              <div className="flex h-64 items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-              </div>
+              <p role="status" className="p-6 text-slate-600">Your account is not linked to a driver in this company. Contact your administrator to restore access.</p>
             </DashboardPage>
           );
         }
@@ -512,9 +524,7 @@ function AppContent() {
         if (isDriver && !currentDriverId) {
           return (
             <DashboardPage title="Driving History">
-              <div className="flex h-64 items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-              </div>
+              <p role="status" className="p-6 text-slate-600">Your account is not linked to a driver in this company. Contact your administrator to restore access.</p>
             </DashboardPage>
           );
         }
@@ -576,7 +586,7 @@ function AppContent() {
   };
 
   return (
-    <OnboardingProvider onNavigate={(page) => setCurrentPage?.(page as Page)}>
+    <OnboardingProvider key={`${user.id}:${currentOrganization?.id ?? "no-organization"}`} onNavigate={(page) => setCurrentPage?.(page as Page)}>
       <SidebarProvider>
         <AppSidebar
           currentPage={currentPage}
