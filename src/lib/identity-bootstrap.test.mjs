@@ -154,3 +154,13 @@ test("revoked memberships and default-company changes clear feature cache before
     queryClient.clear();
   }
 });
+
+
+test("a readable self-membership with an RLS-hidden organization never grants tenant capabilities", async () => {
+  const client = mockClient((request) => request.table === "organization_memberships"
+    ? { data: [{ ...membership("user-a", "org-a", true), organization: null }], error: null } : response(request));
+  const identity = await fetchIdentityBootstrap(client, "user-a", new AbortController().signal);
+  assert.deepEqual(identity.memberships, []);
+  assert.deepEqual(identity.organizations, []);
+  assert.equal(resolveOrganization(identity, null), null);
+});

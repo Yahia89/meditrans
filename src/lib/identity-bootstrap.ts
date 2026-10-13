@@ -91,7 +91,9 @@ export async function fetchIdentityBootstrap(
   // Never publish a partial membership response as authorization success.
   if (signal.aborted) throw new DOMException("Bootstrap cancelled", "AbortError");
   const rows = z.array(membershipSchema).parse(membershipResult.data ?? []);
-  const memberships = rows.filter((row) => row.user_id === userId).map((row) => ({
+  // A readable self-membership alone does not prove current tenant access: RLS
+  // can hide its organization after employee/driver/patient access is disabled.
+  const memberships = rows.filter((row) => row.user_id === userId && row.organization?.id === row.org_id).map((row) => ({
     id: row.id, org_id: row.org_id, user_id: row.user_id, role: row.role,
     is_primary: row.is_primary, created_at: row.created_at,
   }));

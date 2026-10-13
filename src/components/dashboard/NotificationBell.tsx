@@ -181,8 +181,8 @@ export function NotificationBell({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // Don't render anything if no alerts
-  if (totalAlerts === 0) return null;
+  // Hide a confirmed empty state, but keep pending/failed checks reachable.
+  if (totalAlerts === 0 && !creditError && !creditsLoading) return null;
 
   const bellColor = hasExpired
     ? "text-red-600"

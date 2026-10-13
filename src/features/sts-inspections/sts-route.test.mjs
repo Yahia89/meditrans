@@ -11,6 +11,12 @@ let state;
 let effects = [];
 const passThrough = ({ children }) => children;
 const noContent = () => null;
+const loaderNames = [...readFileSync(new URL("../../router/page-loaders.ts", import.meta.url), "utf8").matchAll(/export const (load\w+) =/g)].map(match => match[1]);
+const pageLoaders = Object.fromEntries(loaderNames.map(name => {
+  const loader = () => null;
+  loader.protectedAudit = name === "loadSTSInspectionPage" || name === "loadCompanyDocumentsPage";
+  return [name, loader];
+}));
 const providers = {
   auth: { AuthProvider: passThrough, useAuth: () => ({ user: state.user, memberships: state.memberships, loading: state.authLoading }) },
   organization: { OrganizationProvider: passThrough, useOrganization: () => ({ currentOrganization: state.orgId ? { id: state.orgId } : null, userRole: state.role, loading: state.orgLoading }) },
@@ -18,36 +24,37 @@ const providers = {
 const mocks = {
   react: {
     ...React,
-    // Flush the real App effect after each server render to test its redirects.
+    // Flush non-navigation shell effects after rendering; access is synchronous.
     useEffect: (callback) => effects.push(callback),
     lazy: (load) => {
-      const source = load.toString();
-      return source.includes("sts-inspection-page") || source.includes("CompanyDocumentsPage")
+      return load.protectedAudit
         ? () => React.createElement("span", null, "PROTECTED AUDIT PAGE") : noContent;
     },
   },
-  nuqs: {
-    useQueryState: (key) => [key === "page" ? state.page : null, (value) => { if (key === "page") state.page = value; }],
+  "@/router/navigation": {
+    useRouteQueryState: (key) => [key === "page" ? state.page : null, (value) => { if (key === "page") state.page = value; }],
     parseAsStringLiteral: () => ({ withDefault() { return this; }, withOptions() { return this; } }),
   },
   "@/contexts/auth-context": providers.auth,
   "@/contexts/OrganizationContext": providers.organization,
   "@/contexts/OnboardingContext": { OnboardingProvider: passThrough },
   "@/components/ui/sidebar": { SidebarProvider: passThrough },
-  "./components/app-sidebar": { AppSidebar: noContent },
-  "./components/dashboard-page": { DashboardPage: passThrough },
-  "./components/login-form": { LoginForm: noContent },
-  "./components/error-boundary": { ErrorBoundary: passThrough },
+  "@/components/app-sidebar": { AppSidebar: noContent },
+  "@/components/dashboard-page": { DashboardPage: passThrough },
+  "@/components/login-form": { LoginForm: noContent },
+  "@/components/error-boundary": { ErrorBoundary: passThrough },
   "@/hooks/usePermissions": { usePermissions: () => ({ isDriver: state.role === "driver", isSuperAdmin: !!state.founder }) },
   "@/hooks/usePresence": { usePresence() {} },
   "@/hooks/useDriverLocation": { useDriverIdentity: () => ({ driverId: null }), useDriverLocation: () => ({ driverId: null }) },
   "@/lib/startup-performance": { markStartup() {} },
   sonner: { Toaster: noContent },
+  "./page-loaders": pageLoaders,
 };
 const sources = {
   "@/hooks/useAuditAccess": "../../hooks/useAuditAccess.ts",
   "@/features/compliance/access": "../compliance/access.ts",
   "@/lib/pages": "../../lib/pages.ts",
+  "@/router/access": "../../router/access.ts",
 };
 function loadSource(relativePath) {
   const url = new URL(relativePath, import.meta.url);
@@ -64,7 +71,8 @@ function loadSource(relativePath) {
   }, exported);
   return exported;
 }
-const App = loadSource("../../App.tsx").default;
+const App = loadSource("../../router/WorkspacePage.tsx").WorkspacePage;
+const { getPageAccess } = loadSource("../../router/access.ts");
 function renderAndFlush() {
   effects = [];
   const html = renderToStaticMarkup(React.createElement(App));
@@ -98,12 +106,15 @@ test("audit deep links survive auth resolving before the organization on a full 
   }
 });
 
-test("resolved unauthorized audit links stay unmounted and redirect for every restricted role", () => {
+test("resolved unauthorized audit links stay unmounted with the correct Router fallback for every restricted role", () => {
   for (const page of ["sts-inspection", "company"]) {
     for (const [role, founder, fallback] of [["dispatch", false, "dashboard"], ["driver", false, "trips"], ["founder", true, "companies"]]) {
       state = { page, user: { id: "user-1" }, memberships: [], orgId: "org-1", role, founder, authLoading: false, orgLoading: false };
       assert.doesNotMatch(renderAndFlush(), /PROTECTED AUDIT PAGE/);
-      assert.equal(state.page, fallback);
+      assert.equal(state.page, page, "rendering must not mutate history through an effect");
+      assert.deepEqual(getPageAccess(page, {
+        userId: state.user.id, organizationId: state.orgId, role, isSuperAdmin: founder, canManageAudit: false,
+      }), { allowed: false, fallback });
     }
   }
 });
