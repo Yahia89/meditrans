@@ -1,0 +1,1 @@
+import{n as e,r as t}from"./xlsx-BLvRm_hV.js";function n(n,r){if(!n||n.length===0)return;let i=e.json_to_sheet(n),a=e.book_new();e.book_append_sheet(a,i,`Sheet1`),t(a,`${r}.xlsx`)}export{n as exportToExcel};
