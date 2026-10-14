@@ -1,31 +1,13 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase, type MembershipRole } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
-
-type PresenceStatus = "online" | "away" | "offline";
-
-// Members whose last_active_at is older than this are shown as offline
-// on the client side, even if the DB hasn't been cleaned up yet.
-const STALE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
-
-export interface OrganizationMember {
-  id: string;
-  user_id: string;
-  email: string;
-  full_name: string | null;
-  role: MembershipRole;
-  presence_status: PresenceStatus;
-  last_active_at: string | null;
-  is_primary: boolean;
-  created_at: string;
-  // Employee record data (if linked)
-  employee_id: string | null;
-  department: string | null;
-  position: string | null;
-  phone: string | null;
-  hire_date: string | null;
-}
+import {
+  derivePresenceStatus,
+  type OrganizationMember,
+  type OrganizationPresenceRow,
+} from "./organization-presence";
+export type { OrganizationMember } from "./organization-presence";
 
 interface UseOrganizationMembersResult {
   members: OrganizationMember[];
@@ -38,33 +20,8 @@ interface UseOrganizationMembersResult {
 }
 
 /**
- * Derive the effective presence status.
- * If the DB says "online" or "away" but last_active_at is stale,
- * we override to "offline" on the client side for instant UI feedback.
- */
-function derivePresenceStatus(
-  dbStatus: string | null,
-  lastActiveAt: string | null,
-): PresenceStatus {
-  const status = (dbStatus || "offline") as PresenceStatus;
-
-  if (status === "offline") return "offline";
-
-  // If last_active_at is missing, trust the DB
-  if (!lastActiveAt) return status;
-
-  const lastActive = new Date(lastActiveAt).getTime();
-  const now = Date.now();
-
-  if (now - lastActive > STALE_THRESHOLD_MS) {
-    return "offline";
-  }
-
-  return status;
-}
-
-/**
- * Hook to fetch organization members with their real-time presence status.
+ * Lightweight organization presence, joined to employees by user_id in the page.
+ * Avoid loading profiles, invitations, and a duplicate employee directory.
  * Includes:
  * - Realtime subscription for live presence updates via Postgres changes
  * - Client-side stale detection (marks users offline if last_active_at > 2 min)
@@ -73,6 +30,7 @@ function derivePresenceStatus(
 export function useOrganizationMembers(): UseOrganizationMembersResult {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
+  const [now, setNow] = useState(Date.now);
 
   const {
     data: rawMembers = [],
@@ -81,119 +39,37 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     refetch,
   } = useQuery({
     queryKey: ["organization-members", currentOrganization?.id],
-    queryFn: async () => {
+    queryFn: async ({ signal }): Promise<OrganizationPresenceRow[]> => {
       if (!currentOrganization?.id) return [];
 
-      // Fetch memberships with user profiles
-      const { data: memberships, error: membershipError } = await supabase
+      const { data, error } = await supabase
         .from("organization_memberships")
-        .select(
-          `
-          id,
-          user_id,
-          role,
-          is_primary,
-          presence_status,
-          last_active_at,
-          created_at
-        `,
-        )
+        .select("id, user_id, presence_status, last_active_at")
         .eq("org_id", currentOrganization.id)
-        .order("role", { ascending: true });
+        .abortSignal(signal);
 
-      if (membershipError) throw membershipError;
-
-      if (!memberships || memberships.length === 0) return [];
-
-      // Get user IDs to fetch profiles
-      const userIds = memberships.map((m) => m.user_id);
-
-      // Fetch user profiles
-      const { data: profiles, error: profileError } = await supabase
-        .from("user_profiles")
-        .select("user_id, full_name, phone")
-        .in("user_id", userIds);
-
-      if (profileError) throw profileError;
-
-      // Fetch user emails from org_invites as a fallback
-      const { data: invites } = await supabase
-        .from("org_invites")
-        .select("email, role")
-        .eq("org_id", currentOrganization.id)
-        .not("accepted_at", "is", null);
-
-      // Fetch employees for department/position info
-      const { data: employees, error: employeeError } = await supabase
-        .from("employees")
-        .select(
-          "id, email, full_name, department, role, phone, hire_date, user_id",
-        )
-        .eq("org_id", currentOrganization.id);
-
-      if (employeeError) throw employeeError;
-
-      // Create lookup maps (O(1) lookups per js-set-map-lookups)
-      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
-      const employeeByUserIdMap = new Map(
-        (employees || []).filter((e) => e.user_id).map((e) => [e.user_id, e]),
-      );
-      const inviteByRoleMap = new Map(
-        invites?.map((i) => [i.role, i.email]) || [],
-      );
-
-      // Combine data
-      const combinedMembers: OrganizationMember[] = memberships.map((m) => {
-        const profile = profileMap.get(m.user_id);
-        const employee = employeeByUserIdMap.get(m.user_id);
-
-        // Try to get email from various sources
-        let email = "";
-        if (employee?.email) email = employee.email;
-        else email = inviteByRoleMap.get(m.role) || "";
-
-        return {
-          id: m.id,
-          user_id: m.user_id,
-          email,
-          full_name: profile?.full_name || employee?.full_name || null,
-          role: m.role as MembershipRole,
-          // Apply client-side stale detection
-          presence_status: derivePresenceStatus(
-            m.presence_status,
-            m.last_active_at,
-          ),
-          last_active_at: m.last_active_at,
-          is_primary: m.is_primary,
-          created_at: m.created_at,
-          employee_id: employee?.id || null,
-          department: employee?.department || null,
-          position: employee?.role || null,
-          phone: profile?.phone || employee?.phone || null,
-          hire_date: employee?.hire_date || null,
-        };
-      });
-
-      return combinedMembers;
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!currentOrganization?.id,
     staleTime: 15 * 1000, // 15 seconds
     refetchInterval: 30 * 1000, // Refetch every 30s for self-healing
   });
 
-  // Re-derive presence status every 30s to catch stale sessions on the
-  // client side without waiting for a server round-trip.
-  const members = useMemo(() => {
-    return rawMembers.map((m) => ({
-      ...m,
-      presence_status: derivePresenceStatus(
-        m.presence_status,
-        m.last_active_at,
-      ),
-    }));
-    // We intentionally include Date.now() indirectly through the refetch
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawMembers]);
+  // Expire stale sessions even when refetch returns identical rows or fails.
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const members = useMemo(() => rawMembers.map((member) => ({
+    ...member,
+    presence_status: derivePresenceStatus(
+      member.presence_status,
+      member.last_active_at,
+      now,
+    ),
+  })), [rawMembers, now]);
 
   // Set up realtime subscription for presence updates
   useEffect(() => {
@@ -213,16 +89,13 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
           // Update the specific member's presence in the cache
           queryClient.setQueryData(
             ["organization-members", currentOrganization.id],
-            (oldData: OrganizationMember[] | undefined) => {
+            (oldData: OrganizationPresenceRow[] | undefined) => {
               if (!oldData) return oldData;
               return oldData.map((member) =>
                 member.id === payload.new.id
                   ? {
                       ...member,
-                      presence_status: derivePresenceStatus(
-                        payload.new.presence_status,
-                        payload.new.last_active_at,
-                      ),
+                      presence_status: payload.new.presence_status,
                       last_active_at: payload.new.last_active_at,
                     }
                   : member,

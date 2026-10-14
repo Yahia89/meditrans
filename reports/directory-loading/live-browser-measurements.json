@@ -1,0 +1,213 @@
+{
+  "evidence": "Local production preview with hosted read-only Supabase requests",
+  "browser": "Firefox",
+  "frontendDeployed": false,
+  "screenshots": false,
+  "traces": false,
+  "runs": [
+    {
+      "route": "patients",
+      "revisit": false,
+      "readyMs": 1085,
+      "visibleCards": 5,
+      "searchPassed": true,
+      "totalsReady": true
+    },
+    {
+      "route": "drivers",
+      "revisit": false,
+      "readyMs": 399,
+      "visibleCards": 5,
+      "searchPassed": true,
+      "totalsReady": true
+    },
+    {
+      "route": "employees",
+      "revisit": false,
+      "readyMs": 252,
+      "visibleCards": 5,
+      "searchPassed": true,
+      "totalsReady": null
+    },
+    {
+      "route": "patients",
+      "revisit": true,
+      "readyMs": 78,
+      "visibleCards": 5,
+      "searchPassed": true,
+      "totalsReady": true
+    },
+    {
+      "route": "drivers",
+      "revisit": true,
+      "readyMs": 62,
+      "visibleCards": 5,
+      "searchPassed": true,
+      "totalsReady": true
+    },
+    {
+      "route": "employees",
+      "revisit": true,
+      "readyMs": 71,
+      "visibleCards": 5,
+      "searchPassed": true,
+      "totalsReady": null
+    }
+  ],
+  "requests": [
+    {
+      "phase": "patients-first",
+      "method": "GET",
+      "resource": "drivers",
+      "kind": "identity-or-linked-user",
+      "status": 200,
+      "failed": false,
+      "durationMs": 444
+    },
+    {
+      "phase": "patients-first",
+      "method": "GET",
+      "resource": "user_profiles",
+      "kind": "identity-or-linked-user",
+      "status": 200,
+      "failed": false,
+      "durationMs": 474
+    },
+    {
+      "phase": "patients-first",
+      "method": "GET",
+      "resource": "organization_memberships",
+      "kind": "identity-or-linked-user",
+      "status": 200,
+      "failed": false,
+      "durationMs": 474
+    },
+    {
+      "phase": "patients-first",
+      "method": "POST",
+      "resource": "update_user_presence",
+      "kind": "other",
+      "status": 403,
+      "failed": false,
+      "durationMs": 2
+    },
+    {
+      "phase": "patients-first",
+      "method": "GET",
+      "resource": "patients",
+      "kind": "directory",
+      "status": 200,
+      "failed": false,
+      "durationMs": 147
+    },
+    {
+      "phase": "patients-first",
+      "method": "GET",
+      "resource": "drivers",
+      "kind": "onboarding-existence",
+      "status": 200,
+      "failed": false,
+      "durationMs": 177
+    },
+    {
+      "phase": "patients-first",
+      "method": "GET",
+      "resource": "employees",
+      "kind": "onboarding-existence",
+      "status": 200,
+      "failed": false,
+      "durationMs": 190
+    },
+    {
+      "phase": "patients-first",
+      "method": "GET",
+      "resource": "org_uploads",
+      "kind": "other",
+      "status": 200,
+      "failed": false,
+      "durationMs": 190
+    },
+    {
+      "phase": "patients-first",
+      "method": "POST",
+      "resource": "directory_trip_counts",
+      "kind": "patients",
+      "status": 200,
+      "failed": false,
+      "durationMs": 201
+    },
+    {
+      "phase": "patients-first",
+      "method": "GET",
+      "resource": "trips",
+      "kind": "other",
+      "status": 200,
+      "failed": false,
+      "durationMs": 197
+    },
+    {
+      "phase": "patients-first",
+      "method": "GET",
+      "resource": "patients",
+      "kind": "onboarding-existence",
+      "status": 200,
+      "failed": false,
+      "durationMs": 212
+    },
+    {
+      "phase": "patients-first",
+      "method": "GET",
+      "resource": "org_invites",
+      "kind": "other",
+      "status": 200,
+      "failed": false,
+      "durationMs": 222
+    },
+    {
+      "phase": "drivers-first",
+      "method": "POST",
+      "resource": "directory_trip_counts",
+      "kind": "drivers",
+      "status": 200,
+      "failed": false,
+      "durationMs": 180
+    },
+    {
+      "phase": "drivers-first",
+      "method": "GET",
+      "resource": "drivers",
+      "kind": "directory",
+      "status": 200,
+      "failed": false,
+      "durationMs": 227
+    },
+    {
+      "phase": "employees-first",
+      "method": "GET",
+      "resource": "organization_memberships",
+      "kind": "presence",
+      "status": 200,
+      "failed": false,
+      "durationMs": 139
+    },
+    {
+      "phase": "employees-first",
+      "method": "GET",
+      "resource": "employees",
+      "kind": "directory",
+      "status": 200,
+      "failed": false,
+      "durationMs": 155
+    }
+  ],
+  "blockedWrites": [
+    {
+      "phase": "patients-first",
+      "method": "POST",
+      "resource": "update_user_presence"
+    }
+  ],
+  "blockedOther": 1,
+  "pageErrorCount": 0,
+  "ok": true
+}

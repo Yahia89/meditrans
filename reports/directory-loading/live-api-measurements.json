@@ -1,0 +1,231 @@
+{
+  "scope": "Live API, same HAR identity; read-only; no browser timing",
+  "measuredAt": "2026-10-14T18:17:08.273Z",
+  "routes": {
+    "patients": {
+      "runs": [
+        {
+          "legacy": {
+            "ms": 965.5,
+            "status": 200,
+            "rows": 37,
+            "decodedBytes": 41197
+          },
+          "list": {
+            "ms": 329.9,
+            "status": 200,
+            "rows": 37,
+            "decodedBytes": 40322
+          },
+          "counts": {
+            "ms": 305.1,
+            "status": 200,
+            "rows": 23,
+            "decodedBytes": 1678,
+            "pages": 1
+          },
+          "parallelCompleteMs": 330.2,
+          "listMatches": true,
+          "countsMatch": true
+        },
+        {
+          "legacy": {
+            "ms": 200.2,
+            "status": 200,
+            "rows": 37,
+            "decodedBytes": 41197
+          },
+          "list": {
+            "ms": 118.4,
+            "status": 200,
+            "rows": 37,
+            "decodedBytes": 40322
+          },
+          "counts": {
+            "ms": 196.8,
+            "status": 200,
+            "rows": 23,
+            "decodedBytes": 1678,
+            "pages": 1
+          },
+          "parallelCompleteMs": 197.3,
+          "listMatches": true,
+          "countsMatch": true
+        },
+        {
+          "legacy": {
+            "ms": 215.3,
+            "status": 200,
+            "rows": 37,
+            "decodedBytes": 41197
+          },
+          "list": {
+            "ms": 836.3,
+            "status": 200,
+            "rows": 37,
+            "decodedBytes": 40322
+          },
+          "counts": {
+            "ms": 843.1,
+            "status": 200,
+            "rows": 23,
+            "decodedBytes": 1678,
+            "pages": 1
+          },
+          "parallelCompleteMs": 843.6,
+          "listMatches": true,
+          "countsMatch": true
+        }
+      ],
+      "mediansMs": {
+        "legacy": 215.3,
+        "list": 329.9,
+        "complete": 330.2
+      }
+    },
+    "drivers": {
+      "runs": [
+        {
+          "legacy": {
+            "ms": 451.6,
+            "status": 200,
+            "rows": 9,
+            "decodedBytes": 11378
+          },
+          "list": {
+            "ms": 151.4,
+            "status": 200,
+            "rows": 9,
+            "decodedBytes": 11163
+          },
+          "counts": {
+            "ms": 122.9,
+            "status": 200,
+            "rows": 5,
+            "decodedBytes": 366,
+            "pages": 1
+          },
+          "parallelCompleteMs": 151.5,
+          "listMatches": true,
+          "countsMatch": true
+        },
+        {
+          "legacy": {
+            "ms": 184.3,
+            "status": 200,
+            "rows": 9,
+            "decodedBytes": 11378
+          },
+          "list": {
+            "ms": 111.9,
+            "status": 200,
+            "rows": 9,
+            "decodedBytes": 11163
+          },
+          "counts": {
+            "ms": 209.8,
+            "status": 200,
+            "rows": 5,
+            "decodedBytes": 366,
+            "pages": 1
+          },
+          "parallelCompleteMs": 210.1,
+          "listMatches": true,
+          "countsMatch": true
+        },
+        {
+          "legacy": {
+            "ms": 170.5,
+            "status": 200,
+            "rows": 9,
+            "decodedBytes": 11378
+          },
+          "list": {
+            "ms": 121.9,
+            "status": 200,
+            "rows": 9,
+            "decodedBytes": 11163
+          },
+          "counts": {
+            "ms": 157.8,
+            "status": 200,
+            "rows": 5,
+            "decodedBytes": 366,
+            "pages": 1
+          },
+          "parallelCompleteMs": 158.3,
+          "listMatches": true,
+          "countsMatch": true
+        }
+      ],
+      "mediansMs": {
+        "legacy": 184.3,
+        "list": 121.9,
+        "complete": 158.3
+      }
+    },
+    "employees": {
+      "runs": [
+        {
+          "legacy": {
+            "ms": 117.3,
+            "status": 200,
+            "rows": 7,
+            "decodedBytes": 4123
+          },
+          "list": {
+            "ms": 149.5,
+            "status": 200,
+            "rows": 7,
+            "decodedBytes": 4123
+          },
+          "counts": null,
+          "parallelCompleteMs": 149.6,
+          "listMatches": true,
+          "countsMatch": true
+        },
+        {
+          "legacy": {
+            "ms": 104.2,
+            "status": 200,
+            "rows": 7,
+            "decodedBytes": 4123
+          },
+          "list": {
+            "ms": 109.3,
+            "status": 200,
+            "rows": 7,
+            "decodedBytes": 4123
+          },
+          "counts": null,
+          "parallelCompleteMs": 109.4,
+          "listMatches": true,
+          "countsMatch": true
+        },
+        {
+          "legacy": {
+            "ms": 75.4,
+            "status": 200,
+            "rows": 7,
+            "decodedBytes": 4123
+          },
+          "list": {
+            "ms": 91.6,
+            "status": 200,
+            "rows": 7,
+            "decodedBytes": 4123
+          },
+          "counts": null,
+          "parallelCompleteMs": 92,
+          "listMatches": true,
+          "countsMatch": true
+        }
+      ],
+      "mediansMs": {
+        "legacy": 104.2,
+        "list": 109.3,
+        "complete": 109.4
+      }
+    }
+  }
+}

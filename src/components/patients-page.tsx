@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { lazy, useState, useMemo, useEffect } from "react";
 import {
   MagnifyingGlass,
   Plus,
@@ -18,13 +18,15 @@ import {
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { directoryTripCountsOptions } from "@/lib/directory-trip-counts";
+import { DirectoryTripTotalsStatus } from "@/components/directory-trip-totals-status";
 import { cn, formatPhoneNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useCanManageUserAccess } from "@/hooks/useCanManageUserAccess";
 import { PatientsEmptyState } from "@/components/ui/empty-state";
-import { PatientForm } from "@/components/forms/patient-form";
+import { DeferredForm } from "@/components/ui/deferred-form";
 import {
   Loader2,
   Pencil,
@@ -33,7 +35,6 @@ import {
   LockKeyhole,
   ShieldCheck,
 } from "lucide-react";
-import { exportToExcel } from "@/lib/export";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
   DropdownMenu,
@@ -58,6 +59,10 @@ import {
   UserAccessConfirmDialog,
 } from "@/components/user-access-control";
 
+const PatientForm = lazy(async () => ({
+  default: (await import("@/components/forms/patient-form")).PatientForm,
+}));
+
 interface Patient {
   id: string;
   name: string;
@@ -66,7 +71,7 @@ interface Patient {
   email: string;
   address: string;
   status: "approved" | "pending" | "expired" | "n/a";
-  totalTrips: number;
+  totalTrips?: number;
   date_of_birth?: string | null;
   notes?: string | null;
   custom_fields?: Record<string, string> | null;
@@ -234,6 +239,9 @@ export function PatientsPage({
       queryClient.invalidateQueries({
         queryKey: ["patients", currentOrganization?.id],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["trips", "directory-counts", currentOrganization?.id],
+      });
       setSelectedIds(new Set());
       setShowBulkDeleteDialog(false);
     } catch (err) {
@@ -267,6 +275,8 @@ export function PatientsPage({
 
   // Use permission flag for patient management (admin+ only)
 
+  const tripCounts = useQuery(directoryTripCountsOptions(currentOrganization?.id, "patients"));
+
   const { data: realPatients, isLoading } = useQuery({
     queryKey: ["patients", currentOrganization?.id],
     queryFn: async () => {
@@ -274,10 +284,7 @@ export function PatientsPage({
 
       const { data, error } = await supabase
         .from("patients")
-        .select(`
-          *,
-          trips:trips(count)
-        `)
+        .select("*")
         .eq("org_id", currentOrganization.id)
         .order("created_at", { ascending: false });
 
@@ -300,7 +307,6 @@ export function PatientsPage({
           email: p.email || "",
           address: p.primary_address || "",
           status: (p.sal_status || "pending").toLowerCase() as "approved" | "pending" | "expired" | "n/a",
-          totalTrips: p.trips?.[0]?.count || 0,
           date_of_birth: p.date_of_birth,
           notes: p.notes,
           custom_fields: p.custom_fields,
@@ -326,10 +332,11 @@ export function PatientsPage({
       });
     },
     enabled: !!currentOrganization,
+    staleTime: 30_000,
   });
 
-  const handleExport = () => {
-    if (!patients.length) return;
+  const handleExport = async () => {
+    if (!patients.length || !tripCountsReady) return;
     // Export with columns matching user's naming convention
     const exportData = patients.map((p) => ({
       "CLIENT NAME": p.name,
@@ -347,6 +354,7 @@ export function PatientsPage({
       Status: p.status,
       "Total Trips": p.totalTrips,
     }));
+    const { exportToExcel } = await import("@/lib/export");
     exportToExcel(
       exportData,
       `patients_${new Date().toISOString().split("T")[0]}`,
@@ -366,6 +374,9 @@ export function PatientsPage({
       queryClient.invalidateQueries({
         queryKey: ["patients", currentOrganization?.id],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["trips", "directory-counts", currentOrganization?.id],
+      });
       setDeleteId(null);
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -381,7 +392,14 @@ export function PatientsPage({
 
   const hasRealData = realPatients && realPatients.length > 0;
   const showData = hasRealData || isDemoMode;
-  const patients = hasRealData ? realPatients : isDemoMode ? demoPatients : [];
+  const patients = useMemo(() => hasRealData
+    ? realPatients.map((patient) => ({
+        ...patient,
+        totalTrips: tripCounts.data ? tripCounts.data[patient.id] ?? 0 : undefined,
+      }))
+    : isDemoMode ? demoPatients : [], [hasRealData, realPatients, isDemoMode, tripCounts.data]);
+  const tripCountsReady = (!hasRealData && isDemoMode) || !!tripCounts.data;
+  const tripCountPlaceholder = tripCounts.isError ? "—" : "…";
 
   const filteredPatients = useMemo(() => {
     return patients.filter((patient) => {
@@ -409,7 +427,9 @@ export function PatientsPage({
   }, [searchQuery]);
 
   const approvedCount = patients.filter((p) => p.status === "approved").length;
-  const totalTrips = patients.reduce((sum, p) => sum + p.totalTrips, 0);
+  const totalTrips = tripCountsReady
+    ? patients.reduce((sum, p) => sum + (p.totalTrips ?? 0), 0)
+    : tripCountPlaceholder;
 
   // Multi-select handlers
   const toggleSelect = (id: string) => {
@@ -449,7 +469,7 @@ export function PatientsPage({
     return (
       <div className="space-y-6">
         {/* Patient Form (Add/Edit) */}
-        <PatientForm
+        <DeferredForm
           open={showAddForm || !!editingPatient}
           onOpenChange={(open) => {
             if (!open) {
@@ -457,40 +477,50 @@ export function PatientsPage({
               setEditingPatient(null);
             }
           }}
-          initialData={
-            editingPatient
-              ? {
-                  id: editingPatient.id,
-                  full_name: editingPatient.name,
-                  email: editingPatient.email,
-                  phone: editingPatient.phone,
-                  primary_address: editingPatient.address,
-                  dob: editingPatient.date_of_birth || "",
-                  county: editingPatient.county || "",
-                  waiver_type: editingPatient.waiver_type || "",
-                  referral_by: editingPatient.referral_by || "",
-                  referral_date: editingPatient.referral_date || "",
-                  referral_expiration_date:
-                    editingPatient.referral_expiration_date || "",
-                  service_type: editingPatient.service_type || "",
-                  case_manager: editingPatient.case_manager || "",
-                  case_manager_phone: editingPatient.case_manager_phone || "",
-                  case_manager_email: editingPatient.case_manager_email || "",
-                  monthly_credit:
-                    editingPatient.monthly_credit?.toString() || "",
-                  credit_used_for: editingPatient.credit_used_for || "",
-                  medicaid_id: editingPatient.medicaid_id || "",
-                  vehicle_type_need: editingPatient.vehicle_type_need || "",
-                  notes: editingPatient.notes || "",
-                  custom_fields: editingPatient.custom_fields,
-                  sal_status: editingPatient.sal_status || "",
-                  sal_effective_date: editingPatient.sal_effective_date || "",
-                  sal_through_date: editingPatient.sal_through_date || "",
-                  sal_pending_reason: editingPatient.sal_pending_reason || "",
-                }
-              : undefined
-          }
-        />
+        >
+          <PatientForm
+            open={showAddForm || !!editingPatient}
+            onOpenChange={(open) => {
+              if (!open) {
+                setShowAddForm(false);
+                setEditingPatient(null);
+              }
+            }}
+            initialData={
+              editingPatient
+                ? {
+                    id: editingPatient.id,
+                    full_name: editingPatient.name,
+                    email: editingPatient.email,
+                    phone: editingPatient.phone,
+                    primary_address: editingPatient.address,
+                    dob: editingPatient.date_of_birth || "",
+                    county: editingPatient.county || "",
+                    waiver_type: editingPatient.waiver_type || "",
+                    referral_by: editingPatient.referral_by || "",
+                    referral_date: editingPatient.referral_date || "",
+                    referral_expiration_date:
+                      editingPatient.referral_expiration_date || "",
+                    service_type: editingPatient.service_type || "",
+                    case_manager: editingPatient.case_manager || "",
+                    case_manager_phone: editingPatient.case_manager_phone || "",
+                    case_manager_email: editingPatient.case_manager_email || "",
+                    monthly_credit:
+                      editingPatient.monthly_credit?.toString() || "",
+                    credit_used_for: editingPatient.credit_used_for || "",
+                    medicaid_id: editingPatient.medicaid_id || "",
+                    vehicle_type_need: editingPatient.vehicle_type_need || "",
+                    notes: editingPatient.notes || "",
+                    custom_fields: editingPatient.custom_fields,
+                    sal_status: editingPatient.sal_status || "",
+                    sal_effective_date: editingPatient.sal_effective_date || "",
+                    sal_through_date: editingPatient.sal_through_date || "",
+                    sal_pending_reason: editingPatient.sal_pending_reason || "",
+                  }
+                : undefined
+            }
+          />
+        </DeferredForm>
 
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -556,7 +586,7 @@ export function PatientsPage({
       </div>
 
       {/* Patient Form (Add/Edit) */}
-      <PatientForm
+      <DeferredForm
         open={showAddForm || !!editingPatient}
         onOpenChange={(open) => {
           if (!open) {
@@ -564,39 +594,49 @@ export function PatientsPage({
             setEditingPatient(null);
           }
         }}
-        initialData={
-          editingPatient
-            ? {
-                id: editingPatient.id,
-                full_name: editingPatient.name,
-                email: editingPatient.email,
-                phone: editingPatient.phone,
-                primary_address: editingPatient.address,
-                dob: editingPatient.date_of_birth || "",
-                county: editingPatient.county || "",
-                waiver_type: editingPatient.waiver_type || "",
-                referral_by: editingPatient.referral_by || "",
-                referral_date: editingPatient.referral_date || "",
-                referral_expiration_date:
-                  editingPatient.referral_expiration_date || "",
-                service_type: editingPatient.service_type || "",
-                case_manager: editingPatient.case_manager || "",
-                case_manager_phone: editingPatient.case_manager_phone || "",
-                case_manager_email: editingPatient.case_manager_email || "",
-                monthly_credit: editingPatient.monthly_credit?.toString() || "",
-                credit_used_for: editingPatient.credit_used_for || "",
-                medicaid_id: editingPatient.medicaid_id || "",
-                vehicle_type_need: editingPatient.vehicle_type_need || "",
-                notes: editingPatient.notes || "",
-                custom_fields: editingPatient.custom_fields,
-                sal_status: editingPatient.sal_status || "",
-                sal_effective_date: editingPatient.sal_effective_date || "",
-                sal_through_date: editingPatient.sal_through_date || "",
-                sal_pending_reason: editingPatient.sal_pending_reason || "",
-              }
-            : undefined
-        }
-      />
+      >
+        <PatientForm
+          open={showAddForm || !!editingPatient}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowAddForm(false);
+              setEditingPatient(null);
+            }
+          }}
+          initialData={
+            editingPatient
+              ? {
+                  id: editingPatient.id,
+                  full_name: editingPatient.name,
+                  email: editingPatient.email,
+                  phone: editingPatient.phone,
+                  primary_address: editingPatient.address,
+                  dob: editingPatient.date_of_birth || "",
+                  county: editingPatient.county || "",
+                  waiver_type: editingPatient.waiver_type || "",
+                  referral_by: editingPatient.referral_by || "",
+                  referral_date: editingPatient.referral_date || "",
+                  referral_expiration_date:
+                    editingPatient.referral_expiration_date || "",
+                  service_type: editingPatient.service_type || "",
+                  case_manager: editingPatient.case_manager || "",
+                  case_manager_phone: editingPatient.case_manager_phone || "",
+                  case_manager_email: editingPatient.case_manager_email || "",
+                  monthly_credit: editingPatient.monthly_credit?.toString() || "",
+                  credit_used_for: editingPatient.credit_used_for || "",
+                  medicaid_id: editingPatient.medicaid_id || "",
+                  vehicle_type_need: editingPatient.vehicle_type_need || "",
+                  notes: editingPatient.notes || "",
+                  custom_fields: editingPatient.custom_fields,
+                  sal_status: editingPatient.sal_status || "",
+                  sal_effective_date: editingPatient.sal_effective_date || "",
+                  sal_through_date: editingPatient.sal_through_date || "",
+                  sal_pending_reason: editingPatient.sal_pending_reason || "",
+                }
+              : undefined
+          }
+        />
+      </DeferredForm>
 
       {/* Demo Mode Banner */}
       {isDemoMode && (
@@ -628,6 +668,12 @@ export function PatientsPage({
           </div>
         </div>
       )}
+
+      <DirectoryTripTotalsStatus
+        ready={tripCountsReady}
+        failed={tripCounts.isError}
+        retry={() => { void tripCounts.refetch(); }}
+      />
 
       {/* Stats Row - Inline like reference  */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -698,6 +744,7 @@ export function PatientsPage({
         <Button
           variant="outline"
           onClick={handleExport}
+          disabled={!tripCountsReady}
           className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
         >
           <DownloadSimple size={16} />
@@ -901,7 +948,7 @@ export function PatientsPage({
                   </div>
                   <div className="text-sm text-slate-600">
                     <span className="font-medium text-slate-500">Trips:</span>{" "}
-                    {patient.totalTrips}
+                    {patient.totalTrips ?? tripCountPlaceholder}
                   </div>
                 </div>
               </div>
@@ -1105,7 +1152,7 @@ export function PatientsPage({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-semibold text-slate-900">
-                        {patient.totalTrips}
+                        {patient.totalTrips ?? tripCountPlaceholder}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

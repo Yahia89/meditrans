@@ -339,6 +339,9 @@ export function PatientDetailsPage({
       const { error } = await supabase.from("patients").delete().eq("id", id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({
+        queryKey: ["trips", "directory-counts", currentOrganization?.id],
+      });
       onBack();
     } catch (err) {
       console.error("Failed to delete patient:", err);

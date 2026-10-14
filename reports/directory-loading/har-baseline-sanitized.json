@@ -1,0 +1,1022 @@
+{
+  "source_file": "nemt.futrans.us_Archive [26-10-14 13-04-27].har",
+  "sanitization": "No request/response headers, credentials, hostnames, personal data, organization IDs, request bodies, response bodies, or query filter values included.",
+  "scope": "HAR captures Patients only. Drivers and Employees have no measured requests in this capture.",
+  "summary": {
+    "total_requests": 44,
+    "capture_span_ms": 5841,
+    "requests_by_category": {
+      "telemetry": 2,
+      "application_asset": 32,
+      "backend": 2,
+      "maps": 8
+    },
+    "patient_query_duration_ms": 5464,
+    "patient_query_wait_ms": 5464,
+    "patient_row_count": 37,
+    "patient_query_share_of_capture_span": 0.9355,
+    "application_asset_reported_total_content_bytes": 229391,
+    "application_asset_recorded_duration_ms": 0,
+    "patient_decoded_json_bytes": 41197,
+    "sum_visible_patient_trip_counts": 1478
+  },
+  "findings": [
+    "Patients backend query waits 5464 ms for 37 records. The response is small. This is the measured loading bottleneck; HAR wait includes server/network time and does not isolate database execution.",
+    "Patients query embeds trips(count). Drivers uses the same query pattern in current source. Check indexed relationship columns, trip RLS cost and repeated per-row aggregate execution.",
+    "The 32 application asset requests all record 0 ms in this capture, consistent with cache. This capture cannot establish cold asset-loading cost.",
+    "Current source gives Patients, Drivers, and Employees queries no staleTime; default QueryClient makes revisits immediately stale.",
+    "Current useOrganizationMembers serializes memberships, profiles, invites, employees requests. Employees main rows load separately; optimize independent enrichment reads concurrently.",
+    "Google Maps initialization begins after Patients response. Eager form imports and XLSX contribute cold-route JavaScript but are not the 5.46 second measured HAR bottleneck."
+  ],
+  "requests": [
+    {
+      "index": 0,
+      "start_offset_ms": 0,
+      "category": "telemetry",
+      "method": "POST",
+      "path": "/cdn-cgi/rum",
+      "query_shape": {},
+      "status": 204,
+      "duration_ms": 62,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "connect": 0,
+        "ssl": 0,
+        "send": 0,
+        "wait": 62,
+        "receive": 0
+      },
+      "har_content_size_bytes": 0,
+      "har_body_size_bytes": 2489,
+      "response_row_count": null
+    },
+    {
+      "index": 1,
+      "start_offset_ms": 3,
+      "category": "telemetry",
+      "method": "POST",
+      "path": "/cdn-cgi/rum",
+      "query_shape": {},
+      "status": 204,
+      "duration_ms": 54,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "connect": 0,
+        "ssl": 0,
+        "send": 0,
+        "wait": 54,
+        "receive": 0
+      },
+      "har_content_size_bytes": 0,
+      "har_body_size_bytes": 2649,
+      "response_row_count": null
+    },
+    {
+      "index": 2,
+      "start_offset_ms": 12,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/patients-page-CgIsPPqE.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 6420,
+      "har_body_size_bytes": 6420,
+      "response_row_count": null
+    },
+    {
+      "index": 3,
+      "start_offset_ms": 13,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/patient-form-BMXbqaY9.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 7390,
+      "har_body_size_bytes": 7390,
+      "response_row_count": null
+    },
+    {
+      "index": 4,
+      "start_offset_ms": 14,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/compat-09RdQZcw.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 177,
+      "har_body_size_bytes": 177,
+      "response_row_count": null
+    },
+    {
+      "index": 5,
+      "start_offset_ms": 14,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/briefcase-BqZbQsaW.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 185,
+      "har_body_size_bytes": 185,
+      "response_row_count": null
+    },
+    {
+      "index": 6,
+      "start_offset_ms": 15,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/circle-alert-DYTcVaSx.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 178,
+      "har_body_size_bytes": 178,
+      "response_row_count": null
+    },
+    {
+      "index": 7,
+      "start_offset_ms": 18,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/circle-x-BqcTnkhQ.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 164,
+      "har_body_size_bytes": 164,
+      "response_row_count": null
+    },
+    {
+      "index": 8,
+      "start_offset_ms": 18,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/clipboard-check-C0H4rziQ.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 228,
+      "har_body_size_bytes": 228,
+      "response_row_count": null
+    },
+    {
+      "index": 9,
+      "start_offset_ms": 18,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/history-DR4G4dFk.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 185,
+      "har_body_size_bytes": 185,
+      "response_row_count": null
+    },
+    {
+      "index": 10,
+      "start_offset_ms": 19,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/shield-alert-BFDzCATS.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 254,
+      "har_body_size_bytes": 254,
+      "response_row_count": null
+    },
+    {
+      "index": 11,
+      "start_offset_ms": 19,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/user-DbDiv8xP.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 171,
+      "har_body_size_bytes": 171,
+      "response_row_count": null
+    },
+    {
+      "index": 12,
+      "start_offset_ms": 19,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/dialog-BGLdUxbP.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 1022,
+      "har_body_size_bytes": 1022,
+      "response_row_count": null
+    },
+    {
+      "index": 13,
+      "start_offset_ms": 19,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/constants-Bqf7BH3f.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 835,
+      "har_body_size_bytes": 835,
+      "response_row_count": null
+    },
+    {
+      "index": 14,
+      "start_offset_ms": 20,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/esm-DpAWkNAU.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 30891,
+      "har_body_size_bytes": 30891,
+      "response_row_count": null
+    },
+    {
+      "index": 15,
+      "start_offset_ms": 20,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/AddressAutocomplete-SXNPCyKg.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 608,
+      "har_body_size_bytes": 608,
+      "response_row_count": null
+    },
+    {
+      "index": 16,
+      "start_offset_ms": 20,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/user-access-control-D7HRYpg1.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 2102,
+      "har_body_size_bytes": 2102,
+      "response_row_count": null
+    },
+    {
+      "index": 17,
+      "start_offset_ms": 21,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/useMutation-BYVbS83l.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 992,
+      "har_body_size_bytes": 992,
+      "response_row_count": null
+    },
+    {
+      "index": 18,
+      "start_offset_ms": 21,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/shield-check-DR3TwV9s.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 244,
+      "har_body_size_bytes": 244,
+      "response_row_count": null
+    },
+    {
+      "index": 19,
+      "start_offset_ms": 21,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/alert-dialog-Cl_2P_e-.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 1798,
+      "har_body_size_bytes": 1798,
+      "response_row_count": null
+    },
+    {
+      "index": 20,
+      "start_offset_ms": 21,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/pencil-DDb9nnzb.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 222,
+      "har_body_size_bytes": 222,
+      "response_row_count": null
+    },
+    {
+      "index": 21,
+      "start_offset_ms": 21,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/CalendarBlank.es-C9OtAhPu.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 749,
+      "har_body_size_bytes": 749,
+      "response_row_count": null
+    },
+    {
+      "index": 22,
+      "start_offset_ms": 21,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/CaretLeft.es-C-eZYZ28.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 572,
+      "har_body_size_bytes": 572,
+      "response_row_count": null
+    },
+    {
+      "index": 23,
+      "start_offset_ms": 21,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/dist-C9pjgwWv.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 7511,
+      "har_body_size_bytes": 7511,
+      "response_row_count": null
+    },
+    {
+      "index": 24,
+      "start_offset_ms": 22,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/xlsx-BLvRm_hV.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 156332,
+      "har_body_size_bytes": 156332,
+      "response_row_count": null
+    },
+    {
+      "index": 25,
+      "start_offset_ms": 22,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/DownloadSimple.es-DEFt0Jcw.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 722,
+      "har_body_size_bytes": 722,
+      "response_row_count": null
+    },
+    {
+      "index": 26,
+      "start_offset_ms": 22,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/Envelope.es-CqPkFYzM.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 813,
+      "har_body_size_bytes": 813,
+      "response_row_count": null
+    },
+    {
+      "index": 27,
+      "start_offset_ms": 22,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/Funnel.es-DNl6rIe9.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 1029,
+      "har_body_size_bytes": 1029,
+      "response_row_count": null
+    },
+    {
+      "index": 28,
+      "start_offset_ms": 22,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/MagnifyingGlass.es-BnOc-hTS.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 711,
+      "har_body_size_bytes": 711,
+      "response_row_count": null
+    },
+    {
+      "index": 29,
+      "start_offset_ms": 23,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/MapPin.es-C6tFiANr.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 1128,
+      "har_body_size_bytes": 1128,
+      "response_row_count": null
+    },
+    {
+      "index": 30,
+      "start_offset_ms": 23,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/Phone.es-CWQ_rCd1.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 1759,
+      "har_body_size_bytes": 1759,
+      "response_row_count": null
+    },
+    {
+      "index": 31,
+      "start_offset_ms": 23,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/Plus.es-Bxlb1_de.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 603,
+      "har_body_size_bytes": 603,
+      "response_row_count": null
+    },
+    {
+      "index": 32,
+      "start_offset_ms": 23,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/UsersThree.es-BT-_9UBe.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 1589,
+      "har_body_size_bytes": 1589,
+      "response_row_count": null
+    },
+    {
+      "index": 33,
+      "start_offset_ms": 23,
+      "category": "application_asset",
+      "method": "GET",
+      "path": "/assets/checkbox-BpcJwsps.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 1807,
+      "har_body_size_bytes": 1807,
+      "response_row_count": null
+    },
+    {
+      "index": 34,
+      "start_offset_ms": 74,
+      "category": "backend",
+      "method": "GET",
+      "path": "/rest/v1/patients",
+      "query_shape": {
+        "select": [
+          "*,trips:trips(count)"
+        ],
+        "org_id": [
+          "eq.<redacted>"
+        ],
+        "order": [
+          "created_at.desc"
+        ]
+      },
+      "status": 200,
+      "duration_ms": 5464,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "connect": 0,
+        "ssl": 0,
+        "send": 0,
+        "wait": 5464,
+        "receive": 0
+      },
+      "har_content_size_bytes": 8124,
+      "har_body_size_bytes": 9545,
+      "response_row_count": 37,
+      "decoded_json_body_bytes": 41197
+    },
+    {
+      "index": 35,
+      "start_offset_ms": 76,
+      "category": "backend",
+      "method": "OPTIONS",
+      "path": "/rest/v1/patients",
+      "query_shape": {
+        "select": [
+          "*,trips:trips(count)"
+        ],
+        "org_id": [
+          "eq.<redacted>"
+        ],
+        "order": [
+          "created_at.desc"
+        ]
+      },
+      "status": 200,
+      "duration_ms": 55,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "connect": 0,
+        "ssl": 0,
+        "send": 0,
+        "wait": 55,
+        "receive": 0
+      },
+      "har_content_size_bytes": 0,
+      "har_body_size_bytes": 990,
+      "response_row_count": null
+    },
+    {
+      "index": 36,
+      "start_offset_ms": 5642,
+      "category": "maps",
+      "method": "GET",
+      "path": "/maps/api/js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 2753,
+      "har_body_size_bytes": 2753,
+      "response_row_count": null
+    },
+    {
+      "index": 37,
+      "start_offset_ms": 5671,
+      "category": "maps",
+      "method": "GET",
+      "path": "/maps-api-v3/api/js/66/8b/common.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 0,
+      "har_body_size_bytes": 486043,
+      "response_row_count": null
+    },
+    {
+      "index": 38,
+      "start_offset_ms": 5671,
+      "category": "maps",
+      "method": "GET",
+      "path": "/maps-api-v3/api/js/66/8b/places_impl.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 0,
+      "har_body_size_bytes": 69012,
+      "response_row_count": null
+    },
+    {
+      "index": 39,
+      "start_offset_ms": 5671,
+      "category": "maps",
+      "method": "GET",
+      "path": "/maps-api-v3/api/js/66/8b/places.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 0,
+      "har_body_size_bytes": 1214264,
+      "response_row_count": null
+    },
+    {
+      "index": 40,
+      "start_offset_ms": 5672,
+      "category": "maps",
+      "method": "GET",
+      "path": "/maps-api-v3/api/js/66/8b/controls.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 0,
+      "har_body_size_bytes": 235718,
+      "response_row_count": null
+    },
+    {
+      "index": 41,
+      "start_offset_ms": 5672,
+      "category": "maps",
+      "method": "GET",
+      "path": "/maps-api-v3/api/js/66/8b/util.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 0,
+      "har_body_size_bytes": 976011,
+      "response_row_count": null
+    },
+    {
+      "index": 42,
+      "start_offset_ms": 5672,
+      "category": "maps",
+      "method": "GET",
+      "path": "/maps-api-v3/api/js/66/8b/main.js",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 0,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "ssl": 0,
+        "connect": 0,
+        "send": 0,
+        "wait": 0,
+        "receive": 0
+      },
+      "har_content_size_bytes": 0,
+      "har_body_size_bytes": 1224531,
+      "response_row_count": null
+    },
+    {
+      "index": 43,
+      "start_offset_ms": 5694,
+      "category": "maps",
+      "method": "GET",
+      "path": "/maps/api/mapsjs/gen_204",
+      "query_shape": {},
+      "status": 200,
+      "duration_ms": 147,
+      "timings_ms": {
+        "blocked": 0,
+        "dns": 0,
+        "connect": 75,
+        "ssl": 0,
+        "send": 0,
+        "wait": 72,
+        "receive": 0
+      },
+      "har_content_size_bytes": 23,
+      "har_body_size_bytes": 552,
+      "response_row_count": null
+    }
+  ]
+}

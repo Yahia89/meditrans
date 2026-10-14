@@ -1,0 +1,9 @@
+Finished supabase db push.
+Using workdir /tmp/meditrans-directories/deploy
+Initialising login role...
+DRY RUN: migrations will *not* be pushed to the database.
+Connecting to remote database...
+Would push these migrations:
+ • 20261014181036_directory_trip_counts.sql
+A new version of Supabase CLI is available: v2.121.0 (currently installed v2.107.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

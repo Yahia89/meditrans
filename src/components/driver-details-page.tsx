@@ -311,6 +311,9 @@ export function DriverDetailsPage({
       const { error } = await supabase.from("drivers").delete().eq("id", id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      queryClient.invalidateQueries({
+        queryKey: ["trips", "directory-counts", currentOrganization?.id],
+      });
       onBack();
     } catch (err) {
       console.error("Failed to delete driver:", err);

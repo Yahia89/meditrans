@@ -1,0 +1,5 @@
+Candidate tested in a local transaction with hosted SELECT policies mirrored temporarily.
+56 of 56 assertions passed.
+Local function absent afterward: t
+Synthetic auth fixtures absent afterward: t
+Trip row count afterward: 0 (baseline 0)

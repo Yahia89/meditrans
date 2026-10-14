@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { lazy, useState, useMemo } from "react";
 import {
   MagnifyingGlass,
   Plus,
@@ -21,7 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { EmployeeForm } from "@/components/forms/employee-form";
+import { DeferredForm } from "@/components/ui/deferred-form";
 import { Loader2, Pencil, Trash, Check, LockKeyhole, ShieldCheck } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useOnboarding } from "@/contexts/OnboardingContext";
@@ -36,7 +36,6 @@ import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { useTimezone } from "@/hooks/useTimezone";
 import { formatInUserTimezone } from "@/lib/timezone";
 
-import { exportToExcel } from "@/lib/export";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +58,10 @@ import {
   type AccessTargetType,
   UserAccessConfirmDialog,
 } from "@/components/user-access-control";
+
+const EmployeeForm = lazy(async () => ({
+  default: (await import("@/components/forms/employee-form")).EmployeeForm,
+}));
 
 interface Employee {
   id: string;
@@ -279,11 +282,11 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   // Fetch organization members with real-time presence status
   const { members: orgMembers } = useOrganizationMembers();
 
-  // Create a map for quick lookup of member presence by email
+  // Match presence to the linked account; email and invitation roles are not unique IDs.
   const memberPresenceMap = useMemo(() => {
     const map = new Map<string, OrganizationMember>();
     orgMembers.forEach((m) => {
-      if (m.email) map.set(m.email.toLowerCase(), m);
+      map.set(m.user_id, m);
     });
     return map;
   }, [orgMembers]);
@@ -379,9 +382,10 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
       );
     },
     enabled: !!currentOrganization,
+    staleTime: 30_000,
   });
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!employees.length) return;
     const exportData = employees.map((e) => ({
       Name: e.name,
@@ -392,6 +396,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
       "Hire Date": e.hireDate,
       Status: e.status,
     }));
+    const { exportToExcel } = await import("@/lib/export");
     exportToExcel(
       exportData,
       `employees_${new Date().toISOString().split("T")[0]}`,
@@ -447,7 +452,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
 
     // Presence status filter
     if (statusFilter !== "all") {
-      const member = memberPresenceMap.get(employee.email?.toLowerCase() || "");
+      const member = memberPresenceMap.get(employee.user_id || "");
       const presenceStatus = member?.presence_status || "offline";
       if (presenceStatus !== statusFilter) {
         return false;
@@ -464,7 +469,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
     let offline = 0;
 
     employees.forEach((employee) => {
-      const member = memberPresenceMap.get(employee.email?.toLowerCase() || "");
+      const member = memberPresenceMap.get(employee.user_id || "");
       const status = member?.presence_status || "offline";
 
       if (status === "online") online++;
@@ -514,7 +519,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
     return (
       <div className="space-y-6">
         {/* Employee Form (Add/Edit) */}
-        <EmployeeForm
+        <DeferredForm
           open={showAddForm || !!editingEmployee}
           onOpenChange={(open) => {
             if (!open) {
@@ -522,23 +527,33 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
               setEditingEmployee(null);
             }
           }}
-          initialData={
-            editingEmployee
-              ? {
-                  id: editingEmployee.id,
-                  full_name: editingEmployee.name,
-                  email: editingEmployee.email,
-                  phone: editingEmployee.phone,
-                  role: editingEmployee.position,
-                  department: editingEmployee.department,
-                  hire_date: editingEmployee.hireDate,
-                  notes: editingEmployee.notes || "",
-                  custom_fields: editingEmployee.custom_fields,
-                  system_role: "none",
-                }
-              : undefined
-          }
-        />
+        >
+          <EmployeeForm
+            open={showAddForm || !!editingEmployee}
+            onOpenChange={(open) => {
+              if (!open) {
+                setShowAddForm(false);
+                setEditingEmployee(null);
+              }
+            }}
+            initialData={
+              editingEmployee
+                ? {
+                    id: editingEmployee.id,
+                    full_name: editingEmployee.name,
+                    email: editingEmployee.email,
+                    phone: editingEmployee.phone,
+                    role: editingEmployee.position,
+                    department: editingEmployee.department,
+                    hire_date: editingEmployee.hireDate,
+                    notes: editingEmployee.notes || "",
+                    custom_fields: editingEmployee.custom_fields,
+                    system_role: "none",
+                  }
+                : undefined
+            }
+          />
+        </DeferredForm>
 
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -604,7 +619,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
       </div>
 
       {/* Employee Form (Add/Edit) */}
-      <EmployeeForm
+      <DeferredForm
         open={showAddForm || !!editingEmployee}
         onOpenChange={(open) => {
           if (!open) {
@@ -612,23 +627,33 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
             setEditingEmployee(null);
           }
         }}
-        initialData={
-          editingEmployee
-            ? {
-                id: editingEmployee.id,
-                full_name: editingEmployee.name,
-                email: editingEmployee.email,
-                phone: editingEmployee.phone,
-                role: editingEmployee.position,
-                department: editingEmployee.department,
-                hire_date: editingEmployee.hireDate,
-                notes: editingEmployee.notes || "",
-                custom_fields: editingEmployee.custom_fields,
-                system_role: "none",
-              }
-            : undefined
-        }
-      />
+      >
+        <EmployeeForm
+          open={showAddForm || !!editingEmployee}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowAddForm(false);
+              setEditingEmployee(null);
+            }
+          }}
+          initialData={
+            editingEmployee
+              ? {
+                  id: editingEmployee.id,
+                  full_name: editingEmployee.name,
+                  email: editingEmployee.email,
+                  phone: editingEmployee.phone,
+                  role: editingEmployee.position,
+                  department: editingEmployee.department,
+                  hire_date: editingEmployee.hireDate,
+                  notes: editingEmployee.notes || "",
+                  custom_fields: editingEmployee.custom_fields,
+                  system_role: "none",
+                }
+              : undefined
+          }
+        />
+      </DeferredForm>
 
       {/* Demo Mode Banner */}
       {isDemoMode && (
@@ -930,7 +955,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                 {/* Real-time presence indicator */}
                 {(() => {
                   const member = memberPresenceMap.get(
-                    employee.email?.toLowerCase() || "",
+                    employee.user_id || "",
                   );
                   const presenceStatus = member?.presence_status || "offline";
                   return (
@@ -1180,7 +1205,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                       <td className="px-6 py-4">
                         {(() => {
                           const member = memberPresenceMap.get(
-                            employee.email?.toLowerCase() || "",
+                            employee.user_id || "",
                           );
                           const presenceStatus =
                             member?.presence_status || "offline";

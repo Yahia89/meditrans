@@ -1,0 +1,61 @@
+{
+  "scope": "Linked hosted database; read-only SQL; HAR identity with authenticated role, RLS enabled, no BYPASSRLS; single samples, not browser timings",
+  "measurements": {
+    "patients_counts": {
+      "planningMs": 4.438,
+      "executionMs": 65.93,
+      "rows": 37,
+      "sharedHitBlocks": 931,
+      "sharedReadBlocks": 0
+    },
+    "patients_exact": {
+      "planningMs": 10.593,
+      "executionMs": 771.098,
+      "rows": 1,
+      "sharedHitBlocks": 11704,
+      "sharedReadBlocks": 0
+    },
+    "drivers_counts": {
+      "planningMs": 3.558,
+      "executionMs": 19.046,
+      "rows": 9,
+      "sharedHitBlocks": 1355,
+      "sharedReadBlocks": 0
+    },
+    "drivers_exact": {
+      "planningMs": 4.806,
+      "executionMs": 94.412,
+      "rows": 1,
+      "sharedHitBlocks": 12040,
+      "sharedReadBlocks": 0
+    },
+    "employees": {
+      "planningMs": 0.887,
+      "executionMs": 3.114,
+      "rows": 7,
+      "sharedHitBlocks": 739,
+      "sharedReadBlocks": 0
+    },
+    "patients_list": {
+      "planningMs": 0.988,
+      "executionMs": 4.087,
+      "rows": 37,
+      "sharedHitBlocks": 748,
+      "sharedReadBlocks": 0
+    },
+    "patients_grouped": {
+      "planningMs": 45.657,
+      "executionMs": 110.572,
+      "rows": 23,
+      "sharedHitBlocks": 814,
+      "sharedReadBlocks": 0
+    },
+    "drivers_grouped": {
+      "planningMs": 3.335,
+      "executionMs": 13.929,
+      "rows": 5,
+      "sharedHitBlocks": 1276,
+      "sharedReadBlocks": 0
+    }
+  }
+}

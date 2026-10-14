@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { lazy, Suspense, useState, useMemo } from "react";
 import {
   MagnifyingGlass,
   Plus,
@@ -18,13 +18,15 @@ import {
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { directoryTripCountsOptions } from "@/lib/directory-trip-counts";
+import { DirectoryTripTotalsStatus } from "@/components/directory-trip-totals-status";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useCanManageUserAccess } from "@/hooks/useCanManageUserAccess";
 import { DriversEmptyState } from "@/components/ui/empty-state";
-import { DriverForm } from "@/components/forms/driver-form";
+import { DeferredForm } from "@/components/ui/deferred-form";
 import {
   Loader2,
   Pencil,
@@ -33,7 +35,6 @@ import {
   LockKeyhole,
   ShieldCheck,
 } from "lucide-react";
-import { exportToExcel } from "@/lib/export";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +43,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
-import { DriverDetailsPage } from "@/components/driver-details-page";
 import { Checkbox } from "@/components/ui/checkbox";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useQueryState } from "nuqs";
@@ -59,6 +59,14 @@ import {
   UserAccessConfirmDialog,
 } from "@/components/user-access-control";
 
+const DriverDetailsPage = lazy(async () => ({
+  default: (await import("@/components/driver-details-page")).DriverDetailsPage,
+}));
+
+const DriverForm = lazy(async () => ({
+  default: (await import("@/components/forms/driver-form")).DriverForm,
+}));
+
 interface Driver {
   id: string;
   name: string;
@@ -66,7 +74,7 @@ interface Driver {
   email: string;
   vehicleType: string;
   licensePlate: string;
-  totalTrips: number;
+  totalTrips?: number;
   status: "available" | "on-trip" | "offline";
   currentLocation?: string;
   custom_fields?: Record<string, string> | null;
@@ -250,6 +258,9 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
       queryClient.invalidateQueries({
         queryKey: ["drivers", currentOrganization?.id],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["trips", "directory-counts", currentOrganization?.id],
+      });
       setSelectedIds(new Set());
       setShowBulkDeleteDialog(false);
     } catch (err) {
@@ -270,6 +281,8 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
 
   const limit = itemsPerPage === "all" ? 9999 : parseInt(itemsPerPage, 10);
 
+  const tripCounts = useQuery(directoryTripCountsOptions(currentOrganization?.id, "drivers"));
+
   const { data: realDrivers, isLoading } = useQuery({
     queryKey: ["drivers", currentOrganization?.id],
     queryFn: async () => {
@@ -277,10 +290,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
 
       const { data, error } = await supabase
         .from("drivers")
-        .select(`
-          *,
-          trips:trips(count)
-        `)
+        .select("*")
         .eq("org_id", currentOrganization.id)
         .order("created_at", { ascending: false });
 
@@ -304,7 +314,6 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                   .join(" ")
               : d.vehicle_info || "Unknown",
             licensePlate: d.license_plate || "Unknown",
-            totalTrips: (d as any).trips?.[0]?.count || 0,
             status: (d.status || "available").toLowerCase() as
               | "available"
               | "on-trip"
@@ -337,10 +346,11 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
       );
     },
     enabled: !!currentOrganization,
+    staleTime: 30_000,
   });
 
-  const handleExport = () => {
-    if (!drivers.length) return;
+  const handleExport = async () => {
+    if (!drivers.length || !tripCountsReady) return;
     const exportData = drivers.map((d) => ({
       Name: d.name,
       Email: d.email,
@@ -350,6 +360,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
       "Total Trips": d.totalTrips,
       Status: d.status,
     }));
+    const { exportToExcel } = await import("@/lib/export");
     exportToExcel(
       exportData,
       `drivers_${new Date().toISOString().split("T")[0]}`,
@@ -369,6 +380,9 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
       queryClient.invalidateQueries({
         queryKey: ["drivers", currentOrganization?.id],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["trips", "directory-counts", currentOrganization?.id],
+      });
       setDeleteId(null);
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -384,7 +398,14 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
 
   const hasRealData = realDrivers && realDrivers.length > 0;
   const showData = hasRealData || isDemoMode;
-  const drivers = hasRealData ? realDrivers : isDemoMode ? demoDrivers : [];
+  const drivers = useMemo(() => hasRealData
+    ? realDrivers.map((driver) => ({
+        ...driver,
+        totalTrips: tripCounts.data ? tripCounts.data[driver.id] ?? 0 : undefined,
+      }))
+    : isDemoMode ? demoDrivers : [], [hasRealData, realDrivers, isDemoMode, tripCounts.data]);
+  const tripCountsReady = (!hasRealData && isDemoMode) || !!tripCounts.data;
+  const tripCountPlaceholder = tripCounts.isError ? "—" : "…";
 
   const filteredDrivers = useMemo(() => {
     return drivers.filter((driver) => {
@@ -452,10 +473,16 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
 
   if (selectedDriverId) {
     return (
-      <DriverDetailsPage
-        id={selectedDriverId}
-        onBack={() => setSelectedDriverId(null)}
-      />
+      <Suspense fallback={
+        <div className="flex h-96 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        </div>
+      }>
+        <DriverDetailsPage
+          id={selectedDriverId}
+          onBack={() => setSelectedDriverId(null)}
+        />
+      </Suspense>
     );
   }
 
@@ -509,7 +536,17 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
           />
         </div>
 
-        <DriverForm open={showAddForm} onOpenChange={setShowAddForm} />
+        <DeferredForm
+          open={showAddForm}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowAddForm(false);
+              setEditingDriver(null);
+            }
+          }}
+        >
+          <DriverForm open={showAddForm} onOpenChange={setShowAddForm} />
+        </DeferredForm>
       </div>
     );
   }
@@ -541,7 +578,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
       </div>
 
       {/* Driver Form (Add/Edit) */}
-      <DriverForm
+      <DeferredForm
         open={showAddForm || !!editingDriver}
         onOpenChange={(open) => {
           if (!open) {
@@ -549,44 +586,54 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             setEditingDriver(null);
           }
         }}
-        initialData={
-          editingDriver
-            ? {
-                id: editingDriver.id,
-                full_name: editingDriver.name,
-                id_number: editingDriver.id_number || "",
-                email: editingDriver.email,
-                phone: editingDriver.phone,
-                address: editingDriver.address || "",
-                county: editingDriver.county || "",
-                license_number: editingDriver.license_number || "",
-                vehicle_type: editingDriver.vehicle_type || "",
-                vehicle_make: editingDriver.vehicle_make || "",
-                vehicle_model: editingDriver.vehicle_model || "",
-                vehicle_color: editingDriver.vehicle_color || "",
-                license_plate: editingDriver.licensePlate,
-                dot_medical_number: editingDriver.dot_medical_number || "",
-                dot_medical_expiration:
-                  editingDriver.dot_medical_expiration || "",
-                insurance_company: editingDriver.insurance_company || "",
-                insurance_policy_number:
-                  editingDriver.insurance_policy_number || "",
-                insurance_start_date: editingDriver.insurance_start_date || "",
-                insurance_expiration_date:
-                  editingDriver.insurance_expiration_date || "",
-                inspection_date: editingDriver.inspection_date || "",
-                driver_record_issue_date:
-                  editingDriver.driver_record_issue_date || "",
-                driver_record_expiration:
-                  editingDriver.driver_record_expiration || "",
-                notes: editingDriver.notes || "",
-                umpi: editingDriver.umpi || "",
-                npi: editingDriver.npi || "",
-                custom_fields: editingDriver.custom_fields,
-              }
-            : undefined
-        }
-      />
+      >
+        <DriverForm
+          open={showAddForm || !!editingDriver}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowAddForm(false);
+              setEditingDriver(null);
+            }
+          }}
+          initialData={
+            editingDriver
+              ? {
+                  id: editingDriver.id,
+                  full_name: editingDriver.name,
+                  id_number: editingDriver.id_number || "",
+                  email: editingDriver.email,
+                  phone: editingDriver.phone,
+                  address: editingDriver.address || "",
+                  county: editingDriver.county || "",
+                  license_number: editingDriver.license_number || "",
+                  vehicle_type: editingDriver.vehicle_type || "",
+                  vehicle_make: editingDriver.vehicle_make || "",
+                  vehicle_model: editingDriver.vehicle_model || "",
+                  vehicle_color: editingDriver.vehicle_color || "",
+                  license_plate: editingDriver.licensePlate,
+                  dot_medical_number: editingDriver.dot_medical_number || "",
+                  dot_medical_expiration:
+                    editingDriver.dot_medical_expiration || "",
+                  insurance_company: editingDriver.insurance_company || "",
+                  insurance_policy_number:
+                    editingDriver.insurance_policy_number || "",
+                  insurance_start_date: editingDriver.insurance_start_date || "",
+                  insurance_expiration_date:
+                    editingDriver.insurance_expiration_date || "",
+                  inspection_date: editingDriver.inspection_date || "",
+                  driver_record_issue_date:
+                    editingDriver.driver_record_issue_date || "",
+                  driver_record_expiration:
+                    editingDriver.driver_record_expiration || "",
+                  notes: editingDriver.notes || "",
+                  umpi: editingDriver.umpi || "",
+                  npi: editingDriver.npi || "",
+                  custom_fields: editingDriver.custom_fields,
+                }
+              : undefined
+          }
+        />
+      </DeferredForm>
       {isDemoMode && (
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
           <div className="flex items-center gap-3">
@@ -616,6 +663,12 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
           </div>
         </div>
       )}
+
+      <DirectoryTripTotalsStatus
+        ready={tripCountsReady}
+        failed={tripCounts.isError}
+        retry={() => { void tripCounts.refetch(); }}
+      />
 
       {/* Stats Row - Inline like reference */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -679,6 +732,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
         <Button
           variant="outline"
           onClick={handleExport}
+          disabled={!tripCountsReady}
           className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
         >
           <DownloadSimple size={16} />
@@ -819,7 +873,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                       {driver.name}
                     </h3>
                     <span className="text-sm text-slate-500">
-                      {driver.totalTrips} trips
+                      {driver.totalTrips ?? tripCountPlaceholder} trips
                     </span>
                   </div>
                 </div>
@@ -1087,7 +1141,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-semibold text-slate-700">
-                        {driver.totalTrips}
+                        {driver.totalTrips ?? tripCountPlaceholder}
                       </span>
                       <span className="text-xs text-slate-500 ml-1">trips</span>
                     </td>

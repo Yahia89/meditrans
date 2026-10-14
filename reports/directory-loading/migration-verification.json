@@ -1,0 +1,14 @@
+{
+  "project": "verified repository-linked application project",
+  "version": "20261014181036",
+  "name": "directory_trip_counts",
+  "sha256": "cbd8e0ec3465ac18861ed873f3c42fa2477ee800ace42c9f5bf817bee8a38cf0",
+  "recordedInHostedHistory": true,
+  "securityInvoker": true,
+  "stable": true,
+  "emptySearchPath": true,
+  "authenticatedExecute": true,
+  "anonymousExecute": false,
+  "hostedFunctionDefinitionMd5": "35048cbd086158d989b5f012443e0254",
+  "finalIsolatedDryRun": "Remote database is up to date."
+}
