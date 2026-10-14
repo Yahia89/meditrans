@@ -1,1 +1,0 @@
-import{t as e}from"./workspace-C2S2adQk.js";var t=e;export{t as component};
