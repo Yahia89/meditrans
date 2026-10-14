@@ -1,0 +1,1 @@
+import{t as e}from"./workspace-g8To8LzM.js";var t=e;export{t as component};
