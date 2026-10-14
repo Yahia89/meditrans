@@ -19,11 +19,42 @@ export interface RoutePathData {
 }
 
 export interface TripMapData {
-  pickupLat: number;
-  pickupLng: number;
-  dropoffLat: number;
-  dropoffLng: number;
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  pickupAddress?: string | null;
+  dropoffLat?: number | null;
+  dropoffLng?: number | null;
+  dropoffAddress?: string | null;
+  /** Primary calculated driving route; excludes all alternate/secondary paths. */
+  primaryRoutePolyline?: string | null;
   routePaths?: RoutePathData;
+}
+
+/** Resolve one marker without inventing or persisting GPS evidence. */
+export function resolveMapLocation(
+  latitude: unknown,
+  longitude: unknown,
+  address?: string | null,
+): string | null {
+  const coordinate = (value: unknown) =>
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : NaN;
+  const lat = coordinate(latitude);
+  const lng = coordinate(longitude);
+  if (
+    Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
+    Number.isFinite(lng) && lng >= -180 && lng <= 180 &&
+    !(lat === 0 && lng === 0)
+  ) {
+    return `${lat},${lng}`;
+  }
+
+  // Static Maps geocodes addresses for display. A pipe is a marker separator,
+  // so remove it from address text even though query values are URL-encoded.
+  return address?.replace(/\|/g, " ").replace(/\s+/g, " ").trim() || null;
 }
 
 /**
@@ -142,41 +173,47 @@ export function generateStaticMapUrl(
   data: TripMapData,
   width = 400,
   height = 200,
+  apiKey = import.meta.env?.VITE_GOOGLE_MAPS_API_KEY,
 ): string {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     console.warn("[StaticMap] No Google Maps API key available");
     return "";
   }
+
+  const pickup = resolveMapLocation(
+    data.pickupLat, data.pickupLng, data.pickupAddress,
+  );
+  const dropoff = resolveMapLocation(
+    data.dropoffLat, data.dropoffLng, data.dropoffAddress,
+  );
+  if (!pickup || !dropoff) return "";
 
   // Clamp dimensions to free tier limits
   width = Math.min(width, 640);
   height = Math.min(height, 640);
 
   const baseUrl = "https://maps.googleapis.com/maps/api/staticmap";
-  const params: string[] = [
-    `size=${width}x${height}`,
-    "maptype=roadmap",
-    "format=png",
-    `key=${apiKey}`,
-  ];
+  const params = new URLSearchParams({
+    size: `${width}x${height}`,
+    maptype: "roadmap",
+    format: "png",
+    key: apiKey,
+  });
 
   // Add markers for pickup (A) and dropoff (B)
-  params.push(
-    `markers=color:green|label:A|${data.pickupLat},${data.pickupLng}`,
-  );
-  params.push(
-    `markers=color:red|label:B|${data.dropoffLat},${data.dropoffLng}`,
-  );
+  params.append("markers", `color:green|label:A|${pickup}`);
+  params.append("markers", `color:red|label:B|${dropoff}`);
 
-  // Add route paths if available
-  if (data.routePaths) {
+  // PDF summaries show only the primary road route, never gray alternatives.
+  if (data.primaryRoutePolyline) {
+    params.append("path", `color:0x2563ebff|weight:5|enc:${data.primaryRoutePolyline}`);
+  } else if (data.routePaths) {
     // Planned/remaining route (blue) - most important
     if (data.routePaths.plannedPath && data.routePaths.plannedPath.length > 1) {
       const simplified = simplifyPath(data.routePaths.plannedPath, 0.0002);
       const encoded = encodePolyline(simplified);
       if (encoded) {
-        params.push(`path=color:0x3b82f6ff|weight:4|enc:${encoded}`);
+        params.append("path", `color:0x3b82f6ff|weight:4|enc:${encoded}`);
       }
     }
 
@@ -187,7 +224,7 @@ export function generateStaticMapUrl(
           const simplified = simplifyPath(devPath, 0.0002);
           const encoded = encodePolyline(simplified);
           if (encoded) {
-            params.push(`path=color:0xf97316ff|weight:3|enc:${encoded}`);
+            params.append("path", `color:0xf97316ff|weight:3|enc:${encoded}`);
           }
         }
       }
@@ -202,12 +239,12 @@ export function generateStaticMapUrl(
       const simplified = simplifyPath(data.routePaths.drivenPath, 0.0002);
       const encoded = encodePolyline(simplified);
       if (encoded) {
-        params.push(`path=color:0x9ca3afff|weight:3|enc:${encoded}`);
+        params.append("path", `color:0x9ca3afff|weight:3|enc:${encoded}`);
       }
     }
   }
 
-  const url = `${baseUrl}?${params.join("&")}`;
+  const url = `${baseUrl}?${params.toString()}`;
 
   // Check URL length - Google has a 8192 character limit
   if (url.length > 8000) {

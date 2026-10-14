@@ -11,7 +11,12 @@ import {
   formatPdfCoordinate,
   SAMPLE_DRIVER_ATTESTATION,
 } from "./pdf-trip-summary-model.ts";
-import { getStaticMapImage, type TripMapData } from "./static-map-generator.ts";
+import {
+  getStaticMapImage,
+  resolveMapLocation,
+  type TripMapData,
+} from "./static-map-generator.ts";
+import { fetchPrimaryDrivingRoute } from "./trip-map-route.ts";
 
 type Color = [number, number, number];
 
@@ -133,26 +138,12 @@ const loadBrandLogo = async (): Promise<string | null> => {
   }
 };
 
-const loadTripMap = async (
+export const loadTripMap = async (
   trip: Trip,
   cancellationAudit?: TripCancellationAudit | null,
+  fetchMap = getStaticMapImage,
+  fetchRoute = fetchPrimaryDrivingRoute,
 ): Promise<MapRenderResult> => {
-  const pickup = normalizeCoordinatePair(trip.pickup_lat, trip.pickup_lng);
-  const dropoff = normalizeCoordinatePair(trip.dropoff_lat, trip.dropoff_lng);
-
-  if (
-    pickup.latitude === null ||
-    pickup.longitude === null ||
-    dropoff.latitude === null ||
-    dropoff.longitude === null
-  ) {
-    return {
-      image: null,
-      caption: "Pickup (A) and drop-off (B)",
-      unavailableReason: "Pickup or drop-off coordinates were not recorded.",
-    };
-  }
-
   const isCancelled = ["cancelled", "no_show"].includes(trip.status);
   const cancellation = normalizeCoordinatePair(
     cancellationAudit?.location_lat,
@@ -166,20 +157,44 @@ const loadTripMap = async (
   const mapData: TripMapData = {
     pickupLat: useCancellationCoordinates
       ? cancellation.latitude!
-      : pickup.latitude,
+      : trip.pickup_lat,
     pickupLng: useCancellationCoordinates
       ? cancellation.longitude!
-      : pickup.longitude,
-    dropoffLat: dropoff.latitude,
-    dropoffLng: dropoff.longitude,
+      : trip.pickup_lng,
+    pickupAddress: useCancellationCoordinates ? null : trip.pickup_location,
+    dropoffLat: trip.dropoff_lat,
+    dropoffLng: trip.dropoff_lng,
+    dropoffAddress: trip.dropoff_location,
   };
-  const image = await getStaticMapImage(mapData, 600, 600);
+  const caption = useCancellationCoordinates
+    ? "Cancellation location (A) and drop-off (B)"
+    : "Pickup (A) and drop-off (B)";
+  if (
+    !resolveMapLocation(mapData.pickupLat, mapData.pickupLng, mapData.pickupAddress) ||
+    !resolveMapLocation(mapData.dropoffLat, mapData.dropoffLng, mapData.dropoffAddress)
+  ) {
+    return {
+      image: null,
+      caption,
+      unavailableReason:
+        "Pickup or drop-off address and coordinates were not recorded.",
+    };
+  }
+  const usesAddress =
+    !resolveMapLocation(mapData.pickupLat, mapData.pickupLng) ||
+    !resolveMapLocation(mapData.dropoffLat, mapData.dropoffLng);
+  mapData.primaryRoutePolyline = await fetchRoute(mapData);
+  const image = await fetchMap(mapData, 600, 600);
+  const routeCaption = mapData.primaryRoutePolyline
+    ? "Calculated driving route"
+    : "Driving route unavailable";
+  const mapCaption = `${caption} - ${routeCaption}`;
 
   return {
     image,
-    caption: useCancellationCoordinates
-      ? "Cancellation location (A) and drop-off (B)"
-      : "Pickup (A) and drop-off (B)",
+    caption: usesAddress
+      ? `${mapCaption}; address used where coordinates are missing`
+      : mapCaption,
     unavailableReason: image
       ? null
       : "Static route map could not be loaded at generation time.",
@@ -470,7 +485,12 @@ export const createTripSummaryPDFDocument = (
   doc.setFontSize(6);
   setTextColor(doc, COLORS.muted);
   doc.text(
-    assets.mapResult?.caption || "Pickup (A) and drop-off (B)",
+    fitLines(
+      doc,
+      assets.mapResult?.caption || "Pickup (A) and drop-off (B)",
+      leftWidth - 4,
+      3,
+    ),
     margin + leftWidth / 2,
     mainBottom - 2,
     { align: "center" },
