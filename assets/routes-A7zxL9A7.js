@@ -1,0 +1,1 @@
+import{t as e}from"./workspace-CEXc2xDV.js";var t=e;export{t as component};
