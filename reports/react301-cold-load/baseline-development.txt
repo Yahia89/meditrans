@@ -1,0 +1,15 @@
+[WebServer] (node:10554) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 2 workers
+
+(node:10562) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10561) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [firefox] › tests/directories-ui/stability.spec.mjs:186:3 › patients saved bento preference survives cold entry, search and session refresh (7.6s)
+  ✓  2 [firefox] › tests/directories-ui/stability.spec.mjs:186:3 › patients saved list preference survives cold entry, search and session refresh (7.4s)
+  ✓  3 [firefox] › tests/directories-ui/stability.spec.mjs:218:1 › delayed organization resolution makes no premature directory read (6.0s)
+  ✓  4 [firefox] › tests/directories-ui/stability.spec.mjs:231:1 › rapid directory navigation and browser history preserve URL without document reloads (6.7s)
+
+  4 passed (23.6s)

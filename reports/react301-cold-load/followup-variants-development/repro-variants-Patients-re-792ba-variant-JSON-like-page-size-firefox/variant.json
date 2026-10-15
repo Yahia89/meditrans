@@ -1,0 +1,14 @@
+{
+  "synthetic": true,
+  "variant": {
+    "name": "JSON-like page size",
+    "query": "page=patients&limit=%5B5%2C10%5D&view=list"
+  },
+  "url": "http://localhost:5199/?page=patients&limit=%5B5%2C10%5D&view=list",
+  "errors": [],
+  "consoleErrors": [],
+  "diagnostics": [],
+  "collectionReads": 0,
+  "totalRequests": 11,
+  "body": "Toggle Sidebar\nPatients\nClients\n\nManage and view all client records\n\nLoading clients…"
+}

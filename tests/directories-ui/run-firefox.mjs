@@ -10,7 +10,7 @@ const firefoxAppData = process.platform === 'darwin'
   ? await mkdtemp(join(tmpdir(), 'meditrans-directories-firefox-')) : null;
 try {
   const child = spawn(process.execPath, [join(root, 'node_modules/@playwright/test/cli.js'), 'test',
-    '--config', 'playwright.directories.config.ts', '--project', 'firefox', ...process.argv.slice(2)], {
+    '--config', 'playwright.directories.config.ts', '--project=firefox', ...process.argv.slice(2)], {
     cwd: root,
     env: firefoxAppData ? { ...process.env, CFFIXED_USER_HOME: firefoxAppData } : process.env,
     stdio: 'inherit',

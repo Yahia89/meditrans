@@ -1,0 +1,17 @@
+{
+  "synthetic": true,
+  "variant": {
+    "name": "empty real records",
+    "empty": true
+  },
+  "url": "http://localhost:5199/?page=patients",
+  "errors": [],
+  "consoleErrors": [],
+  "diagnostics": [],
+  "collectionReads": 1,
+  "totalRequests": 13,
+  "documents": [
+    "http://localhost:5199/?page=patients"
+  ],
+  "body": "Toggle Sidebar\nPatients\nClients\n\nManage and view all client records\n\nAdd Client\nTotal Clients\n0\nApproved\n0\nNew This Month\n0\nTotal Trips\n0\nShow 5\nExport\n0 clients selected\nDelete\nClear Selection\nNo patients yet\n\nStart by adding your first patient record. You can add patients manually or import them from a spreadsheet.\n\nAdd your first patient\nUpload patient data\n\nShowing 0 - 0 of 0 clients\n\nPrevious\n1\nNext"
+}

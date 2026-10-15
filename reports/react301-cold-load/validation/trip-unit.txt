@@ -1,0 +1,46 @@
+✔ trip export reads beyond 1000 rows and scopes every page to the driver, company, and full local date range (24.75225ms)
+✔ pagination honors a lower server row limit instead of truncating at the first short page (0.642625ms)
+✔ a later query failure cannot return a partial trip export (2.094958ms)
+✔ missing counts, changing lists, duplicate pages, and foreign scope fail explicitly (9.651209ms)
+✔ unfiltered empty history is truthful and invalid requests fail before any query (3.09ms)
+✔ accepts boundary-fresh, 60-meter evidence and a valid zero coordinate (5.075042ms)
+✔ accepts the configured future clock-skew boundary (0.469541ms)
+✔ rejects stale and excessively future-dated evidence (1.632ms)
+✔ rejects missing, non-finite, and worse-than-60-meter accuracy (0.439541ms)
+✔ rejects null-island and out-of-range coordinates (1.381834ms)
+✔ office completion requires the acting user's manager membership in the trip's organization (1.065208ms)
+✔ office completion retains the trip/event/signature with truthful web provenance and no GPS (0.718084ms)
+✔ office completion without a signature preserves the entered reason and clears stale signature data (0.108541ms)
+✔ a manager who is also assigned uses the same office completion path (0.134417ms)
+✔ assigned drivers still capture and send event-time GPS (0.15375ms)
+✔ driver location failure blocks completion instead of silently falling back to null GPS (0.1295ms)
+✔ unauthenticated users and unrelated drivers cannot complete a trip (1.456458ms)
+✔ early and terminal statuses cannot be completed, including from the office (0.2915ms)
+✔ completion requires a real signature/name or a nonempty reason (0.739959ms)
+✔ the full web flow includes mobile aliases and stops after terminal states (0.48625ms)
+✔ owners, admins and dispatchers can record each office milestone without browser GPS (0.586958ms)
+✔ GPS-free office milestones reject missing auth and unrelated organization/user memberships (0.430542ms)
+✔ assigned drivers retain live GPS on every web milestone and fail closed on location errors (0.371958ms)
+✔ milestones reject skipped, reversed and terminal transitions and cannot bypass signature completion (0.192833ms)
+✔ no-show keeps its confirmation-only UI while cancellation retains the chosen reason (0.062458ms)
+✔ all seven checkbox combinations include exactly the selected content (199.624333ms)
+✔ no selected sections cannot produce an empty report (0.703959ms)
+✔ a genuinely empty trip history prints zero while unavailable details fail (14.913166ms)
+✔ unselected data is neither required nor accidentally included (10.914125ms)
+✔ trip details retain references, full route, local pickup time, and distinct recorded/estimated mileage (19.915083ms)
+✔ trip report rejects another driver, company, passenger tenant, or duplicate trip (0.927834ms)
+✔ pickup date bounds include the whole local day through daylight saving changes (3.769583ms)
+✔ a long trip history prints every trip and preserves following STS records (205.16925ms)
+✔ driver STS section includes the full original mobile vehicle checklist (11.969166ms)
+✔ empty inspection history stays truthful and missing history fails (0.1585ms)
+✔ inspection history rejects another driver or organization's records (0.105375ms)
+✔ inspection results, dates, references and full findings remain accurate (10.876ms)
+✔ long notes paginate without truncating the final words (75.406166ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5039.315875

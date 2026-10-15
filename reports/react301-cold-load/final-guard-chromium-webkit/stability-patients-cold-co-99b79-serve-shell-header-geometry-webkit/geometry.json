@@ -1,0 +1,1697 @@
+{
+  "synthetic": true,
+  "browser": {
+    "project": "webkit",
+    "version": "26.6",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "buildMode": "production preview",
+  "before": {
+    "at": 289,
+    "page": "dashboard",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 1471.765625
+    },
+    "header": {
+      "id": 3,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 64
+    },
+    "search": null,
+    "cold": false
+  },
+  "code": {
+    "at": 737,
+    "page": "patients",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 1334.28125
+    },
+    "header": {
+      "id": 4,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 64
+    },
+    "search": null,
+    "cold": true
+  },
+  "data": {
+    "at": 895,
+    "page": "patients",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 1337.46875
+    },
+    "header": {
+      "id": 4,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 64
+    },
+    "search": {
+      "id": 5,
+      "x": 272,
+      "y": 354.28125,
+      "width": 746.1875,
+      "height": 46
+    },
+    "cold": true
+  },
+  "baseRows": {
+    "at": 954,
+    "page": "patients",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 1000
+    },
+    "header": {
+      "id": 4,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 64
+    },
+    "search": {
+      "id": 5,
+      "x": 272,
+      "y": 354.28125,
+      "width": 746.1875,
+      "height": 46
+    },
+    "cold": false
+  },
+  "ready": {
+    "at": 987,
+    "page": "patients",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 1000
+    },
+    "header": {
+      "id": 4,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 64
+    },
+    "search": {
+      "id": 5,
+      "x": 272,
+      "y": 354.28125,
+      "width": 746.1875,
+      "height": 46
+    },
+    "cold": false
+  },
+  "samples": [
+    {
+      "at": 66,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 69,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 70,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 113,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 124,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 128,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 151,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 166,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 182,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 187,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 247,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1363.765625
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 289,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1471.765625
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 331,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.203125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 352,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.203125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 353,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.203125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 354,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.203125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 355,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.203125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 400,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 401,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 406,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 420,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 438,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 453,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 470,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 493,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 503,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 520,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 546,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 554,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 571,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 586,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 604,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 621,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 637,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 656,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 671,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 686,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 712,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 735,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 737,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1334.28125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 770,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1337.46875
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 777,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1337.46875
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 787,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1337.46875
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 803,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1337.46875
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 821,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1337.46875
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 837,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1337.46875
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 853,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1337.46875
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 875,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1337.46875
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 895,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1337.46875
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 903,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1337.46875
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 930,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 940,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 954,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 984,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 987,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1007,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1030,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1038,
+      "page": "patients",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.28125,
+        "width": 746.1875,
+        "height": 46
+      },
+      "cold": false
+    }
+  ],
+  "chunks": [
+    "/assets/index-D3DXa--B.js",
+    "/assets/rolldown-runtime-hePW80VL.js",
+    "/assets/workspace-g8To8LzM.js",
+    "/assets/workspace-50JjKmeZ.css",
+    "/assets/index-DKPvP0sP.css",
+    "/assets/dashboard-gAu2-dXQ.js",
+    "/assets/routes-nyisipC1.js",
+    "/assets/PerformanceChartPlot-DJsN8XOQ.js",
+    "/assets/patients-page-D4ingZEN.js",
+    "/assets/user-access-control-DFbyprN0.js",
+    "/assets/useMutation-BsYn_XJB.js",
+    "/assets/index-D3DXa--B.js",
+    "/assets/shield-check-D7WXOaNm.js",
+    "/assets/alert-dialog-Brl-0pPZ.js",
+    "/assets/pencil-CtVb7wCn.js",
+    "/assets/CalendarBlank.es-CCOiSn6j.js",
+    "/assets/CaretLeft.es-B-YAqUMQ.js",
+    "/assets/useDirectoryPagination-B8ik1EBF.js",
+    "/assets/dialog-Ct5VdRqB.js",
+    "/assets/DownloadSimple.es-eSkj0L92.js",
+    "/assets/Envelope.es-CJqGikFC.js",
+    "/assets/Funnel.es-DpN_gCsH.js",
+    "/assets/MagnifyingGlass.es-7TOxYuiA.js",
+    "/assets/MapPin.es-B1lOfhXf.js",
+    "/assets/Phone.es-Bl-gj8G5.js",
+    "/assets/Plus.es-CHssBd49.js",
+    "/assets/UsersThree.es-5VJwMFcn.js",
+    "/assets/checkbox-6Q80qKne.js",
+    "/assets/directory-trip-totals-status-K73qT4eV.js"
+  ],
+  "documents": [
+    "http://localhost:5198/?page=dashboard"
+  ],
+  "errors": [],
+  "consoleErrors": []
+}

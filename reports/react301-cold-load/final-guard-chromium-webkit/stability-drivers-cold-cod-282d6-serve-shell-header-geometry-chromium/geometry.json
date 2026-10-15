@@ -1,0 +1,1566 @@
+{
+  "synthetic": true,
+  "browser": {
+    "project": "chromium",
+    "version": "154.0.8037.98",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "buildMode": "production preview",
+  "before": {
+    "at": 197.40000000037253,
+    "page": "dashboard",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1169,
+      "height": 1471.8125
+    },
+    "header": {
+      "id": 3,
+      "x": 256,
+      "y": 0,
+      "width": 1169,
+      "height": 64
+    },
+    "search": null,
+    "cold": false
+  },
+  "code": {
+    "at": 603.4000000003725,
+    "page": "drivers",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1169,
+      "height": 1334.3125
+    },
+    "header": {
+      "id": 4,
+      "x": 256,
+      "y": 0,
+      "width": 1169,
+      "height": 64
+    },
+    "search": null,
+    "cold": true
+  },
+  "data": {
+    "at": 753,
+    "page": "drivers",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1169,
+      "height": 1337.5
+    },
+    "header": {
+      "id": 4,
+      "x": 256,
+      "y": 0,
+      "width": 1169,
+      "height": 64
+    },
+    "search": {
+      "id": 5,
+      "x": 272,
+      "y": 354.3125,
+      "width": 731.1875,
+      "height": 46
+    },
+    "cold": true
+  },
+  "baseRows": {
+    "at": 819.8000000002794,
+    "page": "drivers",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1169,
+      "height": 1000
+    },
+    "header": {
+      "id": 4,
+      "x": 256,
+      "y": 0,
+      "width": 1169,
+      "height": 64
+    },
+    "search": {
+      "id": 5,
+      "x": 272,
+      "y": 354.3125,
+      "width": 731.1875,
+      "height": 46
+    },
+    "cold": false
+  },
+  "ready": {
+    "at": 853.4000000003725,
+    "page": "drivers",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1169,
+      "height": 1000
+    },
+    "header": {
+      "id": 4,
+      "x": 256,
+      "y": 0,
+      "width": 1169,
+      "height": 64
+    },
+    "search": {
+      "id": 5,
+      "x": 272,
+      "y": 354.3125,
+      "width": 731.1875,
+      "height": 46
+    },
+    "cold": false
+  },
+  "samples": [
+    {
+      "at": 36,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 72.70000000018626,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 84.60000000009313,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 88.10000000009313,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 106.20000000018626,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 127.5,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 150.90000000037253,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1363.8125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 167.40000000037253,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1363.8125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 172.10000000009313,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1363.8125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 197.40000000037253,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1471.8125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 208.20000000018626,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1471.8125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 224.3000000002794,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 2436.25
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 236.5,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 2436.25
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 252.60000000009313,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 2436.25
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 306.10000000009313,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 309.8000000002794,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 319.20000000018626,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 336.70000000018626,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 353.10000000009313,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 370.10000000009313,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 386.70000000018626,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 402.90000000037253,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 419.8000000002794,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 436.8000000002794,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 453.5,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 469.70000000018626,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 486.20000000018626,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 503.40000000037253,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 519.7000000001863,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 536.5,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 553.1000000000931,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 569.8000000002794,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 586.4000000003725,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 603.4000000003725,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 619.7000000001863,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1334.3125
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": null,
+      "cold": true
+    },
+    {
+      "at": 636.8000000002794,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1337.5
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 653.4000000003725,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1337.5
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 670,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1337.5
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 686.8000000002794,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1337.5
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 703.5,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1337.5
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 720.1000000000931,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1337.5
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 736.8000000002794,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1337.5
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 753,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1337.5
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 769.2000000001863,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1337.5
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": true
+    },
+    {
+      "at": 790.4000000003725,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 803.3000000002794,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 819.8000000002794,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 836.4000000003725,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 853.4000000003725,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 870,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 885.9000000003725,
+      "page": "drivers",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 1000
+      },
+      "header": {
+        "id": 4,
+        "x": 256,
+        "y": 0,
+        "width": 1169,
+        "height": 64
+      },
+      "search": {
+        "id": 5,
+        "x": 272,
+        "y": 354.3125,
+        "width": 731.1875,
+        "height": 46
+      },
+      "cold": false
+    }
+  ],
+  "chunks": [
+    "/assets/index-D3DXa--B.js",
+    "/assets/rolldown-runtime-hePW80VL.js",
+    "/assets/workspace-g8To8LzM.js",
+    "/assets/workspace-50JjKmeZ.css",
+    "/assets/index-DKPvP0sP.css",
+    "/assets/dashboard-gAu2-dXQ.js",
+    "/assets/routes-nyisipC1.js",
+    "/assets/PerformanceChartPlot-DJsN8XOQ.js",
+    "/assets/drivers-page-BoVmikSR.js",
+    "/assets/user-access-control-DFbyprN0.js",
+    "/assets/useMutation-BsYn_XJB.js",
+    "/assets/shield-check-D7WXOaNm.js",
+    "/assets/alert-dialog-Brl-0pPZ.js",
+    "/assets/pencil-CtVb7wCn.js",
+    "/assets/CaretLeft.es-B-YAqUMQ.js",
+    "/assets/useDirectoryPagination-B8ik1EBF.js",
+    "/assets/dialog-Ct5VdRqB.js",
+    "/assets/DownloadSimple.es-eSkj0L92.js",
+    "/assets/Envelope.es-CJqGikFC.js",
+    "/assets/Funnel.es-DpN_gCsH.js",
+    "/assets/MagnifyingGlass.es-7TOxYuiA.js",
+    "/assets/NavigationArrow.es-IMrWh9un.js",
+    "/assets/Phone.es-Bl-gj8G5.js",
+    "/assets/Plus.es-CHssBd49.js",
+    "/assets/User.es-Dk0sVwTm.js",
+    "/assets/checkbox-6Q80qKne.js",
+    "/assets/directory-trip-totals-status-K73qT4eV.js"
+  ],
+  "documents": [
+    "http://localhost:5198/?page=dashboard"
+  ],
+  "errors": [],
+  "consoleErrors": []
+}

@@ -1,0 +1,190 @@
+{
+  "synthetic": true,
+  "blockedModules": [
+    "/assets/routes-XYEqLlW4.js"
+  ],
+  "pendingFrames": [
+    {
+      "at": 168.10000000009313,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 181.10000000009313,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 195.5,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 211.20000000018626,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 228.20000000018626,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 244.3000000002794,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 261.3000000002794,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 280.3000000002794,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 297.70000000018626,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 327.70000000018626,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 328.3000000002794,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 344.8000000002794,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 361.60000000009313,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 380.3000000002794,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 395,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 411.5,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 428.20000000018626,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 443.89999999990687,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 461.39999999990687,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 478.20000000018626,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 494.8000000002794,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    }
+  ],
+  "blankFrames": [],
+  "blankSpanMs": 0,
+  "documents": [
+    "http://localhost:5198/?page=patients"
+  ],
+  "chunks": [
+    "/assets/index-CBWJwaor.js",
+    "/assets/rolldown-runtime-hePW80VL.js",
+    "/assets/workspace-JvWHr2-Q.js",
+    "/assets/workspace-50JjKmeZ.css",
+    "/assets/index-DKPvP0sP.css",
+    "/assets/patients-page-BiMoPL79.js",
+    "/assets/dashboard-BrqHHiv7.js",
+    "/assets/user-access-control-CO-bhqOY.js",
+    "/assets/useMutation-CeImTV39.js",
+    "/assets/shield-check-mG66nHNn.js",
+    "/assets/alert-dialog-CJQvYVLT.js",
+    "/assets/pencil-DVGXJq6z.js",
+    "/assets/CalendarBlank.es-CfiPhxjE.js",
+    "/assets/CaretLeft.es-Dqt82cqp.js",
+    "/assets/useDirectoryPagination-WNWiUtzr.js",
+    "/assets/dialog-DcrDaehL.js",
+    "/assets/DownloadSimple.es-6Pcg1iJu.js",
+    "/assets/Envelope.es-CQ58paOA.js",
+    "/assets/Funnel.es-BHKhMTGs.js",
+    "/assets/MagnifyingGlass.es-2ywal7IE.js",
+    "/assets/MapPin.es-CEB6iqHm.js",
+    "/assets/Phone.es-BPn3bILD.js",
+    "/assets/Plus.es-BvIRscli.js",
+    "/assets/UsersThree.es-DQFSbtUv.js",
+    "/assets/checkbox-DrjrwHp9.js",
+    "/assets/directory-trip-totals-status-BOAWHDNe.js",
+    "/assets/routes-XYEqLlW4.js"
+  ],
+  "errors": []
+}

@@ -1,4 +1,4 @@
-import { lazy, useState, useMemo, useEffect } from "react";
+import { lazy, useState, useMemo } from "react";
 import {
   MagnifyingGlass,
   Plus,
@@ -28,7 +28,6 @@ import { useCanManageUserAccess } from "@/hooks/useCanManageUserAccess";
 import { PatientsEmptyState } from "@/components/ui/empty-state";
 import { DeferredForm } from "@/components/ui/deferred-form";
 import {
-  Loader2,
   Pencil,
   Trash,
   Check,
@@ -46,6 +45,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQueryState } from "nuqs";
+import { parseDirectoryPageSize, readSavedPatientsView, savePatientsView, isDirectoryAuthorizationError, shouldRetryDirectoryRead } from "@/lib/directory-state";
+import { useDirectoryPagination } from "@/hooks/useDirectoryPagination";
+import { DirectoryListStatus, DirectoryRowsSkeleton } from "@/components/directory-loading";
 import {
   Select,
   SelectContent,
@@ -67,6 +69,7 @@ interface Patient {
   id: string;
   name: string;
   age: number;
+  created_at?: string;
   phone: string;
   email: string;
   address: string;
@@ -169,20 +172,8 @@ function InlineStat({
   return (
     <div className="flex flex-col gap-1">
       <span className="text-sm text-slate-500">{label}</span>
-      <span className={cn("text-2xl font-semibold tracking-tight", valueColor)}>
+      <span className={cn("text-2xl font-semibold tracking-tight tabular-nums min-w-10", valueColor)}>
         {value}
-      </span>
-    </div>
-  );
-}
-
-// Zero stat for empty state
-function ZeroStat({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm text-slate-500">{label}</span>
-      <span className="text-2xl font-semibold tracking-tight text-slate-300">
-        0
       </span>
     </div>
   );
@@ -205,6 +196,38 @@ export function PatientsPage({
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const formInitialData = useMemo(() => (
+    editingPatient
+      ? {
+          id: editingPatient.id,
+          full_name: editingPatient.name,
+          email: editingPatient.email,
+          phone: editingPatient.phone,
+          primary_address: editingPatient.address,
+          dob: editingPatient.date_of_birth || "",
+          county: editingPatient.county || "",
+          waiver_type: editingPatient.waiver_type || "",
+          referral_by: editingPatient.referral_by || "",
+          referral_date: editingPatient.referral_date || "",
+          referral_expiration_date:
+            editingPatient.referral_expiration_date || "",
+          service_type: editingPatient.service_type || "",
+          case_manager: editingPatient.case_manager || "",
+          case_manager_phone: editingPatient.case_manager_phone || "",
+          case_manager_email: editingPatient.case_manager_email || "",
+          monthly_credit: editingPatient.monthly_credit?.toString() || "",
+          credit_used_for: editingPatient.credit_used_for || "",
+          medicaid_id: editingPatient.medicaid_id || "",
+          vehicle_type_need: editingPatient.vehicle_type_need || "",
+          notes: editingPatient.notes || "",
+          custom_fields: editingPatient.custom_fields,
+          sal_status: editingPatient.sal_status || "",
+          sal_effective_date: editingPatient.sal_effective_date || "",
+          sal_through_date: editingPatient.sal_through_date || "",
+          sal_pending_reason: editingPatient.sal_pending_reason || "",
+        }
+      : undefined
+  ), [editingPatient]);
   const { isDemoMode, navigateTo } = useOnboarding();
   const { currentOrganization } = useOrganization();
   const { 
@@ -252,41 +275,40 @@ export function PatientsPage({
   };
 
   // View and pagination state
-  const [viewMode, setViewMode] = useState<"bento" | "list">(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("patients-view-mode");
-      if (saved === "bento" || saved === "list") return saved;
-    }
-    return "bento";
-  });
+  const [viewMode, setViewMode] = useState<"bento" | "list">(readSavedPatientsView);
 
-  useEffect(() => {
-    localStorage.setItem("patients-view-mode", viewMode);
-  }, [viewMode]);
+  const handleViewChange = (nextView: "bento" | "list") => {
+    setViewMode(nextView);
+    savePatientsView(nextView);
+  };
 
-  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useQueryState("limit", {
     defaultValue: "5",
-    parse: (v) => v || "5",
+    parse: parseDirectoryPageSize,
   });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const limit = itemsPerPage === "all" ? 9999 : parseInt(itemsPerPage, 10);
 
   // Use permission flag for patient management (admin+ only)
 
-  const tripCounts = useQuery(directoryTripCountsOptions(currentOrganization?.id, "patients"));
+  const tripCounts = useQuery({
+    ...directoryTripCountsOptions(currentOrganization?.id, "patients"),
+    retry: (failureCount, error) => shouldRetryDirectoryRead(failureCount, error, 1),
+    enabled: !!currentOrganization && canViewPatients,
+  });
 
-  const { data: realPatients, isLoading } = useQuery({
+  const listQuery = useQuery({
+    retry: shouldRetryDirectoryRead,
     queryKey: ["patients", currentOrganization?.id],
-    queryFn: async () => {
-      if (!currentOrganization) return [];
+    queryFn: async ({ signal }) => {
+      if (!currentOrganization) throw new Error("An organization is required.");
 
       const { data, error } = await supabase
         .from("patients")
         .select("*")
         .eq("org_id", currentOrganization.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .abortSignal(signal);
 
       if (error) throw error;
 
@@ -303,6 +325,7 @@ export function PatientsPage({
           id: p.id,
           name: p.full_name,
           age: age,
+          created_at: p.created_at,
           phone: p.phone || "",
           email: p.email || "",
           address: p.primary_address || "",
@@ -331,9 +354,15 @@ export function PatientsPage({
         } as Patient;
       });
     },
-    enabled: !!currentOrganization,
+    enabled: !!currentOrganization && canViewPatients,
     staleTime: 30_000,
   });
+  const authorizationFailed = isDirectoryAuthorizationError(listQuery.error);
+  const realPatients = canViewPatients && !authorizationFailed ? listQuery.data : undefined;
+  const listPending = !isDemoMode && !realPatients && !listQuery.isError;
+  const listFailed = !isDemoMode && !realPatients && listQuery.isError;
+  const listReady = isDemoMode || realPatients !== undefined;
+
 
   const handleExport = async () => {
     if (!patients.length || !tripCountsReady) return;
@@ -390,15 +419,16 @@ export function PatientsPage({
     }
   };
 
+  const usableTripCounts = canViewPatients && !isDirectoryAuthorizationError(tripCounts.error) ? tripCounts.data : undefined;
   const hasRealData = realPatients && realPatients.length > 0;
-  const showData = hasRealData || isDemoMode;
+  const hasRealDataOrDemo = hasRealData || isDemoMode;
   const patients = useMemo(() => hasRealData
     ? realPatients.map((patient) => ({
         ...patient,
-        totalTrips: tripCounts.data ? tripCounts.data[patient.id] ?? 0 : undefined,
+        totalTrips: usableTripCounts ? usableTripCounts[patient.id] ?? 0 : undefined,
       }))
-    : isDemoMode ? demoPatients : [], [hasRealData, realPatients, isDemoMode, tripCounts.data]);
-  const tripCountsReady = (!hasRealData && isDemoMode) || !!tripCounts.data;
+    : isDemoMode ? demoPatients : [], [hasRealData, realPatients, isDemoMode, usableTripCounts]);
+  const tripCountsReady = (!hasRealData && isDemoMode) || !!usableTripCounts;
   const tripCountPlaceholder = tripCounts.isError ? "—" : "…";
 
   const filteredPatients = useMemo(() => {
@@ -414,20 +444,26 @@ export function PatientsPage({
     });
   }, [patients, searchQuery]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredPatients.length / limit);
-  const paginatedPatients = useMemo(() => {
-    const start = (currentPage - 1) * limit;
-    return filteredPatients.slice(start, start + limit);
-  }, [filteredPatients, currentPage, limit]);
+  const { currentPage, totalPages, startIndex, endIndex, setCurrentPage } =
+    useDirectoryPagination(itemsPerPage, filteredPatients.length);
+  const paginatedPatients = useMemo(
+    () => filteredPatients.slice(startIndex, endIndex),
+    [filteredPatients, startIndex, endIndex],
+  );
 
-  // Reset to page 1 when search changes
-  useMemo(() => {
+  const handleSearchChange = (nextSearch: string) => {
+    setSearchQuery(nextSearch);
     setCurrentPage(1);
-  }, [searchQuery]);
+  };
 
   const approvedCount = patients.filter((p) => p.status === "approved").length;
-  const totalTrips = tripCountsReady
+  const now = new Date();
+  const newThisMonth = patients.filter((patient) => {
+    if (!patient.created_at) return false;
+    const created = new Date(patient.created_at);
+    return created.getFullYear() === now.getFullYear() && created.getMonth() === now.getMonth();
+  }).length;
+  const totalTrips = !listReady ? listFailed ? "—" : "…" : tripCountsReady
     ? patients.reduce((sum, p) => sum + (p.totalTrips ?? 0), 0)
     : tripCountPlaceholder;
 
@@ -456,113 +492,21 @@ export function PatientsPage({
     paginatedPatients.length > 0 &&
     paginatedPatients.every((p) => selectedIds.has(p.id));
 
-  if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-      </div>
-    );
-  }
-
-  // Show empty state if no real data and not in demo mode
-  if (!showData) {
+  if (authorizationFailed || (!canViewPatients && !isDemoMode)) {
     return (
       <div className="space-y-6">
-        {/* Patient Form (Add/Edit) */}
-        <DeferredForm
-          open={showAddForm || !!editingPatient}
-          onOpenChange={(open) => {
-            if (!open) {
-              setShowAddForm(false);
-              setEditingPatient(null);
-            }
-          }}
-        >
-          <PatientForm
-            open={showAddForm || !!editingPatient}
-            onOpenChange={(open) => {
-              if (!open) {
-                setShowAddForm(false);
-                setEditingPatient(null);
-              }
-            }}
-            initialData={
-              editingPatient
-                ? {
-                    id: editingPatient.id,
-                    full_name: editingPatient.name,
-                    email: editingPatient.email,
-                    phone: editingPatient.phone,
-                    primary_address: editingPatient.address,
-                    dob: editingPatient.date_of_birth || "",
-                    county: editingPatient.county || "",
-                    waiver_type: editingPatient.waiver_type || "",
-                    referral_by: editingPatient.referral_by || "",
-                    referral_date: editingPatient.referral_date || "",
-                    referral_expiration_date:
-                      editingPatient.referral_expiration_date || "",
-                    service_type: editingPatient.service_type || "",
-                    case_manager: editingPatient.case_manager || "",
-                    case_manager_phone: editingPatient.case_manager_phone || "",
-                    case_manager_email: editingPatient.case_manager_email || "",
-                    monthly_credit:
-                      editingPatient.monthly_credit?.toString() || "",
-                    credit_used_for: editingPatient.credit_used_for || "",
-                    medicaid_id: editingPatient.medicaid_id || "",
-                    vehicle_type_need: editingPatient.vehicle_type_need || "",
-                    notes: editingPatient.notes || "",
-                    custom_fields: editingPatient.custom_fields,
-                    sal_status: editingPatient.sal_status || "",
-                    sal_effective_date: editingPatient.sal_effective_date || "",
-                    sal_through_date: editingPatient.sal_through_date || "",
-                    sal_pending_reason: editingPatient.sal_pending_reason || "",
-                  }
-                : undefined
-            }
-          />
-        </DeferredForm>
-
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-slate-900">Clients</h1>
-            <p className="text-sm text-slate-500">
-              Manage and view all client records
-            </p>
-          </div>
-        </div>
-
-        {/* Stats Row with zeros */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
-            <div className="pl-0">
-              <ZeroStat label="Total Clients" />
-            </div>
-            <div className="pl-8">
-              <ZeroStat label="Approved" />
-            </div>
-            <div className="pl-8">
-              <ZeroStat label="New This Month" />
-            </div>
-            <div className="pl-8">
-              <ZeroStat label="Total Trips" />
-            </div>
-          </div>
-        </div>
-
-        {/* Empty State */}
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <PatientsEmptyState
-            onAddPatient={() => setShowAddForm(true)}
-            onUpload={() => navigateTo("upload")}
-          />
+        <h1 className="text-2xl font-semibold text-slate-900">Clients</h1>
+        <div role="alert" className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-600">
+          Access to clients could not be verified.
+          {authorizationFailed && <Button variant="outline" className="ml-3" onClick={() => void listQuery.refetch()}>Retry list</Button>}
         </div>
       </div>
     );
   }
 
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy={listPending}>
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
@@ -603,38 +547,7 @@ export function PatientsPage({
               setEditingPatient(null);
             }
           }}
-          initialData={
-            editingPatient
-              ? {
-                  id: editingPatient.id,
-                  full_name: editingPatient.name,
-                  email: editingPatient.email,
-                  phone: editingPatient.phone,
-                  primary_address: editingPatient.address,
-                  dob: editingPatient.date_of_birth || "",
-                  county: editingPatient.county || "",
-                  waiver_type: editingPatient.waiver_type || "",
-                  referral_by: editingPatient.referral_by || "",
-                  referral_date: editingPatient.referral_date || "",
-                  referral_expiration_date:
-                    editingPatient.referral_expiration_date || "",
-                  service_type: editingPatient.service_type || "",
-                  case_manager: editingPatient.case_manager || "",
-                  case_manager_phone: editingPatient.case_manager_phone || "",
-                  case_manager_email: editingPatient.case_manager_email || "",
-                  monthly_credit: editingPatient.monthly_credit?.toString() || "",
-                  credit_used_for: editingPatient.credit_used_for || "",
-                  medicaid_id: editingPatient.medicaid_id || "",
-                  vehicle_type_need: editingPatient.vehicle_type_need || "",
-                  notes: editingPatient.notes || "",
-                  custom_fields: editingPatient.custom_fields,
-                  sal_status: editingPatient.sal_status || "",
-                  sal_effective_date: editingPatient.sal_effective_date || "",
-                  sal_through_date: editingPatient.sal_through_date || "",
-                  sal_pending_reason: editingPatient.sal_pending_reason || "",
-                }
-              : undefined
-          }
+          initialData={formInitialData}
         />
       </DeferredForm>
 
@@ -669,29 +582,40 @@ export function PatientsPage({
         </div>
       )}
 
+      <div className="flex min-h-8 flex-wrap items-center gap-x-4 gap-y-1">
+        <DirectoryListStatus
+          label="clients"
+          pending={listPending}
+          failed={listFailed}
+          refreshing={listReady && listQuery.isFetching}
+          stale={listReady && listQuery.isError}
+          retry={() => { void listQuery.refetch(); }}
+        />
       <DirectoryTripTotalsStatus
         ready={tripCountsReady}
         failed={tripCounts.isError}
+        refreshing={tripCounts.isFetching}
         retry={() => { void tripCounts.refetch(); }}
       />
+      </div>
 
       {/* Stats Row - Inline like reference  */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
           <div className="pl-0">
-            <InlineStat label="Total Clients" value={patients.length} />
+            <InlineStat label="Total Clients" value={listReady ? patients.length : listFailed ? "—" : "…"} />
           </div>
           <div className="pl-8">
             <InlineStat
               label="Approved"
-              value={approvedCount}
+              value={listReady ? approvedCount : listFailed ? "—" : "…"}
               valueColor="text-[#2E7D32]"
             />
           </div>
           <div className="pl-8">
             <InlineStat
               label="New This Month"
-              value="23"
+              value={listReady ? newThisMonth : listFailed ? "—" : "…"}
               valueColor="text-[#1976D2]"
             />
           </div>
@@ -714,16 +638,17 @@ export function PatientsPage({
           />
           <input
             type="text"
+            aria-label="Search clients"
             placeholder="Search clients by name, email, or phone..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
           />
         </div>
         <Select
           value={itemsPerPage}
           onValueChange={(val) => {
-            setItemsPerPage(val);
+            void setItemsPerPage(parseDirectoryPageSize(val));
             setCurrentPage(1);
           }}
         >
@@ -744,7 +669,7 @@ export function PatientsPage({
         <Button
           variant="outline"
           onClick={handleExport}
-          disabled={!tripCountsReady}
+          disabled={!listReady || !tripCountsReady}
           className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
         >
           <DownloadSimple size={16} />
@@ -754,7 +679,8 @@ export function PatientsPage({
         {/* View Toggle */}
         <div className="flex rounded-lg border border-slate-200 bg-white p-1">
           <button
-            onClick={() => setViewMode("bento")}
+            aria-label="Grid view"
+            onClick={() => handleViewChange("bento")}
             className={cn(
               "flex items-center justify-center p-2 rounded-md transition-colors",
               viewMode === "bento"
@@ -768,7 +694,8 @@ export function PatientsPage({
             />
           </button>
           <button
-            onClick={() => setViewMode("list")}
+            aria-label="List view"
+            onClick={() => handleViewChange("list")}
             className={cn(
               "flex items-center justify-center p-2 rounded-md transition-colors",
               viewMode === "list"
@@ -845,8 +772,26 @@ export function PatientsPage({
         </div>
       </div>
 
+      {listPending && <DirectoryRowsSkeleton viewMode={viewMode} />}
+      {listFailed && (
+        <div role="alert" className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-600">
+          Clients could not be loaded. Use Retry list above to try again.
+        </div>
+      )}
+      {listReady && !hasRealDataOrDemo && (
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+          <PatientsEmptyState onAddPatient={() => { if (canCreatePatients) setShowAddForm(true); }} onUpload={() => navigateTo("upload")} />
+        </div>
+      )}
+
+      {listReady && hasRealDataOrDemo && filteredPatients.length === 0 && (
+        <div role="status" className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+          No clients found matching your search.
+        </div>
+      )}
+
       {/* Bento Cards View */}
-      {viewMode === "bento" && (
+      {listReady && hasRealDataOrDemo && filteredPatients.length > 0 && viewMode === "bento" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {paginatedPatients.map((patient) => (
             <div
@@ -1044,7 +989,7 @@ export function PatientsPage({
       )}
 
       {/* List View */}
-      {viewMode === "list" && (
+      {listReady && hasRealDataOrDemo && filteredPatients.length > 0 && viewMode === "list" && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1271,15 +1216,15 @@ export function PatientsPage({
       )}
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      {listReady && <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">
           Showing{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min((currentPage - 1) * limit + 1, filteredPatients.length)}
+            {filteredPatients.length === 0 ? 0 : startIndex + 1}
           </span>{" "}
           -{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min(currentPage * limit, filteredPatients.length)}
+            {endIndex}
           </span>{" "}
           of{" "}
           <span className="font-semibold text-slate-900">
@@ -1292,7 +1237,7 @@ export function PatientsPage({
             variant="outline"
             size="sm"
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            onClick={() => setCurrentPage(currentPage - 1)}
             className="rounded-lg border-slate-200 gap-1"
           >
             <CaretLeft size={16} />
@@ -1323,14 +1268,14 @@ export function PatientsPage({
             variant="outline"
             size="sm"
             disabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => setCurrentPage(currentPage + 1)}
             className="rounded-lg border-slate-200 gap-1"
           >
             Next
             <CaretRight size={16} />
           </Button>
         </div>
-      </div>
+      </div>}
 
       <DeleteConfirmationDialog
         open={!!deleteId}

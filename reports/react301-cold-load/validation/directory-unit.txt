@@ -1,0 +1,32 @@
+
+> future-transportation-crm@0.0.0 test:directories
+> node --test src/lib/directory-trip-counts.test.mjs src/lib/directory-state.test.mjs src/lib/directory-render-purity.test.mjs src/hooks/organization-presence.test.mjs
+
+✔ recent online and away heartbeats preserve presence (0.565125ms)
+✔ identical heartbeat data becomes offline as the clock advances (0.097708ms)
+✔ missing heartbeats preserve valid server status while invalid status or timestamps are offline (0.075375ms)
+✔ purity guard catches pagination updates even when a component defeats compiler lint (13.08575ms)
+✔ patients memo calculations do not update UI state or query URLs (24.69675ms)
+✔ drivers memo calculations do not update UI state or query URLs (11.936583ms)
+✔ employees memo calculations do not update UI state or query URLs (13.406791ms)
+✔ saved Patients view works with missing, invalid and blocked browser storage (0.562709ms)
+✔ URL limits accept only supported whole values; malformed and unbounded limits use five (0.100042ms)
+✔ pagination clamps after final-page deletion and never shows page one of zero (0.138584ms)
+✔ All includes every available row above the former magic 9999 cap (0.068667ms)
+✔ presence loading, missing linkage and unknown are never counted as offline (0.093209ms)
+✔ authorization failures drop cached private rows, transient failures do not (0.092709ms)
+✔ denied cached refresh reaches terminal error after one request; transient retry budgets remain three or one (8.307667ms)
+✔ counts are scoped by organization and directory and forward cancellation (1.845375ms)
+✔ empty visible counts succeed, while authorization and malformed responses cannot become zeros (2.98325ms)
+✔ revisits reuse counts, trip invalidation refreshes them, and organization/directory caches stay separate (1.944875ms)
+✔ pagination reads beyond 1000 groups and advances by actual server-capped page lengths (1.495417ms)
+✔ missing totals, truncated pages, changing group counts, duplicate groups and later errors never publish partial counts (1.92375ms)
+✔ a failed paginated refresh retains the last complete cache instead of replacing it with partial counts (0.668292ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 342.7705

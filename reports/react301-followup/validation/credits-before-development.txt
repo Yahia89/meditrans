@@ -1,0 +1,90 @@
+[WebServer] (node:26186) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 2 workers
+
+(node:26195) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26194) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [firefox] › tests/directories-ui/credits-trip.spec.mjs:38:3 › Patient credit trip navigation: direct dated trip bookmark (14.3s)
+  ✘  1 [firefox] › tests/directories-ui/credits-trip.spec.mjs:38:3 › Patient credit trip navigation: credit calendar click (16.3s)
+
+
+  1) [firefox] › tests/directories-ui/credits-trip.spec.mjs:38:3 › Patient credit trip navigation: credit calendar click 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Show all', exact: true })
+    Expected: visible
+    Timeout: 12000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Show all', exact: true }) with timeout 12000ms
+      - waiting for getByRole('button', { name: 'Show all', exact: true })
+
+
+      47 |         await dayWithSpend.click();
+      48 |       }
+    > 49 |       await expect(page.getByRole('button', { name: 'Show all', exact: true })).toBeVisible();
+         |                                                                                 ^
+      50 |       await expect(page.getByText('Synthetic pickup', { exact: true })).toBeVisible();
+      51 |       expect(new URL(page.url()).searchParams.get('section')).toBe('trips');
+      52 |       expect(new URL(page.url()).searchParams.get('date')).toBe('2026-10-02T05:00:00.000Z');
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/credits-trip.spec.mjs:49:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/credits-before-development/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/credits-before-development/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/credits-before-development/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/credits-before-development/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [firefox] › tests/directories-ui/credits-trip.spec.mjs:38:3 › Patient credit trip navigation: direct dated trip bookmark 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Show all', exact: true })
+    Expected: visible
+    Timeout: 12000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Show all', exact: true }) with timeout 12000ms
+      - waiting for getByRole('button', { name: 'Show all', exact: true })
+
+
+      47 |         await dayWithSpend.click();
+      48 |       }
+    > 49 |       await expect(page.getByRole('button', { name: 'Show all', exact: true })).toBeVisible();
+         |                                                                                 ^
+      50 |       await expect(page.getByText('Synthetic pickup', { exact: true })).toBeVisible();
+      51 |       expect(new URL(page.url()).searchParams.get('section')).toBe('trips');
+      52 |       expect(new URL(page.url()).searchParams.get('date')).toBe('2026-10-02T05:00:00.000Z');
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/credits-trip.spec.mjs:49:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/credits-before-development/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/credits-before-development/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-firefox/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/credits-before-development/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/credits-before-development/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [firefox] › tests/directories-ui/credits-trip.spec.mjs:38:3 › Patient credit trip navigation: credit calendar click 
+    [firefox] › tests/directories-ui/credits-trip.spec.mjs:38:3 › Patient credit trip navigation: direct dated trip bookmark 

@@ -1,0 +1,44 @@
+
+> future-transportation-crm@0.0.0 test:compliance
+> node --test src/features/compliance/*.test.mjs src/features/sts-inspections/*.test.mjs
+
+✔ audit access requires the acting user's owner/admin membership in the requested company (0.678875ms)
+✔ uploads require a matching supported header, extension and declared MIME (8.213625ms)
+✔ storage paths use generated identifiers and reject traversal and unsupported files (0.852584ms)
+✔ company labels and titles are required; audit year is explicit and notes are preserved (1.540209ms)
+✔ mobile print rows preserve vehicle metadata, original date, mileage, every answer, and full explanations (49.315292ms)
+✔ web review edits do not reinterpret the original driver snapshot (0.320208ms)
+✔ missing or mismatched original mobile evidence blocks printing rather than creating a partial report (0.322542ms)
+✔ legacy incomplete answers remain unknown and ordinary web records gain no invented checklist (0.552375ms)
+✔ history fetch includes every page beyond the default 1000-row limit and scopes every query (5.248542ms)
+✔ new records trim metadata and leave audit columns to the database (3.214125ms)
+✔ metadata edits preserve attachments and use the previous timestamp to prevent lost updates (0.615167ms)
+✔ web review updates cannot overwrite the synced app source or original checklist payload (0.494875ms)
+✔ the app inspection day cannot be edited or upload a replacement before validation (0.687917ms)
+✔ replacement uploads first and removes the old file only after metadata is saved (0.506125ms)
+✔ failed or stale updates remove only the new upload and preserve the existing report (0.887042ms)
+✔ a successful save remains successful and signals a failed old-file cleanup (0.434042ms)
+✔ invalid dates or scope fail before any upload or database request (0.575125ms)
+✔ history filters combine driver, inclusive date bounds, result, and case-insensitive reference search (0.217334ms)
+✔ inspection dates retain their calendar day regardless of local timezone (48.6295ms)
+✔ actual inspection panel and sidebar expose owner/admin controls and cached history (88.705667ms)
+✔ dispatch, driver, and global founder without membership cannot render cached records, edit controls, or audit navigation (19.988875ms)
+✔ company switch rechecks membership and never renders the previous organization's cached history (51.982625ms)
+✔ membership must belong to the signed-in user even when sensitive queries remain cached (6.742791ms)
+✔ original driver checklist renders vehicle facts and every response as read-only text (3.177875ms)
+✔ synced inspections are identified as Driver app and retain Pending review in the canonical list (3.801917ms)
+✔ record PDF has a meaningful title and contains the supplied record and report details (22.572041ms)
+✔ long notes and multiple records survive PDF pagination without losing the final text (88.882458ms)
+✔ printing empty history fails rather than generating an empty inspection record (0.513875ms)
+✔ opening a preview does not embed an automatic print action (6.024333ms)
+✔ mobile record PDF includes all raw checklist answers and driver vehicle details without changing review status (7.5155ms)
+✔ audit deep links survive auth resolving before the organization on a full reload (14.565ms)
+✔ resolved unauthorized audit links stay unmounted with the correct Router fallback for every restricted role (1.291167ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3970.819708

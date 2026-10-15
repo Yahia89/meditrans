@@ -1,0 +1,12 @@
+{
+  "synthetic": true,
+  "entry": "credit calendar click",
+  "mode": "development StrictMode",
+  "instrumentation": null,
+  "url": "http://localhost:5199/?page=patient-details&id=00000000-0000-4000-8000-000000000901&section=trips",
+  "errors": [],
+  "consoleErrors": [],
+  "diagnostics": [],
+  "setterCalls": [],
+  "body": "Toggle Sidebar\nPatient Details\nDirectory Alpha Client\nClient Profile\nAccess Active\nID: 00000000\nPrint Out\nEdit Details\nDisable Access\nDelete Patient\nOverview\nDocuments\n0\nTrip History\n1\nCredits\n$300\nTrips summary\nOctober 2026\n1 trip\nCOMPLETED\nOne Way\nOct 2, 2026 at 10:00 AM\nSynthetic pickup\nSynthetic destination\nDriver: Unassigned"
+}

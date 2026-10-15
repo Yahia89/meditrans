@@ -1,0 +1,763 @@
+{
+  "scope": "Fresh local production import-graph estimates, gzip per emitted JS file; not hosted transfer or field latency. Both builds use same lockfile/config/environment. Static shared workspace graph deducted from each route.",
+  "before": {
+    "shell": {
+      "decoded": 887494,
+      "gzip": 266431,
+      "chunks": [
+        {
+          "file": "assets/index-B6XrjjLX.js",
+          "decoded": 213379,
+          "gzip": 67884
+        },
+        {
+          "file": "assets/rolldown-runtime-hePW80VL.js",
+          "decoded": 716,
+          "gzip": 428
+        },
+        {
+          "file": "assets/workspace-DQySsb9L.js",
+          "decoded": 673324,
+          "gzip": 198032
+        },
+        {
+          "file": "assets/routes-7OkphirW.js",
+          "decoded": 75,
+          "gzip": 87
+        }
+      ]
+    },
+    "directories": {
+      "patients": {
+        "decoded": 252377,
+        "gzip": 74728,
+        "chunks": [
+          {
+            "file": "assets/patients-page-B0map7fi.js",
+            "decoded": 27273,
+            "gzip": 6958
+          },
+          {
+            "file": "assets/dashboard-J9lYpUnE.js",
+            "decoded": 153824,
+            "gzip": 41613
+          },
+          {
+            "file": "assets/user-access-control-qBmvI_Y1.js",
+            "decoded": 5231,
+            "gzip": 2101
+          },
+          {
+            "file": "assets/useMutation-BnpF-3XX.js",
+            "decoded": 2377,
+            "gzip": 984
+          },
+          {
+            "file": "assets/shield-check-CI7AUmEZ.js",
+            "decoded": 314,
+            "gzip": 246
+          },
+          {
+            "file": "assets/alert-dialog-BUT7JtmE.js",
+            "decoded": 4821,
+            "gzip": 1785
+          },
+          {
+            "file": "assets/pencil-CpTLkG67.js",
+            "decoded": 270,
+            "gzip": 222
+          },
+          {
+            "file": "assets/CalendarBlank.es-BxNv9I4E.js",
+            "decoded": 2299,
+            "gzip": 747
+          },
+          {
+            "file": "assets/CaretLeft.es-BE1r95Do.js",
+            "decoded": 1395,
+            "gzip": 574
+          },
+          {
+            "file": "assets/dist-mlwcoGMr.js",
+            "decoded": 23962,
+            "gzip": 7643
+          },
+          {
+            "file": "assets/dialog-CH-Y3b2D.js",
+            "decoded": 2667,
+            "gzip": 1021
+          },
+          {
+            "file": "assets/DownloadSimple.es-0Sx8oP4x.js",
+            "decoded": 2103,
+            "gzip": 725
+          },
+          {
+            "file": "assets/Envelope.es-DYsa-Zyh.js",
+            "decoded": 2201,
+            "gzip": 813
+          },
+          {
+            "file": "assets/Funnel.es-CoUI5b0I.js",
+            "decoded": 2649,
+            "gzip": 1013
+          },
+          {
+            "file": "assets/MagnifyingGlass.es-DnLEyvzb.js",
+            "decoded": 1720,
+            "gzip": 709
+          },
+          {
+            "file": "assets/MapPin.es-B2bfXjAi.js",
+            "decoded": 2990,
+            "gzip": 1109
+          },
+          {
+            "file": "assets/Phone.es-CJ_-iXJ3.js",
+            "decoded": 4629,
+            "gzip": 1719
+          },
+          {
+            "file": "assets/Plus.es-CSEirNsl.js",
+            "decoded": 1625,
+            "gzip": 610
+          },
+          {
+            "file": "assets/UsersThree.es-BjiAimUK.js",
+            "decoded": 4407,
+            "gzip": 1539
+          },
+          {
+            "file": "assets/checkbox-Cd7ed14r.js",
+            "decoded": 4186,
+            "gzip": 1806
+          },
+          {
+            "file": "assets/directory-trip-totals-status-CYp4NzxF.js",
+            "decoded": 1434,
+            "gzip": 791
+          }
+        ]
+      },
+      "drivers": {
+        "decoded": 248573,
+        "gzip": 73754,
+        "chunks": [
+          {
+            "file": "assets/drivers-page-G5bvnzxC.js",
+            "decoded": 28278,
+            "gzip": 7404
+          },
+          {
+            "file": "assets/dashboard-J9lYpUnE.js",
+            "decoded": 153824,
+            "gzip": 41613
+          },
+          {
+            "file": "assets/user-access-control-qBmvI_Y1.js",
+            "decoded": 5231,
+            "gzip": 2101
+          },
+          {
+            "file": "assets/useMutation-BnpF-3XX.js",
+            "decoded": 2377,
+            "gzip": 984
+          },
+          {
+            "file": "assets/shield-check-CI7AUmEZ.js",
+            "decoded": 314,
+            "gzip": 246
+          },
+          {
+            "file": "assets/alert-dialog-BUT7JtmE.js",
+            "decoded": 4821,
+            "gzip": 1785
+          },
+          {
+            "file": "assets/pencil-CpTLkG67.js",
+            "decoded": 270,
+            "gzip": 222
+          },
+          {
+            "file": "assets/CaretLeft.es-BE1r95Do.js",
+            "decoded": 1395,
+            "gzip": 574
+          },
+          {
+            "file": "assets/dist-mlwcoGMr.js",
+            "decoded": 23962,
+            "gzip": 7643
+          },
+          {
+            "file": "assets/dialog-CH-Y3b2D.js",
+            "decoded": 2667,
+            "gzip": 1021
+          },
+          {
+            "file": "assets/DownloadSimple.es-0Sx8oP4x.js",
+            "decoded": 2103,
+            "gzip": 725
+          },
+          {
+            "file": "assets/Envelope.es-DYsa-Zyh.js",
+            "decoded": 2201,
+            "gzip": 813
+          },
+          {
+            "file": "assets/Funnel.es-CoUI5b0I.js",
+            "decoded": 2649,
+            "gzip": 1013
+          },
+          {
+            "file": "assets/MagnifyingGlass.es-DnLEyvzb.js",
+            "decoded": 1720,
+            "gzip": 709
+          },
+          {
+            "file": "assets/NavigationArrow.es-Cwa6hmyn.js",
+            "decoded": 2685,
+            "gzip": 1078
+          },
+          {
+            "file": "assets/Phone.es-CJ_-iXJ3.js",
+            "decoded": 4629,
+            "gzip": 1719
+          },
+          {
+            "file": "assets/Plus.es-CSEirNsl.js",
+            "decoded": 1625,
+            "gzip": 610
+          },
+          {
+            "file": "assets/User.es-D_0-20KV.js",
+            "decoded": 2202,
+            "gzip": 897
+          },
+          {
+            "file": "assets/checkbox-Cd7ed14r.js",
+            "decoded": 4186,
+            "gzip": 1806
+          },
+          {
+            "file": "assets/directory-trip-totals-status-CYp4NzxF.js",
+            "decoded": 1434,
+            "gzip": 791
+          }
+        ]
+      },
+      "employees": {
+        "decoded": 255382,
+        "gzip": 75038,
+        "chunks": [
+          {
+            "file": "assets/employees-page-CROInDLB.js",
+            "decoded": 34319,
+            "gzip": 8906
+          },
+          {
+            "file": "assets/dashboard-J9lYpUnE.js",
+            "decoded": 153824,
+            "gzip": 41613
+          },
+          {
+            "file": "assets/user-access-control-qBmvI_Y1.js",
+            "decoded": 5231,
+            "gzip": 2101
+          },
+          {
+            "file": "assets/useMutation-BnpF-3XX.js",
+            "decoded": 2377,
+            "gzip": 984
+          },
+          {
+            "file": "assets/shield-check-CI7AUmEZ.js",
+            "decoded": 314,
+            "gzip": 246
+          },
+          {
+            "file": "assets/alert-dialog-BUT7JtmE.js",
+            "decoded": 4821,
+            "gzip": 1785
+          },
+          {
+            "file": "assets/pencil-CpTLkG67.js",
+            "decoded": 270,
+            "gzip": 222
+          },
+          {
+            "file": "assets/Calendar.es-CG6UFuvo.js",
+            "decoded": 3815,
+            "gzip": 1207
+          },
+          {
+            "file": "assets/CaretLeft.es-BE1r95Do.js",
+            "decoded": 1395,
+            "gzip": 574
+          },
+          {
+            "file": "assets/dist-mlwcoGMr.js",
+            "decoded": 23962,
+            "gzip": 7643
+          },
+          {
+            "file": "assets/dialog-CH-Y3b2D.js",
+            "decoded": 2667,
+            "gzip": 1021
+          },
+          {
+            "file": "assets/DownloadSimple.es-0Sx8oP4x.js",
+            "decoded": 2103,
+            "gzip": 725
+          },
+          {
+            "file": "assets/Envelope.es-DYsa-Zyh.js",
+            "decoded": 2201,
+            "gzip": 813
+          },
+          {
+            "file": "assets/Funnel.es-CoUI5b0I.js",
+            "decoded": 2649,
+            "gzip": 1013
+          },
+          {
+            "file": "assets/MagnifyingGlass.es-DnLEyvzb.js",
+            "decoded": 1720,
+            "gzip": 709
+          },
+          {
+            "file": "assets/MapPin.es-B2bfXjAi.js",
+            "decoded": 2990,
+            "gzip": 1109
+          },
+          {
+            "file": "assets/Phone.es-CJ_-iXJ3.js",
+            "decoded": 4629,
+            "gzip": 1719
+          },
+          {
+            "file": "assets/Plus.es-CSEirNsl.js",
+            "decoded": 1625,
+            "gzip": 610
+          },
+          {
+            "file": "assets/useTimezone-Cl739gy4.js",
+            "decoded": 284,
+            "gzip": 232
+          },
+          {
+            "file": "assets/checkbox-Cd7ed14r.js",
+            "decoded": 4186,
+            "gzip": 1806
+          }
+        ]
+      }
+    },
+    "optional": [
+      {
+        "key": "src/components/forms/patient-form.tsx",
+        "hasIndependentEntry": true,
+        "inShell": false
+      },
+      {
+        "key": "src/components/forms/driver-form.tsx",
+        "hasIndependentEntry": true,
+        "inShell": false
+      },
+      {
+        "key": "src/components/forms/employee-form.tsx",
+        "hasIndependentEntry": true,
+        "inShell": false
+      },
+      {
+        "key": "src/lib/export.ts",
+        "hasIndependentEntry": true,
+        "inShell": false
+      }
+    ],
+    "entry": "assets/index-B6XrjjLX.js"
+  },
+  "after": {
+    "shell": {
+      "decoded": 895288,
+      "gzip": 268737,
+      "chunks": [
+        {
+          "file": "assets/index-D3DXa--B.js",
+          "decoded": 213788,
+          "gzip": 68034
+        },
+        {
+          "file": "assets/rolldown-runtime-hePW80VL.js",
+          "decoded": 716,
+          "gzip": 428
+        },
+        {
+          "file": "assets/workspace-g8To8LzM.js",
+          "decoded": 680709,
+          "gzip": 200188
+        },
+        {
+          "file": "assets/routes-nyisipC1.js",
+          "decoded": 75,
+          "gzip": 87
+        }
+      ]
+    },
+    "directories": {
+      "patients": {
+        "decoded": 251981,
+        "gzip": 75099,
+        "chunks": [
+          {
+            "file": "assets/patients-page-D4ingZEN.js",
+            "decoded": 26541,
+            "gzip": 7180
+          },
+          {
+            "file": "assets/dashboard-gAu2-dXQ.js",
+            "decoded": 153836,
+            "gzip": 41641
+          },
+          {
+            "file": "assets/user-access-control-DFbyprN0.js",
+            "decoded": 5231,
+            "gzip": 2099
+          },
+          {
+            "file": "assets/useMutation-BsYn_XJB.js",
+            "decoded": 2377,
+            "gzip": 984
+          },
+          {
+            "file": "assets/shield-check-D7WXOaNm.js",
+            "decoded": 314,
+            "gzip": 244
+          },
+          {
+            "file": "assets/alert-dialog-Brl-0pPZ.js",
+            "decoded": 4821,
+            "gzip": 1793
+          },
+          {
+            "file": "assets/pencil-CtVb7wCn.js",
+            "decoded": 270,
+            "gzip": 220
+          },
+          {
+            "file": "assets/CalendarBlank.es-CCOiSn6j.js",
+            "decoded": 2299,
+            "gzip": 746
+          },
+          {
+            "file": "assets/CaretLeft.es-B-YAqUMQ.js",
+            "decoded": 1395,
+            "gzip": 573
+          },
+          {
+            "file": "assets/useDirectoryPagination-B8ik1EBF.js",
+            "decoded": 24187,
+            "gzip": 7723
+          },
+          {
+            "file": "assets/dialog-Ct5VdRqB.js",
+            "decoded": 2667,
+            "gzip": 1024
+          },
+          {
+            "file": "assets/DownloadSimple.es-eSkj0L92.js",
+            "decoded": 2103,
+            "gzip": 724
+          },
+          {
+            "file": "assets/Envelope.es-CJqGikFC.js",
+            "decoded": 2201,
+            "gzip": 813
+          },
+          {
+            "file": "assets/Funnel.es-DpN_gCsH.js",
+            "decoded": 2649,
+            "gzip": 1012
+          },
+          {
+            "file": "assets/MagnifyingGlass.es-7TOxYuiA.js",
+            "decoded": 1720,
+            "gzip": 708
+          },
+          {
+            "file": "assets/MapPin.es-B1lOfhXf.js",
+            "decoded": 2990,
+            "gzip": 1107
+          },
+          {
+            "file": "assets/Phone.es-Bl-gj8G5.js",
+            "decoded": 4629,
+            "gzip": 1718
+          },
+          {
+            "file": "assets/Plus.es-CHssBd49.js",
+            "decoded": 1625,
+            "gzip": 608
+          },
+          {
+            "file": "assets/UsersThree.es-5VJwMFcn.js",
+            "decoded": 4407,
+            "gzip": 1538
+          },
+          {
+            "file": "assets/checkbox-6Q80qKne.js",
+            "decoded": 4187,
+            "gzip": 1804
+          },
+          {
+            "file": "assets/directory-trip-totals-status-K73qT4eV.js",
+            "decoded": 1532,
+            "gzip": 840
+          }
+        ]
+      },
+      "drivers": {
+        "decoded": 249014,
+        "gzip": 74234,
+        "chunks": [
+          {
+            "file": "assets/drivers-page-BoVmikSR.js",
+            "decoded": 28383,
+            "gzip": 7732
+          },
+          {
+            "file": "assets/dashboard-gAu2-dXQ.js",
+            "decoded": 153836,
+            "gzip": 41641
+          },
+          {
+            "file": "assets/user-access-control-DFbyprN0.js",
+            "decoded": 5231,
+            "gzip": 2099
+          },
+          {
+            "file": "assets/useMutation-BsYn_XJB.js",
+            "decoded": 2377,
+            "gzip": 984
+          },
+          {
+            "file": "assets/shield-check-D7WXOaNm.js",
+            "decoded": 314,
+            "gzip": 244
+          },
+          {
+            "file": "assets/alert-dialog-Brl-0pPZ.js",
+            "decoded": 4821,
+            "gzip": 1793
+          },
+          {
+            "file": "assets/pencil-CtVb7wCn.js",
+            "decoded": 270,
+            "gzip": 220
+          },
+          {
+            "file": "assets/CaretLeft.es-B-YAqUMQ.js",
+            "decoded": 1395,
+            "gzip": 573
+          },
+          {
+            "file": "assets/useDirectoryPagination-B8ik1EBF.js",
+            "decoded": 24187,
+            "gzip": 7723
+          },
+          {
+            "file": "assets/dialog-Ct5VdRqB.js",
+            "decoded": 2667,
+            "gzip": 1024
+          },
+          {
+            "file": "assets/DownloadSimple.es-eSkj0L92.js",
+            "decoded": 2103,
+            "gzip": 724
+          },
+          {
+            "file": "assets/Envelope.es-CJqGikFC.js",
+            "decoded": 2201,
+            "gzip": 813
+          },
+          {
+            "file": "assets/Funnel.es-DpN_gCsH.js",
+            "decoded": 2649,
+            "gzip": 1012
+          },
+          {
+            "file": "assets/MagnifyingGlass.es-7TOxYuiA.js",
+            "decoded": 1720,
+            "gzip": 708
+          },
+          {
+            "file": "assets/NavigationArrow.es-IMrWh9un.js",
+            "decoded": 2685,
+            "gzip": 1078
+          },
+          {
+            "file": "assets/Phone.es-Bl-gj8G5.js",
+            "decoded": 4629,
+            "gzip": 1718
+          },
+          {
+            "file": "assets/Plus.es-CHssBd49.js",
+            "decoded": 1625,
+            "gzip": 608
+          },
+          {
+            "file": "assets/User.es-Dk0sVwTm.js",
+            "decoded": 2202,
+            "gzip": 896
+          },
+          {
+            "file": "assets/checkbox-6Q80qKne.js",
+            "decoded": 4187,
+            "gzip": 1804
+          },
+          {
+            "file": "assets/directory-trip-totals-status-K73qT4eV.js",
+            "decoded": 1532,
+            "gzip": 840
+          }
+        ]
+      },
+      "employees": {
+        "decoded": 256257,
+        "gzip": 75751,
+        "chunks": [
+          {
+            "file": "assets/employees-page-ClVcpvtQ.js",
+            "decoded": 34956,
+            "gzip": 9523
+          },
+          {
+            "file": "assets/dashboard-gAu2-dXQ.js",
+            "decoded": 153836,
+            "gzip": 41641
+          },
+          {
+            "file": "assets/user-access-control-DFbyprN0.js",
+            "decoded": 5231,
+            "gzip": 2099
+          },
+          {
+            "file": "assets/useMutation-BsYn_XJB.js",
+            "decoded": 2377,
+            "gzip": 984
+          },
+          {
+            "file": "assets/shield-check-D7WXOaNm.js",
+            "decoded": 314,
+            "gzip": 244
+          },
+          {
+            "file": "assets/alert-dialog-Brl-0pPZ.js",
+            "decoded": 4821,
+            "gzip": 1793
+          },
+          {
+            "file": "assets/pencil-CtVb7wCn.js",
+            "decoded": 270,
+            "gzip": 220
+          },
+          {
+            "file": "assets/Calendar.es-yBGkgmvi.js",
+            "decoded": 3815,
+            "gzip": 1204
+          },
+          {
+            "file": "assets/CaretLeft.es-B-YAqUMQ.js",
+            "decoded": 1395,
+            "gzip": 573
+          },
+          {
+            "file": "assets/useDirectoryPagination-B8ik1EBF.js",
+            "decoded": 24187,
+            "gzip": 7723
+          },
+          {
+            "file": "assets/dialog-Ct5VdRqB.js",
+            "decoded": 2667,
+            "gzip": 1024
+          },
+          {
+            "file": "assets/DownloadSimple.es-eSkj0L92.js",
+            "decoded": 2103,
+            "gzip": 724
+          },
+          {
+            "file": "assets/Envelope.es-CJqGikFC.js",
+            "decoded": 2201,
+            "gzip": 813
+          },
+          {
+            "file": "assets/Funnel.es-DpN_gCsH.js",
+            "decoded": 2649,
+            "gzip": 1012
+          },
+          {
+            "file": "assets/MagnifyingGlass.es-7TOxYuiA.js",
+            "decoded": 1720,
+            "gzip": 708
+          },
+          {
+            "file": "assets/MapPin.es-B1lOfhXf.js",
+            "decoded": 2990,
+            "gzip": 1107
+          },
+          {
+            "file": "assets/Phone.es-Bl-gj8G5.js",
+            "decoded": 4629,
+            "gzip": 1718
+          },
+          {
+            "file": "assets/Plus.es-CHssBd49.js",
+            "decoded": 1625,
+            "gzip": 608
+          },
+          {
+            "file": "assets/useTimezone-DDk_r8fh.js",
+            "decoded": 284,
+            "gzip": 229
+          },
+          {
+            "file": "assets/checkbox-6Q80qKne.js",
+            "decoded": 4187,
+            "gzip": 1804
+          }
+        ]
+      }
+    },
+    "optional": [
+      {
+        "key": "src/components/forms/patient-form.tsx",
+        "hasIndependentEntry": true,
+        "inShell": false
+      },
+      {
+        "key": "src/components/forms/driver-form.tsx",
+        "hasIndependentEntry": true,
+        "inShell": false
+      },
+      {
+        "key": "src/components/forms/employee-form.tsx",
+        "hasIndependentEntry": true,
+        "inShell": false
+      },
+      {
+        "key": "src/lib/export.ts",
+        "hasIndependentEntry": true,
+        "inShell": false
+      }
+    ],
+    "entry": "assets/index-D3DXa--B.js"
+  },
+  "delta": {
+    "shellGzip": 2306,
+    "directories": {
+      "patients": 371,
+      "drivers": 480,
+      "employees": 713
+    }
+  }
+}

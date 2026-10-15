@@ -1,0 +1,23 @@
+{
+  "workspace": "/Users/yahiaalhejoj/meditrans",
+  "baseline_commit": "1b28caa77cdafae417d3fb535f9ddff5c234b0b6",
+  "is_react_native": false,
+  "is_native_ios": false,
+  "is_native_android": false,
+  "inspected_with": "Argent gather_workspace_data by environment inspector",
+  "node": "24.20.0",
+  "package_manager": "npm 11.19.0",
+  "versions": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "@tanstack/react-router": "1.170.44",
+    "@tanstack/react-query": "5.104.2",
+    "nuqs": "2.8.3",
+    "vite": "8.3.4",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "@supabase/supabase-js": "2.117.3",
+    "@playwright/test": "1.63.0",
+    "typescript": "5.9.3"
+  },
+  "scope": "Local React/Vite app with deterministic synthetic browser sessions; public production asset comparison only."
+}

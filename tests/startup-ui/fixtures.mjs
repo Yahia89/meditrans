@@ -55,7 +55,7 @@ export async function installStartupFixtures(context, state, { signedOut = false
   await context.route("**/*", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    if (["localhost", "127.0.0.1"].includes(url.hostname) && url.port === "5184") return route.continue();
+    if (["localhost", "127.0.0.1"].includes(url.hostname) && url.port === (process.env.STARTUP_TEST_PORT ?? "5184")) return route.continue();
     // Every remote request is intercepted; this suite cannot write real data.
     if (!/\/(auth|rest|functions|storage)\/v1\//.test(url.pathname)) {
       state.blocked.push(url.origin + url.pathname); return route.abort("blockedbyclient");

@@ -1,0 +1,49 @@
+[WebServer] (node:26720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:26728) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [firefox] › tests/directories-ui/credits-trip.spec.mjs:39:3 › Patient credit trip navigation: credit calendar click (15.8s)
+
+
+  1) [firefox] › tests/directories-ui/credits-trip.spec.mjs:39:3 › Patient credit trip navigation: credit calendar click 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Show all', exact: true })
+    Expected: visible
+    Timeout: 12000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: 'Show all', exact: true }) with timeout 12000ms
+      - waiting for getByRole('button', { name: 'Show all', exact: true })
+
+
+      48 |         await dayWithSpend.click();
+      49 |       }
+    > 50 |       await expect(page.getByRole('button', { name: 'Show all', exact: true })).toBeVisible();
+         |                                                                                 ^
+      51 |       await expect(page.getByText('Synthetic pickup', { exact: true })).toBeVisible();
+      52 |       expect(new URL(page.url()).searchParams.get('section')).toBe('trips');
+      53 |       expect(new URL(page.url()).searchParams.get('date')).toBe('2026-10-02T05:00:00.000Z');
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/credits-trip.spec.mjs:50:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/credits-before-setter-trace-confirmed/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/credits-before-setter-trace-confirmed/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/credits-before-setter-trace-confirmed/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/credits-before-setter-trace-confirmed/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [firefox] › tests/directories-ui/credits-trip.spec.mjs:39:3 › Patient credit trip navigation: credit calendar click 

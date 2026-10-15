@@ -46,6 +46,9 @@ import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-di
 import { Checkbox } from "@/components/ui/checkbox";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useQueryState } from "nuqs";
+import { parseDirectoryPageSize, isDirectoryAuthorizationError, shouldRetryDirectoryRead } from "@/lib/directory-state";
+import { useDirectoryPagination } from "@/hooks/useDirectoryPagination";
+import { DirectoryListStatus, DirectoryRowsSkeleton } from "@/components/directory-loading";
 import {
   Select,
   SelectContent,
@@ -184,24 +187,12 @@ function InlineStat({
       <span className="text-sm text-slate-500">{label}</span>
       <div className="flex items-center gap-1">
         <span
-          className={cn("text-2xl font-semibold tracking-tight", valueColor)}
+          className={cn("text-2xl font-semibold tracking-tight tabular-nums min-w-10", valueColor)}
         >
           {value}
         </span>
         {suffix}
       </div>
-    </div>
-  );
-}
-
-// Zero stat for empty state
-function ZeroStat({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm text-slate-500">{label}</span>
-      <span className="text-2xl font-semibold tracking-tight text-slate-300">
-        0
-      </span>
     </div>
   );
 }
@@ -224,12 +215,50 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
+  const formInitialData = useMemo(() => (
+    editingDriver
+      ? {
+          id: editingDriver.id,
+          full_name: editingDriver.name,
+          id_number: editingDriver.id_number || "",
+          email: editingDriver.email,
+          phone: editingDriver.phone,
+          address: editingDriver.address || "",
+          county: editingDriver.county || "",
+          license_number: editingDriver.license_number || "",
+          vehicle_type: editingDriver.vehicle_type || "",
+          vehicle_make: editingDriver.vehicle_make || "",
+          vehicle_model: editingDriver.vehicle_model || "",
+          vehicle_color: editingDriver.vehicle_color || "",
+          license_plate: editingDriver.licensePlate,
+          dot_medical_number: editingDriver.dot_medical_number || "",
+          dot_medical_expiration:
+            editingDriver.dot_medical_expiration || "",
+          insurance_company: editingDriver.insurance_company || "",
+          insurance_policy_number:
+            editingDriver.insurance_policy_number || "",
+          insurance_start_date: editingDriver.insurance_start_date || "",
+          insurance_expiration_date:
+            editingDriver.insurance_expiration_date || "",
+          inspection_date: editingDriver.inspection_date || "",
+          driver_record_issue_date:
+            editingDriver.driver_record_issue_date || "",
+          driver_record_expiration:
+            editingDriver.driver_record_expiration || "",
+          notes: editingDriver.notes || "",
+          umpi: editingDriver.umpi || "",
+          npi: editingDriver.npi || "",
+          custom_fields: editingDriver.custom_fields,
+        }
+      : undefined
+  ), [editingDriver]);
   const { isDemoMode, navigateTo } = useOnboarding();
   const { currentOrganization } = useOrganization();
   const { 
     canCreateDrivers, 
     canEditDrivers, 
-    canDeleteDrivers 
+    canDeleteDrivers,
+    canViewDrivers
   } = usePermissions();
   const canManageUserAccess = useCanManageUserAccess();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -272,27 +301,31 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
 
   // View and pagination state
   const [viewMode, setViewMode] = useState<"bento" | "list">("bento");
-  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useQueryState("limit", {
     defaultValue: "5",
-    parse: (v) => v || "5",
+    parse: parseDirectoryPageSize,
   });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const limit = itemsPerPage === "all" ? 9999 : parseInt(itemsPerPage, 10);
 
-  const tripCounts = useQuery(directoryTripCountsOptions(currentOrganization?.id, "drivers"));
+  const tripCounts = useQuery({
+    ...directoryTripCountsOptions(currentOrganization?.id, "drivers"),
+    retry: (failureCount, error) => shouldRetryDirectoryRead(failureCount, error, 1),
+    enabled: !!currentOrganization && canViewDrivers,
+  });
 
-  const { data: realDrivers, isLoading } = useQuery({
+  const listQuery = useQuery({
+    retry: shouldRetryDirectoryRead,
     queryKey: ["drivers", currentOrganization?.id],
-    queryFn: async () => {
-      if (!currentOrganization) return [];
+    queryFn: async ({ signal }) => {
+      if (!currentOrganization) throw new Error("An organization is required.");
 
       const { data, error } = await supabase
         .from("drivers")
         .select("*")
         .eq("org_id", currentOrganization.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .abortSignal(signal);
 
       if (error) throw error;
 
@@ -345,9 +378,15 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
           }) as Driver,
       );
     },
-    enabled: !!currentOrganization,
+    enabled: !!currentOrganization && canViewDrivers,
     staleTime: 30_000,
   });
+  const authorizationFailed = isDirectoryAuthorizationError(listQuery.error);
+  const realDrivers = canViewDrivers && !authorizationFailed ? listQuery.data : undefined;
+  const listPending = !isDemoMode && !realDrivers && !listQuery.isError;
+  const listFailed = !isDemoMode && !realDrivers && listQuery.isError;
+  const listReady = isDemoMode || realDrivers !== undefined;
+
 
   const handleExport = async () => {
     if (!drivers.length || !tripCountsReady) return;
@@ -396,15 +435,16 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
     }
   };
 
+  const usableTripCounts = canViewDrivers && !isDirectoryAuthorizationError(tripCounts.error) ? tripCounts.data : undefined;
   const hasRealData = realDrivers && realDrivers.length > 0;
-  const showData = hasRealData || isDemoMode;
+  const hasRealDataOrDemo = hasRealData || isDemoMode;
   const drivers = useMemo(() => hasRealData
     ? realDrivers.map((driver) => ({
         ...driver,
-        totalTrips: tripCounts.data ? tripCounts.data[driver.id] ?? 0 : undefined,
+        totalTrips: usableTripCounts ? usableTripCounts[driver.id] ?? 0 : undefined,
       }))
-    : isDemoMode ? demoDrivers : [], [hasRealData, realDrivers, isDemoMode, tripCounts.data]);
-  const tripCountsReady = (!hasRealData && isDemoMode) || !!tripCounts.data;
+    : isDemoMode ? demoDrivers : [], [hasRealData, realDrivers, isDemoMode, usableTripCounts]);
+  const tripCountsReady = (!hasRealData && isDemoMode) || !!usableTripCounts;
   const tripCountPlaceholder = tripCounts.isError ? "—" : "…";
 
   const filteredDrivers = useMemo(() => {
@@ -423,17 +463,17 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
     });
   }, [drivers, searchQuery]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredDrivers.length / limit);
-  const paginatedDrivers = useMemo(() => {
-    const start = (currentPage - 1) * limit;
-    return filteredDrivers.slice(start, start + limit);
-  }, [filteredDrivers, currentPage, limit]);
+  const { currentPage, totalPages, startIndex, endIndex, setCurrentPage } =
+    useDirectoryPagination(itemsPerPage, filteredDrivers.length);
+  const paginatedDrivers = useMemo(
+    () => filteredDrivers.slice(startIndex, endIndex),
+    [filteredDrivers, startIndex, endIndex],
+  );
 
-  // Reset to page 1 when search changes
-  useMemo(() => {
+  const handleSearchChange = (nextSearch: string) => {
+    setSearchQuery(nextSearch);
     setCurrentPage(1);
-  }, [searchQuery]);
+  };
 
   const availableCount = drivers.filter((d) => d.status === "available").length;
   const onTripCount = drivers.filter((d) => d.status === "on-trip").length;
@@ -471,6 +511,18 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
     paginatedDrivers.length > 0 &&
     paginatedDrivers.every((d) => selectedIds.has(d.id));
 
+  if (authorizationFailed || (!canViewDrivers && !isDemoMode)) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold text-slate-900">Drivers</h1>
+        <div role="alert" className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-600">
+          Access to drivers could not be verified.
+          {authorizationFailed && <Button variant="outline" className="ml-3" onClick={() => void listQuery.refetch()}>Retry list</Button>}
+        </div>
+      </div>
+    );
+  }
+
   if (selectedDriverId) {
     return (
       <Suspense fallback={
@@ -486,73 +538,9 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-      </div>
-    );
-  }
-
-  // Show empty state if no real data and not in demo mode
-  if (!showData) {
-    return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-slate-900">Drivers</h1>
-            <p className="text-sm text-slate-500">
-              Manage driver fleet and availability
-            </p>
-          </div>
-        </div>
-
-        {/* Stats Row with zeros */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
-            <div className="pl-0">
-              <ZeroStat label="Total Drivers" />
-            </div>
-            <div className="pl-8">
-              <ZeroStat label="Available Now" />
-            </div>
-            <div className="pl-8">
-              <ZeroStat label="On Trip" />
-            </div>
-            <div className="pl-8">
-              <ZeroStat label="Avg Rating" />
-            </div>
-          </div>
-        </div>
-
-        {/* Empty State */}
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <DriversEmptyState
-            onAddDriver={() => {
-              setShowAddForm(true);
-            }}
-            onUpload={() => navigateTo("upload")}
-          />
-        </div>
-
-        <DeferredForm
-          open={showAddForm}
-          onOpenChange={(open) => {
-            if (!open) {
-              setShowAddForm(false);
-              setEditingDriver(null);
-            }
-          }}
-        >
-          <DriverForm open={showAddForm} onOpenChange={setShowAddForm} />
-        </DeferredForm>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy={listPending}>
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
@@ -595,43 +583,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
               setEditingDriver(null);
             }
           }}
-          initialData={
-            editingDriver
-              ? {
-                  id: editingDriver.id,
-                  full_name: editingDriver.name,
-                  id_number: editingDriver.id_number || "",
-                  email: editingDriver.email,
-                  phone: editingDriver.phone,
-                  address: editingDriver.address || "",
-                  county: editingDriver.county || "",
-                  license_number: editingDriver.license_number || "",
-                  vehicle_type: editingDriver.vehicle_type || "",
-                  vehicle_make: editingDriver.vehicle_make || "",
-                  vehicle_model: editingDriver.vehicle_model || "",
-                  vehicle_color: editingDriver.vehicle_color || "",
-                  license_plate: editingDriver.licensePlate,
-                  dot_medical_number: editingDriver.dot_medical_number || "",
-                  dot_medical_expiration:
-                    editingDriver.dot_medical_expiration || "",
-                  insurance_company: editingDriver.insurance_company || "",
-                  insurance_policy_number:
-                    editingDriver.insurance_policy_number || "",
-                  insurance_start_date: editingDriver.insurance_start_date || "",
-                  insurance_expiration_date:
-                    editingDriver.insurance_expiration_date || "",
-                  inspection_date: editingDriver.inspection_date || "",
-                  driver_record_issue_date:
-                    editingDriver.driver_record_issue_date || "",
-                  driver_record_expiration:
-                    editingDriver.driver_record_expiration || "",
-                  notes: editingDriver.notes || "",
-                  umpi: editingDriver.umpi || "",
-                  npi: editingDriver.npi || "",
-                  custom_fields: editingDriver.custom_fields,
-                }
-              : undefined
-          }
+          initialData={formInitialData}
         />
       </DeferredForm>
       {isDemoMode && (
@@ -664,29 +616,40 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
         </div>
       )}
 
+      <div className="flex min-h-8 flex-wrap items-center gap-x-4 gap-y-1">
+        <DirectoryListStatus
+          label="drivers"
+          pending={listPending}
+          failed={listFailed}
+          refreshing={listReady && listQuery.isFetching}
+          stale={listReady && listQuery.isError}
+          retry={() => { void listQuery.refetch(); }}
+        />
       <DirectoryTripTotalsStatus
         ready={tripCountsReady}
         failed={tripCounts.isError}
+        refreshing={tripCounts.isFetching}
         retry={() => { void tripCounts.refetch(); }}
       />
+      </div>
 
       {/* Stats Row - Inline like reference */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-3 divide-x divide-slate-100">
           <div className="pl-0">
-            <InlineStat label="Total Drivers" value={drivers.length} />
+            <InlineStat label="Total Drivers" value={listReady ? drivers.length : listFailed ? "—" : "…"} />
           </div>
           <div className="pl-8">
             <InlineStat
               label="Available Now"
-              value={availableCount}
+              value={listReady ? availableCount : listFailed ? "—" : "…"}
               valueColor="text-[#2E7D32]"
             />
           </div>
           <div className="pl-8">
             <InlineStat
               label="On Trip"
-              value={onTripCount}
+              value={listReady ? onTripCount : listFailed ? "—" : "…"}
               valueColor="text-[#1976D2]"
             />
           </div>
@@ -702,16 +665,17 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
           />
           <input
             type="text"
+            aria-label="Search drivers"
             placeholder="Search drivers by name, email, phone or license plate..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
           />
         </div>
         <Select
           value={itemsPerPage}
           onValueChange={(val) => {
-            setItemsPerPage(val);
+            void setItemsPerPage(parseDirectoryPageSize(val));
             setCurrentPage(1);
           }}
         >
@@ -732,7 +696,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
         <Button
           variant="outline"
           onClick={handleExport}
-          disabled={!tripCountsReady}
+          disabled={!listReady || !tripCountsReady}
           className="inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
         >
           <DownloadSimple size={16} />
@@ -742,6 +706,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
         {/* View Toggle */}
         <div className="flex rounded-lg border border-slate-200 bg-white p-1">
           <button
+            aria-label="Grid view"
             onClick={() => setViewMode("bento")}
             className={cn(
               "flex items-center justify-center p-2 rounded-md transition-colors",
@@ -756,6 +721,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             />
           </button>
           <button
+            aria-label="List view"
             onClick={() => setViewMode("list")}
             className={cn(
               "flex items-center justify-center p-2 rounded-md transition-colors",
@@ -833,8 +799,26 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
         </div>
       </div>
 
+      {listPending && <DirectoryRowsSkeleton viewMode={viewMode} />}
+      {listFailed && (
+        <div role="alert" className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-600">
+          Drivers could not be loaded. Use Retry list above to try again.
+        </div>
+      )}
+      {listReady && !hasRealDataOrDemo && (
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+          <DriversEmptyState onAddDriver={() => { if (canCreateDrivers) setShowAddForm(true); }} onUpload={() => navigateTo("upload")} />
+        </div>
+      )}
+
+      {listReady && hasRealDataOrDemo && filteredDrivers.length === 0 && (
+        <div role="status" className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+          No drivers found matching your search.
+        </div>
+      )}
+
       {/* Bento Cards View */}
-      {viewMode === "bento" && (
+      {listReady && hasRealDataOrDemo && filteredDrivers.length > 0 && viewMode === "bento" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {paginatedDrivers.map((driver) => (
             <div
@@ -1032,7 +1016,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
       )}
 
       {/* List View */}
-      {viewMode === "list" && (
+      {listReady && hasRealDataOrDemo && filteredDrivers.length > 0 && viewMode === "list" && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1251,15 +1235,15 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
       )}
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      {listReady && <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">
           Showing{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min((currentPage - 1) * limit + 1, filteredDrivers.length)}
+            {filteredDrivers.length === 0 ? 0 : startIndex + 1}
           </span>{" "}
           -{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min(currentPage * limit, filteredDrivers.length)}
+            {endIndex}
           </span>{" "}
           of{" "}
           <span className="font-semibold text-slate-900">
@@ -1272,7 +1256,7 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             variant="outline"
             size="sm"
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            onClick={() => setCurrentPage(currentPage - 1)}
             className="rounded-lg border-slate-200 gap-1"
           >
             <CaretLeft size={16} />
@@ -1303,14 +1287,14 @@ export function DriversPage({ onDriverClick }: DriversPageProps) {
             variant="outline"
             size="sm"
             disabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => setCurrentPage(currentPage + 1)}
             className="rounded-lg border-slate-200 gap-1"
           >
             Next
             <CaretRight size={16} />
           </Button>
         </div>
-      </div>
+      </div>}
 
       <DeleteConfirmationDialog
         open={!!deleteId}

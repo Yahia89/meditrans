@@ -1,0 +1,2394 @@
+{
+  "synthetic": true,
+  "before": {
+    "at": 492,
+    "page": "dashboard",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 1363.800048828125
+    },
+    "header": {
+      "id": 3,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 64
+    },
+    "search": null,
+    "cold": false
+  },
+  "code": {
+    "at": 1154,
+    "page": "employees",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "main": {
+      "id": 2,
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "header": {
+      "id": 3,
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "search": null,
+    "cold": false
+  },
+  "data": {
+    "at": 1452,
+    "page": "employees",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 1000
+    },
+    "header": {
+      "id": 3,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 64
+    },
+    "search": null,
+    "cold": false
+  },
+  "baseRows": {
+    "at": 1822,
+    "page": "employees",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 1000
+    },
+    "header": {
+      "id": 3,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 64
+    },
+    "search": {
+      "id": 4,
+      "x": 272,
+      "y": 298.29998779296875,
+      "width": 584.13330078125,
+      "height": 46
+    },
+    "cold": false
+  },
+  "ready": {
+    "at": 1904,
+    "page": "employees",
+    "sidebar": {
+      "id": 1,
+      "x": 0,
+      "y": 0,
+      "width": 255,
+      "height": 1000
+    },
+    "main": {
+      "id": 2,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 1000
+    },
+    "header": {
+      "id": 3,
+      "x": 256,
+      "y": 0,
+      "width": 1184,
+      "height": 64
+    },
+    "search": {
+      "id": 4,
+      "x": 272,
+      "y": 298.29998779296875,
+      "width": 584.13330078125,
+      "height": 46
+    },
+    "cold": false
+  },
+  "samples": [
+    {
+      "at": 68,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 87,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 103,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 118,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 136,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 165,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 178,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 189,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 201,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 219,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 239,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 258,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 288,
+      "page": "dashboard",
+      "sidebar": null,
+      "main": null,
+      "header": null,
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 391,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1363.800048828125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 492,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1363.800048828125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 566,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1471.800048828125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 569,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1471.800048828125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 592,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1471.800048828125
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 605,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.25
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 618,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.25
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 635,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.25
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 650,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.25
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 674,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.25
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 704,
+      "page": "dashboard",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 2436.25
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 786,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 805,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 819,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 835,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 851,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 868,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 885,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 900,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 918,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 935,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 952,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 967,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 985,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1002,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1018,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1034,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1050,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1068,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1085,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1105,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1120,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1136,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1154,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1168,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "main": {
+        "id": 2,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "header": {
+        "id": 3,
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1196,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1205,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1223,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1235,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1251,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1267,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1287,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1300,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1319,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1338,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1352,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1369,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1387,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1407,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1418,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1434,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1452,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1470,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": null,
+      "cold": false
+    },
+    {
+      "at": 1514,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1749,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1788,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1802,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1822,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1836,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1852,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1870,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1894,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1904,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1919,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1950,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 1966,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 2034,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 2042,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 2086,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 2110,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 2132,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 2148,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    },
+    {
+      "at": 2175,
+      "page": "employees",
+      "sidebar": {
+        "id": 1,
+        "x": 0,
+        "y": 0,
+        "width": 255,
+        "height": 1000
+      },
+      "main": {
+        "id": 2,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 1000
+      },
+      "header": {
+        "id": 3,
+        "x": 256,
+        "y": 0,
+        "width": 1184,
+        "height": 64
+      },
+      "search": {
+        "id": 4,
+        "x": 272,
+        "y": 298.29998779296875,
+        "width": 584.13330078125,
+        "height": 46
+      },
+      "cold": false
+    }
+  ],
+  "chunks": [
+    "/assets/index-B6XrjjLX.js",
+    "/assets/rolldown-runtime-hePW80VL.js",
+    "/assets/workspace-DQySsb9L.js",
+    "/assets/workspace-50JjKmeZ.css",
+    "/assets/index-DofFfqfZ.css",
+    "/assets/dashboard-J9lYpUnE.js",
+    "/assets/routes-7OkphirW.js",
+    "/assets/PerformanceChartPlot-Duev7U-X.js",
+    "/assets/employees-page-CROInDLB.js",
+    "/assets/user-access-control-qBmvI_Y1.js",
+    "/assets/useMutation-BnpF-3XX.js",
+    "/assets/shield-check-CI7AUmEZ.js",
+    "/assets/alert-dialog-BUT7JtmE.js",
+    "/assets/pencil-CpTLkG67.js",
+    "/assets/Calendar.es-CG6UFuvo.js",
+    "/assets/CaretLeft.es-BE1r95Do.js",
+    "/assets/dist-mlwcoGMr.js",
+    "/assets/dialog-CH-Y3b2D.js",
+    "/assets/DownloadSimple.es-0Sx8oP4x.js",
+    "/assets/Envelope.es-DYsa-Zyh.js",
+    "/assets/Funnel.es-CoUI5b0I.js",
+    "/assets/MagnifyingGlass.es-DnLEyvzb.js",
+    "/assets/MapPin.es-B2bfXjAi.js",
+    "/assets/Phone.es-CJ_-iXJ3.js",
+    "/assets/Plus.es-CSEirNsl.js",
+    "/assets/useTimezone-Cl739gy4.js",
+    "/assets/checkbox-Cd7ed14r.js"
+  ],
+  "documents": [
+    "http://localhost:5196/?page=dashboard"
+  ],
+  "errors": [],
+  "consoleErrors": []
+}

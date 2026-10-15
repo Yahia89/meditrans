@@ -1,0 +1,33 @@
+
+> future-transportation-crm@0.0.0 test:directories
+> node --test src/lib/directory-trip-counts.test.mjs src/lib/directory-state.test.mjs src/lib/directory-render-purity.test.mjs src/hooks/organization-presence.test.mjs
+
+✔ recent online and away heartbeats preserve presence (0.463542ms)
+✔ identical heartbeat data becomes offline as the clock advances (0.082542ms)
+✔ missing heartbeats preserve valid server status while invalid status or timestamps are offline (0.075709ms)
+✔ purity guard catches pagination updates even when a component defeats compiler lint (7.223084ms)
+✔ patients memo calculations do not update UI state or query URLs (19.640625ms)
+✔ drivers memo calculations do not update UI state or query URLs (7.456125ms)
+✔ employees memo calculations do not update UI state or query URLs (10.244959ms)
+✔ patient-details memo calculations do not update UI state or query URLs (8.30325ms)
+✔ saved Patients view works with missing, invalid and blocked browser storage (0.539625ms)
+✔ URL limits accept only supported whole values; malformed and unbounded limits use five (0.098083ms)
+✔ pagination clamps after final-page deletion and never shows page one of zero (0.133791ms)
+✔ All includes every available row above the former magic 9999 cap (0.06525ms)
+✔ presence loading, missing linkage and unknown are never counted as offline (0.085708ms)
+✔ authorization failures drop cached private rows, transient failures do not (0.089458ms)
+✔ denied cached refresh reaches terminal error after one request; transient retry budgets remain three or one (8.122291ms)
+✔ counts are scoped by organization and directory and forward cancellation (2.048416ms)
+✔ empty visible counts succeed, while authorization and malformed responses cannot become zeros (2.587209ms)
+✔ revisits reuse counts, trip invalidation refreshes them, and organization/directory caches stay separate (1.851875ms)
+✔ pagination reads beyond 1000 groups and advances by actual server-capped page lengths (1.34875ms)
+✔ missing totals, truncated pages, changing group counts, duplicate groups and later errors never publish partial counts (1.872375ms)
+✔ a failed paginated refresh retains the last complete cache instead of replacing it with partial counts (0.658417ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 298.909791

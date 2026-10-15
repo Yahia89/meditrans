@@ -23,11 +23,11 @@ An initial authenticated replay reproduced 6,337 ms for the legacy Patients requ
 
 Final production build, local preview, Firefox, actual hosted Supabase, read-only HAR session:
 
-| Route | First visible records | Immediate revisit | Directory API response |
-| --- | ---: | ---: | ---: |
-| Patients | 1,085 ms | 78 ms | 147 ms |
-| Drivers | 399 ms | 62 ms | 227 ms |
-| Employees | 252 ms | 71 ms | 155 ms |
+| Route     | First visible records | Immediate revisit | Directory API response |
+| --------- | --------------------: | ----------------: | ---------------------: |
+| Patients  |              1,085 ms |             78 ms |                 147 ms |
+| Drivers   |                399 ms |             62 ms |                 227 ms |
+| Employees |                252 ms |             71 ms |                 155 ms |
 
 Patients includes initial app/auth bootstrap; Drivers and Employees are subsequent navigations. The count RPCs completed in 201/180 ms and employee presence in 139 ms. Search worked on all three routes. Revisits generated **zero additional backend requests**, and there were no page errors. See [sanitized live browser measurements](live-browser-measurements.json).
 
@@ -39,11 +39,11 @@ Three additional paired API samples verified identical records and trip totals f
 
 Incremental static import graph for each route after subtracting the workspace shell, compressed locally with gzip:
 
-| Route | Before | After | Reduction |
-| --- | ---: | ---: | ---: |
-| Patients | 270,705 B | 74,728 B | 72.40% |
-| Drivers | 460,018 B | 73,754 B | 83.97% |
-| Employees | 267,940 B | 75,038 B | 71.99% |
+| Route     |    Before |    After | Reduction |
+| --------- | --------: | -------: | --------: |
+| Patients  | 270,705 B | 74,728 B |    72.40% |
+| Drivers   | 460,018 B | 73,754 B |    83.97% |
+| Employees | 267,940 B | 75,038 B |    71.99% |
 
 These are local production-bundle estimates, not measured hosted transfer times. [Full graph evidence](bundle-measurements.json).
 

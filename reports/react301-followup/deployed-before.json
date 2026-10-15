@@ -1,0 +1,31 @@
+{
+  "observedAt": "2026-10-14T23:59:42.128301+00:00",
+  "publicAssetsOnly": true,
+  "assets": [
+    {
+      "file": "index-D3DXa--B.js",
+      "publicSha256": "604bf4e6b6e5312292403081f71dea6c69adbf4ade01845a479b78fd6159bdbb",
+      "equalsLocalDist": true
+    },
+    {
+      "file": "workspace-g8To8LzM.js",
+      "publicSha256": "0680f080a0dcf1f7706c66d5f37f8ad17ce6563858b5d9f727a0c7c33d84ec44",
+      "equalsLocalDist": true
+    },
+    {
+      "file": "patients-page-D4ingZEN.js",
+      "publicSha256": "167f2ee1340d1893ded88dbc9d1773d69b25f301a1133265ddd2a868681aa312",
+      "equalsLocalDist": true
+    },
+    {
+      "file": "patient-details-page-DGxEoEw7.js",
+      "publicSha256": "02a80621e160eca304e948de07076c151f371c82633fa5ba0ae0cf4890bd0bae",
+      "equalsLocalDist": true
+    },
+    {
+      "file": "useDirectoryPagination-B8ik1EBF.js",
+      "publicSha256": "23a47a430dc4c315e48cedcf7642715b5eafb5ee301a7605767fdc311eb26cac",
+      "equalsLocalDist": true
+    }
+  ]
+}

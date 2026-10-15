@@ -1,0 +1,9 @@
+{
+  "builtAt": "2026-10-15T00:01:56.520Z",
+  "indexSha256": "81f989e293ed11bdb03c2d0dc6e533d48a98c0d6bfc947647c304763ccd16b72",
+  "entry": "assets/index-DPgXjQkX.js",
+  "patientDetails": "assets/patient-details-page-DS5e2D1l.js",
+  "patientDetailsSha256": "79a9e5e5fa13161101432e152e6557ec96da34a2126f647ce07fbb701fc117ce",
+  "lockfileSha256": "1ca3344bedae82306a412628c49d67aa024c77518975852a95b4f4011654e608",
+  "deployed": false
+}

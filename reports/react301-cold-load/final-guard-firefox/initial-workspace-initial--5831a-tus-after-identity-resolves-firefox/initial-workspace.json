@@ -1,0 +1,155 @@
+{
+  "synthetic": true,
+  "blockedModules": [
+    "/assets/routes-nyisipC1.js"
+  ],
+  "pendingFrames": [
+    {
+      "at": 162,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 177,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 193,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 222,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 226,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 247,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 259,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 275,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 297,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 309,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 325,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 341,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 359,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 376,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 392,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 408,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    }
+  ],
+  "blankFrames": [],
+  "blankSpanMs": 0,
+  "documents": [
+    "http://localhost:5198/?page=patients"
+  ],
+  "chunks": [
+    "/assets/index-D3DXa--B.js",
+    "/assets/rolldown-runtime-hePW80VL.js",
+    "/assets/workspace-g8To8LzM.js",
+    "/assets/workspace-50JjKmeZ.css",
+    "/assets/index-DKPvP0sP.css",
+    "/assets/patients-page-D4ingZEN.js",
+    "/assets/dashboard-gAu2-dXQ.js",
+    "/assets/user-access-control-DFbyprN0.js",
+    "/assets/useMutation-BsYn_XJB.js",
+    "/assets/shield-check-D7WXOaNm.js",
+    "/assets/alert-dialog-Brl-0pPZ.js",
+    "/assets/pencil-CtVb7wCn.js",
+    "/assets/CalendarBlank.es-CCOiSn6j.js",
+    "/assets/CaretLeft.es-B-YAqUMQ.js",
+    "/assets/useDirectoryPagination-B8ik1EBF.js",
+    "/assets/dialog-Ct5VdRqB.js",
+    "/assets/DownloadSimple.es-eSkj0L92.js",
+    "/assets/Envelope.es-CJqGikFC.js",
+    "/assets/Funnel.es-DpN_gCsH.js",
+    "/assets/MagnifyingGlass.es-7TOxYuiA.js",
+    "/assets/MapPin.es-B1lOfhXf.js",
+    "/assets/Phone.es-Bl-gj8G5.js",
+    "/assets/Plus.es-CHssBd49.js",
+    "/assets/UsersThree.es-5VJwMFcn.js",
+    "/assets/checkbox-6Q80qKne.js",
+    "/assets/directory-trip-totals-status-K73qT4eV.js",
+    "/assets/routes-nyisipC1.js"
+  ],
+  "errors": []
+}

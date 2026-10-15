@@ -38,6 +38,7 @@ const mocks = {
   "@/components/ui/sidebar": { SidebarProvider: passThrough },
   "@/components/app-sidebar": { AppSidebar: noContent },
   "@/components/dashboard-page": { DashboardPage: passThrough },
+  "@/components/directory-loading": { DirectoryPageSkeleton: noContent },
   "@/components/login-form": { LoginForm: noContent },
   "@/components/error-boundary": { ErrorBoundary: passThrough },
   "@/hooks/usePermissions": { usePermissions: () => ({ isDriver: state.role === "driver", isSuperAdmin: !!state.founder }) },

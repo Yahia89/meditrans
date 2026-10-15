@@ -1,0 +1,18 @@
+{
+  "synthetic": true,
+  "variant": {
+    "name": "empty real records with demo enabled",
+    "empty": true,
+    "demo": true
+  },
+  "url": "http://localhost:5199/?page=patients",
+  "errors": [],
+  "consoleErrors": [],
+  "diagnostics": [],
+  "collectionReads": 1,
+  "totalRequests": 13,
+  "documents": [
+    "http://localhost:5199/?page=patients"
+  ],
+  "body": "Toggle Sidebar\nPatients\nClients\nDemo Data\n\nManage and view all client records\n\nAdd Client\n\nViewing demo client data\n\nUpload your own data or add clients to see real records\n\nUpload Data\nTotal Clients\n5\nApproved\n3\nNew This Month\n0\nTotal Trips\n112\nShow 5\nExport\n0 clients selected\nDelete\nClear Selection\nJS\nJohn Smith\nAge: 68\nApproved\n(555) 123-4567\njohn.smith@email.com\n123 Main St, Springfield\nTrips: 24\nView Details\nSJ\nSarah Johnson\nAge: 72\nApproved\n(555) 234-5678\nsarah.j@email.com\n456 Oak Ave, Springfield\nTrips: 18\nView Details\nRB\nRobert Brown\nAge: 65\nPending\n(555) 345-6789\nr.brown@email.com\n789 Pine Rd, Springfield\nTrips: 31\nView Details\nED\nEmily Davis\nAge: 70\nExpired\n(555) 456-7890\nemily.d@email.com\n321 Elm St, Springfield\nTrips: 12\nView Details\nMW\nMichael Wilson\nAge: 75\nApproved\n(555) 567-8901\nm.wilson@email.com\n654 Maple Dr, Springfield\nTrips: 27\nView Details\n\nShowing 1 - 5 of 5 clients\n\nPrevious\n1\nNext"
+}

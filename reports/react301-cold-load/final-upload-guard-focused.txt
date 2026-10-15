@@ -1,0 +1,13 @@
+[WebServer] (node:18596) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 2 workers
+
+(node:18602) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:18601) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [firefox] › tests/directories-ui/stability.spec.mjs:473:3 › employee Employees empty-state upload respects the existing admin-only action (1.8s)
+  ✓  1 [firefox] › tests/directories-ui/stability.spec.mjs:473:3 › owner Employees empty-state upload respects the existing admin-only action (1.7s)
+
+  2 passed (5.3s)

@@ -1,0 +1,100 @@
+{
+  "synthetic": true,
+  "finalIndexSha256": "766cabbe70d80c956e6c0b4ba8bcd52d395333ea6fd25c6d91c4ef120828d3aa",
+  "finalProduction": {
+    "firefox": {
+      "passed": 54,
+      "skipped": 1,
+      "skipReason": "Opt-in baseline memo instrumentation does not apply to repaired source",
+      "durationReported": "1.1m",
+      "log": "final-guard-firefox.txt"
+    },
+    "chromium": {
+      "passed": 21,
+      "selected": true,
+      "log": "final-guard-cross-browser.txt"
+    },
+    "webkit": {
+      "passed": 21,
+      "selected": true,
+      "log": "final-guard-cross-browser.txt"
+    },
+    "crossBrowserCombinedDurationSeconds": 32.1
+  },
+  "developmentStrictMode": {
+    "firefoxPassed": 14,
+    "durationSeconds": 28.3,
+    "log": "final-development.txt",
+    "sourceGenerationEquivalentToIndexSha256": "08bf795f06d2d5c83ab62b5188717d53a45a96f53bcb42af895d00027e9d5325",
+    "provenanceNote": "Before final one-line employee empty-state upload permission guard restoration. Both roles covered in final production on all three engines."
+  },
+  "baseline": {
+    "production": {
+      "passed": 3,
+      "expectedFailedRegressions": 9,
+      "log": "baseline-production.txt",
+      "failures": [
+        "Three hidden-shell/code-loading geometry cases",
+        "Six malformed-limit cases"
+      ]
+    },
+    "developmentStrictMode": {
+      "passed": 4,
+      "log": "baseline-development.txt"
+    },
+    "memoObservation": {
+      "passed": 1,
+      "phases": {
+        "mounted": 2,
+        "searched": 4,
+        "sameOrgTokenRefresh": 4,
+        "searchCleared": 6
+      },
+      "log": "baseline-setter.txt"
+    },
+    "inducedBoundaryNavigation": {
+      "failed": 1,
+      "reason": "After induced Patients render failure, Drivers navigation remains trapped in failed boundary",
+      "log": "baseline-boundary.txt"
+    }
+  },
+  "limits": [
+    "Reported production React #301 was not reproduced; original pagination setter is impure but bounded in observed trace.",
+    "Synthetic network and identities do not establish production account or hosted RLS behavior.",
+    "Controlled frame samples do not cover every possible timing combination.",
+    "List-shrink coverage uses synthetic refetch after record removal; no production records were changed."
+  ],
+  "engines": {
+    "firefox": "155.0",
+    "chromium": "154.0.8037.98",
+    "webkit": "26.6"
+  },
+  "commands": {
+    "finalFirefox": "DIRECTORIES_TEST_PORT=5198 DIRECTORIES_OUTPUT=reports/react301-cold-load/final-guard-firefox node tests/directories-ui/run-firefox.mjs",
+    "finalOtherEngines": "DIRECTORIES_TEST_PORT=5198 DIRECTORIES_OUTPUT=reports/react301-cold-load/final-guard-chromium-webkit npx playwright test --config playwright.directories.config.ts --project=chromium --project=webkit --grep 'all directories render|cold code and list phases|pagination handles|late enrichment|saved .* preference|rapid directory|authorization failure|deferred form can|induced render failure|induced chunk failure|page boundary user retry|initial workspace|empty-state upload respects'",
+    "finalStrictMode": "DIRECTORIES_DEV=1 DIRECTORIES_TEST_PORT=5199 DIRECTORIES_OUTPUT=reports/react301-cold-load/final-development node tests/directories-ui/run-firefox.mjs --grep 'pagination handles|saved .* preference|late enrichment|rapid directory|delayed organization|authorization failure|deferred form can|induced render failure|page boundary user retry'",
+    "finalVisual": "DIRECTORIES_TEST_PORT=5199 DIRECTORIES_OUTPUT=reports/react301-cold-load/final-visual DIRECTORIES_VIDEO=1 DIRECTORIES_TRACE=1 node tests/directories-ui/run-firefox.mjs --grep 'cold code and list phases'",
+    "baselineInstrumented": "DIRECTORIES_SOURCE_ROOT=/tmp/meditrans-react301-baseline DIRECTORIES_TEST_PORT=5197 DIRECTORIES_DEV=1 DIRECTORIES_DIAGNOSTIC=1 DIRECTORIES_OUTPUT=reports/react301-cold-load/baseline-setter-trace node tests/directories-ui/run-firefox.mjs --grep 'baseline memo setter'"
+  },
+  "previousSourceGeneration": {
+    "indexSha256": "08bf795f06d2d5c83ab62b5188717d53a45a96f53bcb42af895d00027e9d5325",
+    "note": "Before one-line Employees admin-only upload guard restoration; all other production behavior unchanged.",
+    "firefoxPassed": 52,
+    "chromiumPassed": 19,
+    "webkitPassed": 19
+  },
+  "visualCapture": {
+    "firefoxCases": 3,
+    "passed": 3,
+    "durationSeconds": 13.5,
+    "folder": "final-visual",
+    "log": "final-visual.txt",
+    "sourceIndexSha256": "08bf795f06d2d5c83ab62b5188717d53a45a96f53bcb42af895d00027e9d5325",
+    "provenanceNote": "Before final one-line employee empty-state upload permission guard restoration; owner/nonempty geometry scenarios unchanged."
+  },
+  "finalEmptyStateUploadGuard": {
+    "firefoxFocusedPassed": 2,
+    "log": "final-upload-guard-focused.txt",
+    "includedInFinalFullAndSelectedEngineRuns": true
+  }
+}

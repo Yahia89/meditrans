@@ -1,0 +1,86 @@
+[WebServer] (node:28549) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 2 workers
+
+(node:28557) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28558) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [webkit] › tests/directories-ui/credits-trip.spec.mjs:56:3 › Patient credit trip navigation: direct dated trip bookmark (2.0s)
+  ✘  1 [webkit] › tests/directories-ui/credits-trip.spec.mjs:56:3 › Patient credit trip navigation: credit calendar click (2.5s)
+
+
+  1) [webkit] › tests/directories-ui/credits-trip.spec.mjs:56:3 › Patient credit trip navigation: credit calendar click 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "/devszzjyobijwldayicb.supabase.co/rest/v1/rpc/update_user_presence due to access control checks.",
+    + ]
+
+      91 |       await expect.poll(() => new URL(page.url()).searchParams.get('date')).toBeNull();
+      92 |       await expect(page.getByText('Synthetic pickup', { exact: true })).toBeVisible();
+    > 93 |       expect(fixture.errors).toEqual([]);
+         |                              ^
+      94 |       expect(fixture.consoleErrors).toEqual([]);
+      95 |     } finally {
+      96 |       await writeFile(info.outputPath('credits-trip-evidence.json'), JSON.stringify({ synthetic: true, entry,
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/credits-trip.spec.mjs:93:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-followup/credits-after-production-webkit-cors/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-followup/credits-after-production-webkit-cors/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-followup/credits-after-production-webkit-cors/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-followup/credits-after-production-webkit-cors/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [webkit] › tests/directories-ui/credits-trip.spec.mjs:56:3 › Patient credit trip navigation: direct dated trip bookmark 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "/devszzjyobijwldayicb.supabase.co/rest/v1/rpc/update_user_presence due to access control checks.",
+    + ]
+
+      91 |       await expect.poll(() => new URL(page.url()).searchParams.get('date')).toBeNull();
+      92 |       await expect(page.getByText('Synthetic pickup', { exact: true })).toBeVisible();
+    > 93 |       expect(fixture.errors).toEqual([]);
+         |                              ^
+      94 |       expect(fixture.consoleErrors).toEqual([]);
+      95 |     } finally {
+      96 |       await writeFile(info.outputPath('credits-trip-evidence.json'), JSON.stringify({ synthetic: true, entry,
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/credits-trip.spec.mjs:93:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-followup/credits-after-production-webkit-cors/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-followup/credits-after-production-webkit-cors/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-followup/credits-after-production-webkit-cors/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-followup/credits-after-production-webkit-cors/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [webkit] › tests/directories-ui/credits-trip.spec.mjs:56:3 › Patient credit trip navigation: credit calendar click 
+    [webkit] › tests/directories-ui/credits-trip.spec.mjs:56:3 › Patient credit trip navigation: direct dated trip bookmark 

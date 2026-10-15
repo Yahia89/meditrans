@@ -1,0 +1,17 @@
+{
+  "synthetic": true,
+  "variant": {
+    "name": "duplicate page key",
+    "query": "page=patients&page=patients&limit=5"
+  },
+  "url": "http://localhost:5199/?page=dashboard&limit=5",
+  "errors": [],
+  "consoleErrors": [],
+  "diagnostics": [],
+  "collectionReads": 0,
+  "totalRequests": 9,
+  "documents": [
+    "http://localhost:5199/?page=patients&page=patients&limit=5"
+  ],
+  "body": ""
+}

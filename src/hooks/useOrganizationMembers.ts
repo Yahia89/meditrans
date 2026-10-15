@@ -2,16 +2,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { usePermissions } from "@/hooks/usePermissions";
+import { isDirectoryAuthorizationError, shouldRetryDirectoryRead } from "@/lib/directory-state";
 import {
   derivePresenceStatus,
   type OrganizationMember,
   type OrganizationPresenceRow,
 } from "./organization-presence";
 export type { OrganizationMember } from "./organization-presence";
+const EMPTY_MEMBERS: OrganizationPresenceRow[] = [];
 
 interface UseOrganizationMembersResult {
   members: OrganizationMember[];
   isLoading: boolean;
+  isPending: boolean;
+  isFetching: boolean;
+  hasData: boolean;
   error: Error | null;
   refetch: () => void;
   onlineCount: number;
@@ -29,18 +35,23 @@ interface UseOrganizationMembersResult {
  */
 export function useOrganizationMembers(): UseOrganizationMembersResult {
   const { currentOrganization } = useOrganization();
+  const { can } = usePermissions();
+  // Match the existing directory read permission, including employee bookmarks.
+  const canViewEmployees = can("view_employees");
   const queryClient = useQueryClient();
   const [now, setNow] = useState(Date.now);
 
   const {
-    data: rawMembers = [],
+    data,
     isLoading,
+    isPending,
+    isFetching,
     error,
     refetch,
   } = useQuery({
     queryKey: ["organization-members", currentOrganization?.id],
     queryFn: async ({ signal }): Promise<OrganizationPresenceRow[]> => {
-      if (!currentOrganization?.id) return [];
+      if (!currentOrganization?.id) throw new Error("An organization is required for presence.");
 
       const { data, error } = await supabase
         .from("organization_memberships")
@@ -51,10 +62,13 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!currentOrganization?.id,
+    enabled: !!currentOrganization?.id && canViewEmployees,
+    retry: shouldRetryDirectoryRead,
     staleTime: 15 * 1000, // 15 seconds
     refetchInterval: 30 * 1000, // Refetch every 30s for self-healing
   });
+  const hasData = canViewEmployees && !isDirectoryAuthorizationError(error) && data !== undefined;
+  const rawMembers = hasData ? data : EMPTY_MEMBERS;
 
   // Expire stale sessions even when refetch returns identical rows or fails.
   useEffect(() => {
@@ -73,7 +87,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
 
   // Set up realtime subscription for presence updates
   useEffect(() => {
-    if (!currentOrganization?.id) return;
+    if (!currentOrganization?.id || !canViewEmployees) return;
 
     const channel = supabase
       .channel(`org-presence-${currentOrganization.id}`)
@@ -109,7 +123,7 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentOrganization?.id, queryClient]);
+  }, [currentOrganization?.id, canViewEmployees, queryClient]);
 
   // Compute presence counts
   const onlineCount = members.filter(
@@ -123,6 +137,9 @@ export function useOrganizationMembers(): UseOrganizationMembersResult {
   return {
     members,
     isLoading,
+    isPending,
+    isFetching,
+    hasData,
     error: error as Error | null,
     refetch,
     onlineCount,

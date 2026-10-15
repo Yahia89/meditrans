@@ -28,15 +28,47 @@ export const directoryRows = {
 
 export const tripCounts = { patients: 12, drivers: 17 };
 
-export async function installDirectoryFixtures(context, page, baseURL, { presenceGate = null, countsGate = null, countsError = false } = {}) {
-  const state = createStartupState();
-  await installStartupFixtures(context, state);
+export function createDirectoryRows(count = 13, orgId = ids.orgA) {
+  return Object.fromEntries(Object.entries(directoryRows).map(([directory, originals], directoryIndex) => [directory,
+    Array.from({ length: count }, (_, index) => ({ ...originals[index % 2],
+      id: uuid(1000 + directoryIndex * 100 + index), org_id: orgId,
+      full_name: `Synthetic ${directory} ${String(index + 1).padStart(2, '0')}`,
+      email: `fixture-${directory}-${index + 1}@example.invalid`,
+      user_id: directory === 'employees' && index % 2 === 0 ? uuid(907) : null,
+    })),
+  ]));
+}
+
+export async function installDirectoryFixtures(context, page, baseURL, {
+  presenceGate = null, countsGate = null, countsError = false, presenceError = false,
+  rows = directoryRows, listGate = null, listErrors = [], codeGate = null, codePage = null,
+  stateOverrides = {}, expired = false, signedOut = false, savedView = null,
+} = {}) {
+  const state = createStartupState(stateOverrides);
+  await installStartupFixtures(context, state, { expired, signedOut });
+  if (savedView) await context.addInitScript(value => localStorage.setItem('patients-view-mode', value), savedView);
   const localOrigin = new URL(baseURL).origin;
   const requests = [];
   const chunks = [];
   const errors = [];
   const documents = [];
   let countFailure = countsError;
+  let presenceFailure = presenceError;
+  const listFailures = new Set(listErrors);
+  let listFailureStatus = 503;
+  const collectionRows = structuredClone(rows);
+  const consoleErrors = [];
+  const consoleMessages = [];
+  const diagnosticReads = [];
+  page.on('console', message => {
+    if (message.type() === 'error') consoleMessages.push(message.text());
+    if (/UI boundary diagnostic|React UI diagnostic/.test(message.text())) {
+      diagnosticReads.push(Promise.all(message.args().map(argument => argument.jsonValue().catch(() => '[unavailable]'))));
+    }
+    if (message.type() === 'error' && /too many re-renders|maximum update depth|render.*different component|change in the order of hooks|minified react error|errorboundary|the above error|UI boundary diagnostic|React UI diagnostic/i.test(message.text())) {
+      consoleErrors.push(message.text());
+    }
+  });
   page.on('pageerror', error => errors.push(error.message));
   page.on('request', request => {
     const url = new URL(request.url());
@@ -47,7 +79,10 @@ export async function installDirectoryFixtures(context, page, baseURL, { presenc
   await page.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
-    if (url.origin === localOrigin) return route.continue();
+    if (url.origin === localOrigin) {
+      if (codeGate && (url.pathname.includes(`/${codePage}-page-`) || url.pathname.endsWith(`/${codePage}-page.tsx`))) await codeGate.promise;
+      return route.continue();
+    }
     if (!url.pathname.startsWith('/rest/v1/')) return route.fallback();
     const table = url.pathname.split('/').at(-1);
     const search = url.searchParams;
@@ -57,22 +92,28 @@ export async function installDirectoryFixtures(context, page, baseURL, { presenc
       if (countsGate) await countsGate.promise;
       if (countFailure) return route.fulfill({ status: 503, json: { code: 'SYNTHETIC_UNAVAILABLE', message: 'Synthetic count service unavailable' } });
       const directory = body?.p_directory;
+      if (body?.p_org_id !== ids.orgA) return route.fulfill({ headers: { 'content-range': '0-0/0', 'access-control-expose-headers': 'content-range' }, json: [] });
       if (!tripCounts[directory]) return route.fulfill({ status: 400, json: { message: 'Unexpected directory count request' } });
+      if (collectionRows[directory].length === 0) return route.fulfill({ headers: { 'content-range': '0-0/0', 'access-control-expose-headers': 'content-range' }, json: [] });
       return route.fulfill({ headers: { 'content-range': '0-0/1', 'access-control-expose-headers': 'content-range' },
-        json: [{ entity_id: directoryRows[directory][0].id, total_trips: tripCounts[directory] }] });
+        json: [{ entity_id: collectionRows[directory][0]?.id, total_trips: tripCounts[directory] }] });
     }
     // Bootstrap identity remains handled by the existing strict session fixture.
     if (request.method() !== 'GET') return route.fallback();
     if (search.get('org_id') !== `eq.${ids.orgA}`) return route.fallback();
     if (table === 'organization_memberships') {
       if (presenceGate) await presenceGate.promise;
+      if (presenceFailure) return route.fulfill({ status: 503, json: { code: 'SYNTHETIC_UNAVAILABLE', message: 'Synthetic presence unavailable' } });
       return route.fulfill({ json: [{
         id: uuid(908), org_id: ids.orgA, user_id: uuid(907), role: 'dispatch', is_primary: true,
         presence_status: 'online', last_active_at: new Date().toISOString(), created_at: createdAt,
       }] });
     }
-    if (!directoryRows[table]) return route.fallback();
-    const rows = directoryRows[table].filter(row => [...search].every(([column, value]) => {
+    if (!collectionRows[table]) return route.fallback();
+    const isCollection = !search.has('id') && !search.has('email') && !(search.get('select') === 'id' && search.get('limit') === '5');
+    if (isCollection && listGate) await listGate.promise;
+    if (isCollection && listFailures.has(table)) return route.fulfill({ status: listFailureStatus, json: { code: listFailureStatus === 403 ? '42501' : 'SYNTHETIC_UNAVAILABLE', message: 'Synthetic directory unavailable' } });
+    const rows = collectionRows[table].filter(row => [...search].every(([column, value]) => {
       if (value.startsWith('eq.')) return String(row[column]) === value.slice(3);
       if (value === 'not.is.null') return row[column] != null;
       return true;
@@ -86,5 +127,11 @@ export async function installDirectoryFixtures(context, page, baseURL, { presenc
     && !request.search.has('id') && !request.search.has('email')
     // The shell performs separate five-ID onboarding existence probes.
     && !(request.search.get('select') === 'id' && request.search.get('limit') === '5'));
-  return { state, requests, collectionRequests, chunks, errors, documents, setCountsError: value => { countFailure = value; } };
+  return { state, requests, collectionRequests, chunks, errors, consoleErrors, consoleMessages, documents,
+    captureDiagnostics: () => Promise.all(diagnosticReads),
+    setCountsError: value => { countFailure = value; },
+    setPresenceError: value => { presenceFailure = value; },
+    setListError: (directory, value, status = 503) => { listFailureStatus = status; return value ? listFailures.add(directory) : listFailures.delete(directory); },
+    replaceRows: (directory, nextRows) => { collectionRows[directory] = structuredClone(nextRows); },
+  };
 }

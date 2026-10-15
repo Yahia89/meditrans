@@ -21,6 +21,14 @@ export default defineConfig([
     },
   },
   {
+    files: ['src/components/{patients,drivers,employees,patient-details}-page.tsx', 'src/lib/directory-*.ts', 'src/hooks/useDirectory*.ts'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/use-memo': 'error',
+      'react-hooks/set-state-in-render': 'error',
+    },
+  },
+  {
     files: ['src/features/billing/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/consistent-type-imports': 'error',

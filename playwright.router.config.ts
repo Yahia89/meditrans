@@ -1,5 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
+const port = process.env.ROUTER_TEST_PORT ?? '5187';
+
 export default defineConfig({
   testDir: './tests/router-ui',
   outputDir: './test-results/router-ui',
@@ -9,15 +11,15 @@ export default defineConfig({
   expect: { timeout: 12_000 },
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:5187',
+    baseURL: `http://localhost:${port}`,
     viewport: { width: 1440, height: 1000 },
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run preview -- --port 5187 --strictPort',
-    url: 'http://localhost:5187',
-    reuseExistingServer: true,
+    command: `npm run preview -- --port ${port} --strictPort`,
+    url: `http://localhost:${port}`,
+    reuseExistingServer: false,
   },
   projects: [
     { name: 'chromium', use: { browserName: 'chromium', channel: 'chrome' } },

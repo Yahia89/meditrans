@@ -1,0 +1,70 @@
+{
+  "synthetic": true,
+  "entry": "direct dated trip bookmark",
+  "mode": "development StrictMode",
+  "instrumentation": null,
+  "url": "http://localhost:5199/?page=patient-details&id=00000000-0000-4000-8000-000000000901&section=trips&date=2026-10-02T05%3A00%3A00.000Z",
+  "errors": [],
+  "consoleErrors": [
+    "UI boundary diagnostic JSHandle@object"
+  ],
+  "diagnostics": [
+    [
+      "UI boundary diagnostic",
+      {
+        "reference": "UI-RENDER-LOOP-6FD8AF17",
+        "kind": "render-loop",
+        "frames": [
+          "renderWithHooksAgain (react-dom_client.js)",
+          "renderWithHooks (react-dom_client.js)",
+          "updateFunctionComponent (react-dom_client.js)",
+          "beginWork (react-dom_client.js)",
+          "runWithFiberInDEV (react-dom_client.js)",
+          "performUnitOfWork (react-dom_client.js)",
+          "workLoopSync (react-dom_client.js)",
+          "renderRootSync (react-dom_client.js)",
+          "performWorkOnRoot (react-dom_client.js)",
+          "performWorkOnRootViaSchedulerTask (react-dom_client.js)",
+          "performWorkUntilDeadline (react-dom_client.js)",
+          "require_scheduler_development< (react-dom_client.js)",
+          "require_scheduler< (react-dom_client.js)",
+          "require_react_dom_client_development< (react-dom_client.js)",
+          "require_client< (react-dom_client.js)",
+          "anonymous (react-dom_client.js)"
+        ],
+        "components": [
+          "PatientDetailsPage (patient-details-page.tsx:49:35)",
+          "SidebarInset (sidebar.tsx:291:22)",
+          "DashboardPage (dashboard-page.tsx:7:30)",
+          "ErrorBoundary (error-boundary.tsx:10:3)",
+          "Provider (dist-CqlidbgP.js)",
+          "TooltipProvider",
+          "TooltipProvider (tooltip.tsx:6:25)",
+          "SidebarProvider (sidebar.tsx:33:25)",
+          "OnboardingProvider (OnboardingContext.tsx:42:35)",
+          "WorkspacePage (WorkspacePage.tsx:93:68)",
+          "MatchInnerImpl (index.dev-ClKTlPy3.js)",
+          "CatchBoundary (index.dev-ClKTlPy3.js)",
+          "MatchImpl (index.dev-ClKTlPy3.js)",
+          "OutletImpl (index.dev-ClKTlPy3.js)",
+          "MatchInnerImpl (index.dev-ClKTlPy3.js)",
+          "CatchBoundary (index.dev-ClKTlPy3.js)",
+          "CatchNotFound (index.dev-ClKTlPy3.js)",
+          "MatchImpl (index.dev-ClKTlPy3.js)",
+          "CatchBoundary (index.dev-ClKTlPy3.js)",
+          "MatchesInner (index.dev-ClKTlPy3.js)",
+          "Matches (index.dev-ClKTlPy3.js)",
+          "RouterContextProvider (index.dev-ClKTlPy3.js)",
+          "RouterProvider (index.dev-ClKTlPy3.js)",
+          "ErrorBoundary (error-boundary.tsx:10:3)",
+          "RoutedApplication (App.tsx:23:22)",
+          "OrganizationProvider (OrganizationContext.tsx:19:37)",
+          "AuthProvider (auth-context.tsx:19:29)",
+          "QueryClientProvider (modern-4WvWEqYx.js)"
+        ]
+      }
+    ]
+  ],
+  "setterCalls": [],
+  "body": "Page Error\n\nThis page encountered an unexpected error. Try again, or open another page from the sidebar.\n\nReference: UI-RENDER-LOOP-6FD8AF17\n\nTry again"
+}

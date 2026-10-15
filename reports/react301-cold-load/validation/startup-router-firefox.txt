@@ -1,0 +1,43 @@
+
+> future-transportation-crm@0.0.0 test:firefox:ui
+> node tests/firefox-ui/run.mjs startup router
+
+Running Firefox startup; output: /var/folders/lx/qpk2ml3d2lscn_ws3g7tpgq80000gn/T/meditrans-firefox-startup.log
+[WebServer] (node:16486) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 2 workers
+
+(node:16502) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16501) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [firefox] › tests/startup-ui/startup.spec.mjs:30:1 › a slow membership response keeps audit deep links and private data blocked until access resolves (1.5s)
+  ✓   2 [firefox] › tests/startup-ui/startup.spec.mjs:17:1 › signed-out startup performs no private bootstrap; successful sign-in resolves one shared identity (1.8s)
+  ✓   4 [firefox] › tests/startup-ui/startup.spec.mjs:58:1 › confirmed no-driver identity survives token refresh and navigation without duplicate reads or GPS (672ms)
+  ✓   5 [firefox] › tests/startup-ui/startup.spec.mjs:72:1 › expired returning session refreshes once before the shared bootstrap (455ms)
+  ✓   3 [firefox] › tests/startup-ui/startup.spec.mjs:45:1 › membership errors stay distinct from an empty company and the retry restores the requested route (2.0s)
+  ✓   6 [firefox] › tests/startup-ui/startup.spec.mjs:81:1 › driver access rejects a billing deep link and disabled driver records do not start GPS (670ms)
+  ✓   7 [firefox] › tests/startup-ui/startup.spec.mjs:90:1 › membership removal on revalidation unmounts private details and falls back to the account (1.3s)
+  ✓   8 [firefox] › tests/startup-ui/startup.spec.mjs:103:1 › a multi-tab account switch clears previous-user detail data while the next identity is pending (1.7s)
+  ✓   9 [firefox] › tests/startup-ui/startup.spec.mjs:121:1 › changing the default company on revalidation replaces tenant queries and visible context (1.1s)
+  ✓  11 [firefox] › tests/startup-ui/startup.spec.mjs:150:1 › a self-membership whose organization is hidden by RLS cannot mount an audit route (1.0s)
+  ✓  10 [firefox] › tests/startup-ui/startup.spec.mjs:133:1 › sign-out in one tab removes protected UI from both tabs (1.7s)
+
+  11 passed (10.9s)
+Running Firefox router; output: /var/folders/lx/qpk2ml3d2lscn_ws3g7tpgq80000gn/T/meditrans-firefox-router.log
+[WebServer] (node:16600) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 2 workers
+
+(node:16601) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16602) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [firefox] › tests/router-ui/navigation.spec.mjs:29:1 › dashboard, trips, browser history and manual billing navigation preserve the session and query (2.9s)
+  ✓  1 [firefox] › tests/router-ui/navigation.spec.mjs:55:1 › opening and explicitly cancelling a trip dialog preserves scheduler filters and unrelated URL state (2.7s)
+  ✓  3 [firefox] › tests/router-ui/navigation.spec.mjs:86:1 › the nuqs page-size adapter and batched detail route share one history without dropping filters (1.5s)
+  ✓  4 [firefox] › tests/router-ui/navigation.spec.mjs:116:1 › a stale route chunk offers manual refresh without reloading the current document automatically (2.0s)
+
+  4 passed (10.6s)

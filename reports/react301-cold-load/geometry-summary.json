@@ -1,0 +1,404 @@
+{
+  "synthetic": true,
+  "note": "Controlled code/list gates; geometry evidence, not hosted latency or a matched CPU benchmark. Main content height naturally changes from five skeleton cards to two fixture rows; shell/header visibility, main width and data/enrichment search position are asserted. Final sources include auth-retry refinement.",
+  "samples": [
+    {
+      "generation": "baseline-production",
+      "directory": "drivers",
+      "browser": {
+        "project": "firefox",
+        "version": "155.0",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 49,
+      "hiddenShellOrHeaderFrames": 23,
+      "codePhaseSidebarWidth": 0,
+      "codePhaseHeaderHeight": 0,
+      "baseDataSearchPresent": false,
+      "searchShiftAfterTotalsPx": -44.0,
+      "mainWidthByPhase": {
+        "code": 0,
+        "data": 1184,
+        "baseRows": 1184,
+        "ready": 1184
+      },
+      "mainHeightByPhase": {
+        "code": 0,
+        "data": 1000,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "baseline-production/stability-drivers-cold-cod-282d6-serve-shell-header-geometry-firefox/geometry.json"
+    },
+    {
+      "generation": "baseline-production",
+      "directory": "employees",
+      "browser": {
+        "project": "firefox",
+        "version": "155.0",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 62,
+      "hiddenShellOrHeaderFrames": 24,
+      "codePhaseSidebarWidth": 0,
+      "codePhaseHeaderHeight": 0,
+      "baseDataSearchPresent": false,
+      "searchShiftAfterTotalsPx": 0.0,
+      "mainWidthByPhase": {
+        "code": 0,
+        "data": 1184,
+        "baseRows": 1184,
+        "ready": 1184
+      },
+      "mainHeightByPhase": {
+        "code": 0,
+        "data": 1000,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "baseline-production/stability-employees-cold-c-c9c76-serve-shell-header-geometry-firefox/geometry.json"
+    },
+    {
+      "generation": "baseline-production",
+      "directory": "patients",
+      "browser": {
+        "project": "firefox",
+        "version": "155.0",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 59,
+      "hiddenShellOrHeaderFrames": 29,
+      "codePhaseSidebarWidth": 0,
+      "codePhaseHeaderHeight": 0,
+      "baseDataSearchPresent": false,
+      "searchShiftAfterTotalsPx": -44.0,
+      "mainWidthByPhase": {
+        "code": 0,
+        "data": 1184,
+        "baseRows": 1184,
+        "ready": 1184
+      },
+      "mainHeightByPhase": {
+        "code": 0,
+        "data": 1000,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "baseline-production/stability-patients-cold-co-99b79-serve-shell-header-geometry-firefox/geometry.json"
+    },
+    {
+      "generation": "final-visual",
+      "directory": "drivers",
+      "browser": {
+        "project": "firefox",
+        "version": "155.0",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 76,
+      "hiddenShellOrHeaderFrames": 0,
+      "codePhaseSidebarWidth": 255,
+      "codePhaseHeaderHeight": 64,
+      "baseDataSearchPresent": true,
+      "searchShiftAfterTotalsPx": 0.0,
+      "mainWidthByPhase": {
+        "code": 1184,
+        "data": 1184,
+        "baseRows": 1184,
+        "ready": 1184
+      },
+      "mainHeightByPhase": {
+        "code": 1334.300048828125,
+        "data": 1337.5,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "final-visual/stability-drivers-cold-cod-282d6-serve-shell-header-geometry-firefox/geometry.json"
+    },
+    {
+      "generation": "final-visual",
+      "directory": "employees",
+      "browser": {
+        "project": "firefox",
+        "version": "155.0",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 91,
+      "hiddenShellOrHeaderFrames": 0,
+      "codePhaseSidebarWidth": 255,
+      "codePhaseHeaderHeight": 64,
+      "baseDataSearchPresent": true,
+      "searchShiftAfterTotalsPx": 0.0,
+      "mainWidthByPhase": {
+        "code": 1184,
+        "data": 1184,
+        "baseRows": 1184,
+        "ready": 1184
+      },
+      "mainHeightByPhase": {
+        "code": 1334.300048828125,
+        "data": 1337.5,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "final-visual/stability-employees-cold-c-c9c76-serve-shell-header-geometry-firefox/geometry.json"
+    },
+    {
+      "generation": "final-visual",
+      "directory": "patients",
+      "browser": {
+        "project": "firefox",
+        "version": "155.0",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 64,
+      "hiddenShellOrHeaderFrames": 0,
+      "codePhaseSidebarWidth": 255,
+      "codePhaseHeaderHeight": 64,
+      "baseDataSearchPresent": true,
+      "searchShiftAfterTotalsPx": 0.0,
+      "mainWidthByPhase": {
+        "code": 1184,
+        "data": 1184,
+        "baseRows": 1184,
+        "ready": 1184
+      },
+      "mainHeightByPhase": {
+        "code": 1334.300048828125,
+        "data": 1337.5,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "final-visual/stability-patients-cold-co-99b79-serve-shell-header-geometry-firefox/geometry.json"
+    },
+    {
+      "generation": "final-chromium-webkit",
+      "directory": "drivers",
+      "browser": {
+        "project": "chromium",
+        "version": "154.0.8037.98",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 55,
+      "hiddenShellOrHeaderFrames": 0,
+      "codePhaseSidebarWidth": 255,
+      "codePhaseHeaderHeight": 64,
+      "baseDataSearchPresent": true,
+      "searchShiftAfterTotalsPx": 0.0,
+      "mainWidthByPhase": {
+        "code": 1169,
+        "data": 1169,
+        "baseRows": 1169,
+        "ready": 1169
+      },
+      "mainHeightByPhase": {
+        "code": 1334.3125,
+        "data": 1337.5,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "final-chromium-webkit/stability-drivers-cold-cod-282d6-serve-shell-header-geometry-chromium/geometry.json"
+    },
+    {
+      "generation": "final-chromium-webkit",
+      "directory": "drivers",
+      "browser": {
+        "project": "webkit",
+        "version": "26.6",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 40,
+      "hiddenShellOrHeaderFrames": 0,
+      "codePhaseSidebarWidth": 255,
+      "codePhaseHeaderHeight": 64,
+      "baseDataSearchPresent": true,
+      "searchShiftAfterTotalsPx": 0.0,
+      "mainWidthByPhase": {
+        "code": 1184,
+        "data": 1184,
+        "baseRows": 1184,
+        "ready": 1184
+      },
+      "mainHeightByPhase": {
+        "code": 1334.28125,
+        "data": 1337.46875,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "final-chromium-webkit/stability-drivers-cold-cod-282d6-serve-shell-header-geometry-webkit/geometry.json"
+    },
+    {
+      "generation": "final-chromium-webkit",
+      "directory": "employees",
+      "browser": {
+        "project": "chromium",
+        "version": "154.0.8037.98",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 46,
+      "hiddenShellOrHeaderFrames": 0,
+      "codePhaseSidebarWidth": 255,
+      "codePhaseHeaderHeight": 64,
+      "baseDataSearchPresent": true,
+      "searchShiftAfterTotalsPx": 0.0,
+      "mainWidthByPhase": {
+        "code": 1169,
+        "data": 1169,
+        "baseRows": 1169,
+        "ready": 1169
+      },
+      "mainHeightByPhase": {
+        "code": 1334.3125,
+        "data": 1337.5,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "final-chromium-webkit/stability-employees-cold-c-c9c76-serve-shell-header-geometry-chromium/geometry.json"
+    },
+    {
+      "generation": "final-chromium-webkit",
+      "directory": "employees",
+      "browser": {
+        "project": "webkit",
+        "version": "26.6",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 48,
+      "hiddenShellOrHeaderFrames": 0,
+      "codePhaseSidebarWidth": 255,
+      "codePhaseHeaderHeight": 64,
+      "baseDataSearchPresent": true,
+      "searchShiftAfterTotalsPx": 0.0,
+      "mainWidthByPhase": {
+        "code": 1184,
+        "data": 1184,
+        "baseRows": 1184,
+        "ready": 1184
+      },
+      "mainHeightByPhase": {
+        "code": 1334.28125,
+        "data": 1337.46875,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "final-chromium-webkit/stability-employees-cold-c-c9c76-serve-shell-header-geometry-webkit/geometry.json"
+    },
+    {
+      "generation": "final-chromium-webkit",
+      "directory": "patients",
+      "browser": {
+        "project": "chromium",
+        "version": "154.0.8037.98",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 57,
+      "hiddenShellOrHeaderFrames": 0,
+      "codePhaseSidebarWidth": 255,
+      "codePhaseHeaderHeight": 64,
+      "baseDataSearchPresent": true,
+      "searchShiftAfterTotalsPx": 0.0,
+      "mainWidthByPhase": {
+        "code": 1169,
+        "data": 1169,
+        "baseRows": 1169,
+        "ready": 1169
+      },
+      "mainHeightByPhase": {
+        "code": 1334.3125,
+        "data": 1337.5,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "final-chromium-webkit/stability-patients-cold-co-99b79-serve-shell-header-geometry-chromium/geometry.json"
+    },
+    {
+      "generation": "final-chromium-webkit",
+      "directory": "patients",
+      "browser": {
+        "project": "webkit",
+        "version": "26.6",
+        "viewport": {
+          "width": 1440,
+          "height": 1000
+        }
+      },
+      "sampleCount": 39,
+      "hiddenShellOrHeaderFrames": 0,
+      "codePhaseSidebarWidth": 255,
+      "codePhaseHeaderHeight": 64,
+      "baseDataSearchPresent": true,
+      "searchShiftAfterTotalsPx": 0.0,
+      "mainWidthByPhase": {
+        "code": 1184,
+        "data": 1184,
+        "baseRows": 1184,
+        "ready": 1184
+      },
+      "mainHeightByPhase": {
+        "code": 1334.28125,
+        "data": 1337.46875,
+        "baseRows": 1000,
+        "ready": 1000
+      },
+      "documentNavigationCount": 1,
+      "errors": [],
+      "evidence": "final-chromium-webkit/stability-patients-cold-co-99b79-serve-shell-header-geometry-webkit/geometry.json"
+    }
+  ],
+  "candidateSourceIndexSha256": "08bf795f06d2d5c83ab62b5188717d53a45a96f53bcb42af895d00027e9d5325",
+  "provenanceNote": "Geometry and focused videos were captured before the final one-line Employees admin upload guard restoration. That final change does not alter these owner-role nonempty-directory scenarios; no recapture is claimed."
+}

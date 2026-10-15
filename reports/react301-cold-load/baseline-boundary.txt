@@ -1,0 +1,49 @@
+[WebServer] (node:12321) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:12350) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [firefox] › tests/directories-ui/stability.spec.mjs:332:1 › induced render failure is recoverable by navigating to another directory (14.7s)
+
+
+  1) [firefox] › tests/directories-ui/stability.spec.mjs:332:1 › induced render failure is recoverable by navigating to another directory 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Directory Alpha Driver', { exact: true }).first()
+    Expected: visible
+    Timeout: 12000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('Directory Alpha Driver', { exact: true }).first() with timeout 12000ms
+      - waiting for getByText('Directory Alpha Driver', { exact: true }).first()
+
+
+      336 |   await expect(page.getByText('Page Error', { exact: true })).toBeVisible();
+      337 |   await page.getByRole('button', { name: 'Drivers', exact: true }).click();
+    > 338 |   await expect(row(page, directoryRows.drivers[0].full_name)).toBeVisible();
+          |                                                               ^
+      339 |   await expect(page.getByText('Page Error', { exact: true })).toHaveCount(0);
+      340 |   expect(fixture.errors.every(error => error.includes('Synthetic render failure'))).toBe(true);
+      341 |   expect(fixture.documents).toHaveLength(1);
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/stability.spec.mjs:338:63
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-boundary-final/stability-induced-render-f-201b3-gating-to-another-directory-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/baseline-boundary-final/stability-induced-render-f-201b3-gating-to-another-directory-firefox/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-boundary-final/stability-induced-render-f-201b3-gating-to-another-directory-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/baseline-boundary-final/stability-induced-render-f-201b3-gating-to-another-directory-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [firefox] › tests/directories-ui/stability.spec.mjs:332:1 › induced render failure is recoverable by navigating to another directory 

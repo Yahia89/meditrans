@@ -1,0 +1,103 @@
+[WebServer] (node:28080) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 10 tests using 2 workers
+
+(node:28086) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28085) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › tests/directories-ui/credits-trip.spec.mjs:46:3 › Patient credit trip navigation: direct dated trip bookmark (1.9s)
+  ✓   2 [chromium] › tests/directories-ui/credits-trip.spec.mjs:46:3 › Patient credit trip navigation: credit calendar click (2.7s)
+  ✓   4 [chromium] › tests/directories-ui/credits-trip.spec.mjs:153:3 › Patient trip malformed date bookmark falls back to month: not-a-date (1.3s)
+  ✓   3 [chromium] › tests/directories-ui/credits-trip.spec.mjs:96:1 › Patient credit trip pagination resets filters, preserves refresh, and clamps shrink (2.4s)
+(node:28168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 [chromium] › tests/directories-ui/credits-trip.spec.mjs:153:3 › Patient trip malformed date bookmark falls back to month: Infinity (1.3s)
+(node:28180) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 [webkit] › tests/directories-ui/credits-trip.spec.mjs:46:3 › Patient credit trip navigation: direct dated trip bookmark (1.8s)
+(node:28207) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   6 [webkit] › tests/directories-ui/credits-trip.spec.mjs:46:3 › Patient credit trip navigation: credit calendar click (4.1s)
+(node:28224) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 [webkit] › tests/directories-ui/credits-trip.spec.mjs:96:1 › Patient credit trip pagination resets filters, preserves refresh, and clamps shrink (1.9s)
+  ✓  10 [webkit] › tests/directories-ui/credits-trip.spec.mjs:153:3 › Patient trip malformed date bookmark falls back to month: Infinity (754ms)
+  ✓   9 [webkit] › tests/directories-ui/credits-trip.spec.mjs:153:3 › Patient trip malformed date bookmark falls back to month: not-a-date (1.0s)
+
+
+  1) [webkit] › tests/directories-ui/credits-trip.spec.mjs:46:3 › Patient credit trip navigation: credit calendar click 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "/devszzjyobijwldayicb.supabase.co/rest/v1/rpc/update_user_presence due to access control checks.",
+    + ]
+
+      81 |       await expect.poll(() => new URL(page.url()).searchParams.get('date')).toBeNull();
+      82 |       await expect(page.getByText('Synthetic pickup', { exact: true })).toBeVisible();
+    > 83 |       expect(fixture.errors).toEqual([]);
+         |                              ^
+      84 |       expect(fixture.consoleErrors).toEqual([]);
+      85 |     } finally {
+      86 |       await writeFile(info.outputPath('credits-trip-evidence.json'), JSON.stringify({ synthetic: true, entry,
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/credits-trip.spec.mjs:83:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-followup/credits-after-production-cross-browser/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-followup/credits-after-production-cross-browser/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-followup/credits-after-production-cross-browser/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-followup/credits-after-production-cross-browser/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [webkit] › tests/directories-ui/credits-trip.spec.mjs:46:3 › Patient credit trip navigation: direct dated trip bookmark 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "/devszzjyobijwldayicb.supabase.co/rest/v1/rpc/update_user_presence due to access control checks.",
+    + ]
+
+      81 |       await expect.poll(() => new URL(page.url()).searchParams.get('date')).toBeNull();
+      82 |       await expect(page.getByText('Synthetic pickup', { exact: true })).toBeVisible();
+    > 83 |       expect(fixture.errors).toEqual([]);
+         |                              ^
+      84 |       expect(fixture.consoleErrors).toEqual([]);
+      85 |     } finally {
+      86 |       await writeFile(info.outputPath('credits-trip-evidence.json'), JSON.stringify({ synthetic: true, entry,
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/credits-trip.spec.mjs:83:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-followup/credits-after-production-cross-browser/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-webkit/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-followup/credits-after-production-cross-browser/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-webkit/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-followup/credits-after-production-cross-browser/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-webkit/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-followup/credits-after-production-cross-browser/credits-trip-Patient-credi-c8ecf--direct-dated-trip-bookmark-webkit/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [webkit] › tests/directories-ui/credits-trip.spec.mjs:46:3 › Patient credit trip navigation: credit calendar click 
+    [webkit] › tests/directories-ui/credits-trip.spec.mjs:46:3 › Patient credit trip navigation: direct dated trip bookmark 
+  8 passed (13.5s)

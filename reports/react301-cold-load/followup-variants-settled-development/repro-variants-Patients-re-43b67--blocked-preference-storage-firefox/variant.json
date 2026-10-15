@@ -1,0 +1,17 @@
+{
+  "synthetic": true,
+  "variant": {
+    "name": "blocked preference storage",
+    "blockedPreferences": true
+  },
+  "url": "http://localhost:5199/?page=patients",
+  "errors": [],
+  "consoleErrors": [],
+  "diagnostics": [],
+  "collectionReads": 1,
+  "totalRequests": 13,
+  "documents": [
+    "http://localhost:5199/?page=patients"
+  ],
+  "body": "Toggle Sidebar\nPatients\nClients\n\nManage and view all client records\n\nAdd Client\nTotal Clients\n2\nApproved\n1\nNew This Month\n0\nTotal Trips\n12\nShow 5\nExport\n0 clients selected\nDelete\nClear Selection\n\tCLIENT NAME\tPHONE NUMBER\tADDRESS\tTRIPS\tSTATUS\tACTIONS\n\n\t\nDAC\n\nDirectory Alpha Client\n\nAge: 56\n\n\t\n(555) 123-4567\n\t\n123 Fixture Street\n\t12\t\nApproved\n\t\n\n\n\t\nDBC\n\nDirectory Beta Client\n\nAge: 46\n\n\t\n(555) 123-4567\n\t\n—\n\t0\t\nPending\n\t\n\nShowing 1 - 2 of 2 clients\n\nPrevious\n1\nNext"
+}

@@ -1,0 +1,63 @@
+
+> future-transportation-crm@0.0.0 test:startup
+> node --test src/lib/identity-bootstrap.test.mjs src/hooks/identity-lifecycle.test.mjs src/components/credits/credit-alert-data.test.mjs src/components/dashboard/tripBuckets.test.mjs src/router/navigation.test.mjs src/lib/chunk-errors.test.mjs src/lib/preloaded-component.test.mjs src/lib/error-diagnostics.test.mjs
+
+✔ two dashboard consumers share one patient read and one completed-trip read (19.647959ms)
+✔ cache keys isolate tenant, user, timezone, and month while retaining credit invalidation prefix (0.630125ms)
+✔ pagination preserves all rows above the API cap, including a server cap below our page size (0.355708ms)
+✔ query and incomplete-pagination failures remain errors instead of healthy empty balances (1.090125ms)
+✔ credit months use local midnight, include the final fractional second, and honor DST (0.466ms)
+✔ shared alert selector preserves thresholds, patient isolation, sorting, and fee changes (0.356208ms)
+✔ null fees preserve defaults and malformed custom charge payloads cannot poison alerts (0.143958ms)
+✔ performance periods cover calendar days in the selected timezone (2.770625ms)
+✔ daily ranges honor 23-hour and 25-hour daylight saving days (0.335291ms)
+✔ chart zero-fills empty days and preserves complete server counts above the REST row limit (0.214458ms)
+✔ hourly chart maps database buckets to 24 wall-clock labels (0.115583ms)
+✔ malformed dashboard responses fail validation instead of becoming empty chart counts (1.855792ms)
+✔ shared driver identity reads have no GPS or network side effects for any role (45.673417ms)
+✔ GPS requires explicit workflow activation plus authorized active same-org driver (11.539792ms)
+✔ stopping GPS aborts an in-flight write and prevents old callbacks and ETA/SMS (11.432958ms)
+✔ token refresh does not restart GPS; a valid workflow preserves ETA checks (12.474292ms)
+✔ stalled trip lookup or ETA/SMS never blocks GPS writes or creates duplicate ETA tasks (10.289542ms)
+✔ changing drivers aborts old ETA work while the new identity can update and check ETA (6.788042ms)
+✔ ETA timeout aborts a stalled lookup and late results cannot trigger SMS (6.327209ms)
+✔ presence switch cleans the original company and refreshed tokens do not duplicate setup (9.580917ms)
+✔ permissions deny unresolved identity and unset founder config cannot authorize signed-out users (4.639333ms)
+✔ a delayed initial session never resurrects the user after local sign-out (16.461375ms)
+✔ session error retry actually reads a new session, and a newer auth event wins (7.488125ms)
+✔ token refresh preserves current cache, but multi-tab account changes clear it (10.014083ms)
+✔ refresh completion during pending logout cannot remount a private session (7.29875ms)
+✔ recognizes Chrome, Firefox and Safari chunk failures without treating ordinary API errors as stale deployments (0.67025ms)
+✔ boundary diagnostics distinguish render loops, effect depth and failed chunks (1.450625ms)
+✔ diagnostic frames and stable references exclude error messages, URLs and sensitive query values (1.097708ms)
+✔ Firefox frames, null stacks and unexpected values remain bounded and safe (1.162666ms)
+✔ simultaneous identity consumers share one set of reads and cache a null driver (4.379459ms)
+✔ a slow first account never blocks or populates a second account (0.833166ms)
+✔ sign-out cancels all private reads, removes data and ignores late responses (0.704459ms)
+✔ tenant switching clears feature caches including legacy unscoped keys but keeps identity (0.638083ms)
+✔ membership errors fail bootstrap instead of authorizing an empty organization (0.896041ms)
+✔ owner/admin driver association is retained and profile fallback does not grant super-admin (2.701209ms)
+✔ organization defaults and explicit switches never select an unvalidated tenant/user (0.656542ms)
+✔ shell selects explicit fields and excludes integration credentials (0.61175ms)
+✔ bounded checklist reads preserve all original thresholds including totals beyond API limits (3.925375ms)
+✔ revoked memberships and default-company changes clear feature cache before the new identity is published (0.559167ms)
+✔ a readable self-membership with an RLS-hidden organization never grants tenant capabilities (0.271375ms)
+✔ preloading deduplicates imports and makes the first component render synchronous (10.953583ms)
+✔ preload errors remain observable by the route error boundary (2.938791ms)
+✔ legacy query roundtrip preserves IDs, filters, invitation values and repeated unknown keys as strings (1.279292ms)
+✔ invalid route-owned parameters fall back safely without discarding valid billing filters (0.15275ms)
+✔ batched detail navigation preserves return context and unrelated filter state (0.1665ms)
+✔ unresolved or absent membership cannot grant protected feature access (0.205416ms)
+✔ driver and dispatch detail restrictions are enforced before rendering (0.083958ms)
+✔ audit checks require actual membership even for a super administrator (0.074959ms)
+✔ signed-out bookmarks and invitation/reset routes are preserved for their public components (0.074792ms)
+✔ Router-generated URLs retain detail parameters, modal state, filters and fragments through memory history (23.295708ms)
+✔ beforeLoad redirects unauthorized deep links and preserves unrelated parameters (2.18175ms)
+ℹ tests 51
+ℹ suites 0
+ℹ pass 51
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1009.856792

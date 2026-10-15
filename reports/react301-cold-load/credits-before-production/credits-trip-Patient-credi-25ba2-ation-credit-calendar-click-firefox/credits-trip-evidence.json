@@ -1,0 +1,22 @@
+{
+  "synthetic": true,
+  "entry": "credit calendar click",
+  "mode": "production preview",
+  "instrumentation": null,
+  "url": "http://localhost:5198/?page=patient-details&id=00000000-0000-4000-8000-000000000901&section=trips&date=2026-10-02T05%3A00%3A00.000Z",
+  "errors": [],
+  "consoleErrors": [
+    "UI boundary diagnostic JSHandle@object"
+  ],
+  "diagnostics": [
+    [
+      "UI boundary diagnostic",
+      {
+        "reference": "UI-RENDER-LOOP-855F1BDA",
+        "kind": "render-loop"
+      }
+    ]
+  ],
+  "setterCalls": [],
+  "body": "Page Error\n\nThis page encountered an unexpected error. Try again, or open another page from the sidebar.\n\nReference: UI-RENDER-LOOP-855F1BDA\n\nTry again"
+}

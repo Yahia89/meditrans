@@ -1,0 +1,12 @@
+{
+  "scope": "Single lazy Patient Details chunk; local gzip estimate, not hosted latency",
+  "before": {
+    "decoded": 44720,
+    "gzip": 9776
+  },
+  "after": {
+    "decoded": 44919,
+    "gzip": 9860
+  },
+  "newRuntimeDependencies": false
+}

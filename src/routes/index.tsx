@@ -14,7 +14,14 @@ export const Route = createFileRoute('/')({
     if (!result.allowed) throw redirect({ to: '/', search: { ...search, page: result.fallback, modal: undefined }, hash: location.hash, replace: true });
   },
   loaderDeps: ({ search }) => ({ page: search.page }),
-  loader: ({ deps, context }) => context.access.userId || deps.page === 'accept-invite' || deps.page === 'reset-password' ? preloadPage(deps.page).then(() => null) : null,
+  loader: ({ deps, context }) => {
+    if (context.access.userId || deps.page === 'accept-invite' || deps.page === 'reset-password') {
+      // Start code early, but keep the mounted workspace visible. The page's
+      // Suspense/error boundary owns this promise and its explicit retry.
+      void preloadPage(deps.page).catch(() => { /* observed by preloadable.Component */ });
+    }
+    return null;
+  },
   component: WorkspacePage,
   errorComponent: RouteError,
 });

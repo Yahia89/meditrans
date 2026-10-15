@@ -5,6 +5,7 @@ import "../App.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { DashboardPage } from "@/components/dashboard-page";
+import { DirectoryPageSkeleton } from "@/components/directory-loading";
 import { LoginForm } from "@/components/login-form";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -24,7 +25,7 @@ import { markStartup } from "@/lib/startup-performance";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { type Page } from "@/lib/pages";
 
-import { loadDashboard, loadPatientsPage, loadDriversPage, loadEmployeesPage, loadEmployeeDetailsPage, loadUploadPage, loadAccountPage, loadBillingPage, loadNotificationsPage, loadFounderInviteForm, loadAcceptInvitePage, loadUploadReviewPage, loadPatientDetailsPage, loadDriverDetailsPage, loadTripDetails, loadTripDialog, loadTripsScheduler, loadBulkImportDialog, loadCreateDischargeDialog, loadClientCreditsPage, loadBrokerIntegrationsPage, loadDriverHistoryPage, loadMedicaidBillingPage, loadLiveTrackingPage, loadCompaniesPage, loadResetPasswordPage, loadFeeSettingsPage, loadSummaryPage, loadSTSInspectionPage, loadCompanyDocumentsPage } from "./page-loaders";
+import { preloadPage, loadDashboard, loadPatientsPage, loadDriversPage, loadEmployeesPage, loadEmployeeDetailsPage, loadUploadPage, loadAccountPage, loadBillingPage, loadNotificationsPage, loadFounderInviteForm, loadAcceptInvitePage, loadUploadReviewPage, loadPatientDetailsPage, loadDriverDetailsPage, loadTripDetails, loadTripDialog, loadTripsScheduler, loadBulkImportDialog, loadCreateDischargeDialog, loadClientCreditsPage, loadBrokerIntegrationsPage, loadDriverHistoryPage, loadMedicaidBillingPage, loadLiveTrackingPage, loadCompaniesPage, loadResetPasswordPage, loadFeeSettingsPage, loadSummaryPage, loadSTSInspectionPage, loadCompanyDocumentsPage } from "./page-loaders";
 
 const Dashboard = loadDashboard.Component;
 const PatientsPage = loadPatientsPage.Component;
@@ -255,13 +256,15 @@ export function WorkspacePage() {
       case "patients":
         return (
           <DashboardPage title="Patients">
-            <PatientsPage
-              onPatientClick={(id) => {
-                setPatientId(id);
-                setFromPage("patients");
-                setCurrentPage("patient-details");
-              }}
-            />
+            <Suspense fallback={<DirectoryPageSkeleton directory="patients" />}>
+              <PatientsPage
+                onPatientClick={(id) => {
+                  setPatientId(id);
+                  setFromPage("patients");
+                  setCurrentPage("patient-details");
+                }}
+              />
+            </Suspense>
           </DashboardPage>
         );
       case "patient-details":
@@ -288,13 +291,15 @@ export function WorkspacePage() {
       case "drivers":
         return (
           <DashboardPage title="Drivers">
-            <DriversPage
-              onDriverClick={(id) => {
-                setDriverId(id);
-                setFromPage("drivers");
-                setCurrentPage("driver-details");
-              }}
-            />
+            <Suspense fallback={<DirectoryPageSkeleton directory="drivers" />}>
+              <DriversPage
+                onDriverClick={(id) => {
+                  setDriverId(id);
+                  setFromPage("drivers");
+                  setCurrentPage("driver-details");
+                }}
+              />
+            </Suspense>
           </DashboardPage>
         );
       case "driver-details":
@@ -321,13 +326,15 @@ export function WorkspacePage() {
       case "employees":
         return (
           <DashboardPage title="Employees">
-            <EmployeesPage
-              onEmployeeClick={(id) => {
-                setEmployeeId(id);
-                setFromPage("employees");
-                setCurrentPage("employee-details");
-              }}
-            />
+            <Suspense fallback={<DirectoryPageSkeleton directory="employees" />}>
+              <EmployeesPage
+                onEmployeeClick={(id) => {
+                  setEmployeeId(id);
+                  setFromPage("employees");
+                  setCurrentPage("employee-details");
+                }}
+              />
+            </Suspense>
           </DashboardPage>
         );
       case "employee-details":
@@ -540,8 +547,12 @@ export function WorkspacePage() {
             }
           }}
         />
-        <main className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
-          <ErrorBoundary fallbackTitle="Page Error">
+        <main data-testid="workspace-main" className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
+          <ErrorBoundary
+            key={`${user.id}:${currentOrganization?.id ?? "no-organization"}:${currentPage}`}
+            fallbackTitle="Page Error"
+            onRetry={() => preloadPage(currentPage)}
+          >
             <Suspense fallback={<PageLoader />}>
               {renderPage()}
             </Suspense>

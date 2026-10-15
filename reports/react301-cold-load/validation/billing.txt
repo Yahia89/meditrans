@@ -1,0 +1,196 @@
+
+> future-transportation-crm@0.0.0 test:billing
+> node --test src/features/billing/tests/*.test.mjs
+
+✔ billing API normalizes numeric money and preserves string external references (948.31875ms)
+✔ billing API rejects malformed amounts, unknown statuses, and incomplete claim identity (435.291625ms)
+✔ partner invoice response permits record-level client to be absent (51.207791ms)
+✔ historical service lines preserve missing trip and authorization links (83.431209ms)
+✔ each failed record-detail query rejects instead of returning empty financial history (576.709875ms)
+✔ overview sums confirmed payment headers once (516.29575ms)
+✔ overview never substitutes the service period for a missing submission date (76.043334ms)
+✔ overview database errors remain errors instead of zero balances (148.539791ms)
+✔ overview keeps original submitted amounts and uses the organization month boundary (69.249458ms)
+✔ record search matches patient and agency and treats filter punctuation literally (25.110167ms)
+✔ overview and record exports include rows beyond the API page limit (214.964375ms)
+✖ Criteria 1 & 19: DHS Claim recorded with lines, external submission date preserved distinct from recorded_at (0.520917ms)
+✖ Criteria 13 & 14: Legitimate components on same trip allowed; duplicate component to another payer rejected (0.401083ms)
+✖ Criteria 6 & 18: Rejection, resubmission, and frozen snapshots retain history without doubling revenue (0.189459ms)
+✖ Criteria 8 & 9: $1,000 payment allocated across records counts as $1,000 total; over-allocation rejected (0.034458ms)
+✖ Criteria 15 & 16: Unauthorized role, disabled user, and cross-tenant allocation rejected (0.051708ms)
+✔ billing files reject empty, oversized, unsupported and mismatched uploads (10.0935ms)
+✔ invalid file never reaches Storage or metadata (954.549208ms)
+✔ failed metadata removes only the unattached uploaded object (106.565084ms)
+✔ a lost metadata response returns the committed document without deleting it (136.646417ms)
+✔ uncertain metadata keeps its file and a retry reuses the same upload identity (55.960167ms)
+✔ partial batch failure retains only the files that still need uploading (79.077416ms)
+✔ legacy Storage duplicate responses can safely finish a retried attachment (57.790416ms)
+✔ private file downloads expire after five minutes and trigger attachment downloads (384.493459ms)
+✔ payer follow-up defaults stay unset and an explicit zero is preserved (2.270167ms)
+✔ Criteria 12: 80 × $1.54 calculates exactly as $123.20 (0.325792ms)
+✔ Criteria 10: $1,000 charge, $100 adjustment, $400 payment produce $500 open balance (0.1ms)
+✔ Criteria 4: 'Received by payer' acknowledges submission receipt without marking funds received (0.263416ms)
+✔ Criteria 5: 'Under review / suspended' displays as review, not paid or denied (0.383ms)
+✔ Criteria 7: Partially paid record has settlement status 'Partially Paid' and preserves open balance (1.425333ms)
+✔ Criteria 11: A fully credited/adjusted record with zero receipts is not displayed as cash paid (0.185583ms)
+✔ Criteria 1: DHS Claim validates client, lines, and actual external submission date (2.006667ms)
+✔ Criteria 2: Connectivity invoice validates without requiring DHS-specific fields (0.451958ms)
+✔ Criteria 3: Partner invoice contains multiple clients while preserving client attribution per line (0.40975ms)
+✔ Criteria 8: One $1,000 payment allocated across 2 records counts as $1,000 total received (0.099708ms)
+✔ Criteria 9: Payment allocation cannot exceed available payment amount (0.05525ms)
+✔ CSV Export Sanitization: Formula injection prefixes are neutralized (0.129291ms)
+✔ Criteria 21: Manual billing action schemas contain no SFTP or automated transmission endpoints (0.079125ms)
+✔ manual entry uses the patient UUID prefix and requires an agency and patient (4.118209ms)
+✔ manual entry rejects invalid monetary precision and database overflow (1.253ms)
+✔ an optional initial receipt requires a positive amount and matching chronological timestamp (0.416625ms)
+✔ organization wall-clock input converts to UTC with summer and winter offsets (3.683125ms)
+✔ organization wall-clock validation rejects nonexistent DST and calendar times (0.671125ms)
+✔ form validation treats empty receipt inputs as unpaid and normalizes both dates (3.888459ms)
+✔ receipts reject date-only values and keep payment references as text (0.564583ms)
+✔ manual create atomically sends the receipt and preserves the retry ID and reference (357.427125ms)
+✔ manual create validates before writing and propagates backend failures (44.7645ms)
+ℹ tests 47
+ℹ suites 0
+ℹ pass 42
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5422.587209
+
+✖ failing tests:
+
+test at src/features/billing/tests/billing-db.test.mjs:138:1
+✖ Criteria 1 & 19: DHS Claim recorded with lines, external submission date preserved distinct from recorded_at (0.520917ms)
+  Error: Command failed: docker exec -i supabase_db_futuretransportation psql -U postgres -d postgres -q -t -A -v ON_ERROR_STOP=1 -c 
+      INSERT INTO organizations (name, slug)
+      VALUES ('Billing Test Org ' || gen_random_uuid(), 'billing-test-' || gen_random_uuid())
+      RETURNING id;
+    
+  Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running
+  
+      at genericNodeError (node:internal/errors:986:15)
+      at wrappedFn (node:internal/errors:540:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at runSql (file:///Users/yahiaalhejoj/meditrans/src/features/billing/tests/billing-db.test.mjs:7:18)
+      at TestContext.<anonymous> (file:///Users/yahiaalhejoj/meditrans/src/features/billing/tests/billing-db.test.mjs:32:15)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1397:25)
+      at TestHook.run (node:internal/test_runner/test:1741:18)
+      at TestHook.run (node:internal/util:581:20) {
+    status: 1,
+    signal: null,
+    output: [ null, '', 'Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running\n' ],
+    pid: 10716,
+    stdout: '',
+    stderr: 'Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running\n'
+  }
+
+test at src/features/billing/tests/billing-db.test.mjs:198:1
+✖ Criteria 13 & 14: Legitimate components on same trip allowed; duplicate component to another payer rejected (0.401083ms)
+  Error: Command failed: docker exec -i supabase_db_futuretransportation psql -U postgres -d postgres -q -t -A -v ON_ERROR_STOP=1 -c 
+      INSERT INTO organizations (name, slug)
+      VALUES ('Billing Test Org ' || gen_random_uuid(), 'billing-test-' || gen_random_uuid())
+      RETURNING id;
+    
+  Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running
+  
+      at genericNodeError (node:internal/errors:986:15)
+      at wrappedFn (node:internal/errors:540:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at runSql (file:///Users/yahiaalhejoj/meditrans/src/features/billing/tests/billing-db.test.mjs:7:18)
+      at TestContext.<anonymous> (file:///Users/yahiaalhejoj/meditrans/src/features/billing/tests/billing-db.test.mjs:32:15)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1397:25)
+      at TestHook.run (node:internal/test_runner/test:1741:18)
+      at TestHook.run (node:internal/util:581:20) {
+    status: 1,
+    signal: null,
+    output: [ null, '', 'Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running\n' ],
+    pid: 10716,
+    stdout: '',
+    stderr: 'Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running\n'
+  }
+
+test at src/features/billing/tests/billing-db.test.mjs:290:1
+✖ Criteria 6 & 18: Rejection, resubmission, and frozen snapshots retain history without doubling revenue (0.189459ms)
+  Error: Command failed: docker exec -i supabase_db_futuretransportation psql -U postgres -d postgres -q -t -A -v ON_ERROR_STOP=1 -c 
+      INSERT INTO organizations (name, slug)
+      VALUES ('Billing Test Org ' || gen_random_uuid(), 'billing-test-' || gen_random_uuid())
+      RETURNING id;
+    
+  Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running
+  
+      at genericNodeError (node:internal/errors:986:15)
+      at wrappedFn (node:internal/errors:540:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at runSql (file:///Users/yahiaalhejoj/meditrans/src/features/billing/tests/billing-db.test.mjs:7:18)
+      at TestContext.<anonymous> (file:///Users/yahiaalhejoj/meditrans/src/features/billing/tests/billing-db.test.mjs:32:15)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1397:25)
+      at TestHook.run (node:internal/test_runner/test:1741:18)
+      at TestHook.run (node:internal/util:581:20) {
+    status: 1,
+    signal: null,
+    output: [ null, '', 'Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running\n' ],
+    pid: 10716,
+    stdout: '',
+    stderr: 'Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running\n'
+  }
+
+test at src/features/billing/tests/billing-db.test.mjs:383:1
+✖ Criteria 8 & 9: $1,000 payment allocated across records counts as $1,000 total; over-allocation rejected (0.034458ms)
+  Error: Command failed: docker exec -i supabase_db_futuretransportation psql -U postgres -d postgres -q -t -A -v ON_ERROR_STOP=1 -c 
+      INSERT INTO organizations (name, slug)
+      VALUES ('Billing Test Org ' || gen_random_uuid(), 'billing-test-' || gen_random_uuid())
+      RETURNING id;
+    
+  Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running
+  
+      at genericNodeError (node:internal/errors:986:15)
+      at wrappedFn (node:internal/errors:540:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at runSql (file:///Users/yahiaalhejoj/meditrans/src/features/billing/tests/billing-db.test.mjs:7:18)
+      at TestContext.<anonymous> (file:///Users/yahiaalhejoj/meditrans/src/features/billing/tests/billing-db.test.mjs:32:15)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1397:25)
+      at TestHook.run (node:internal/test_runner/test:1741:18)
+      at TestHook.run (node:internal/util:581:20) {
+    status: 1,
+    signal: null,
+    output: [ null, '', 'Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running\n' ],
+    pid: 10716,
+    stdout: '',
+    stderr: 'Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running\n'
+  }
+
+test at src/features/billing/tests/billing-db.test.mjs:499:1
+✖ Criteria 15 & 16: Unauthorized role, disabled user, and cross-tenant allocation rejected (0.051708ms)
+  Error: Command failed: docker exec -i supabase_db_futuretransportation psql -U postgres -d postgres -q -t -A -v ON_ERROR_STOP=1 -c 
+      INSERT INTO organizations (name, slug)
+      VALUES ('Billing Test Org ' || gen_random_uuid(), 'billing-test-' || gen_random_uuid())
+      RETURNING id;
+    
+  Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running
+  
+      at genericNodeError (node:internal/errors:986:15)
+      at wrappedFn (node:internal/errors:540:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at runSql (file:///Users/yahiaalhejoj/meditrans/src/features/billing/tests/billing-db.test.mjs:7:18)
+      at TestContext.<anonymous> (file:///Users/yahiaalhejoj/meditrans/src/features/billing/tests/billing-db.test.mjs:32:15)
+      at TestHook.runInAsyncScope (node:async_hooks:227:14)
+      at TestHook.run (node:internal/test_runner/test:1397:25)
+      at TestHook.run (node:internal/test_runner/test:1741:18)
+      at TestHook.run (node:internal/util:581:20) {
+    status: 1,
+    signal: null,
+    output: [ null, '', 'Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running\n' ],
+    pid: 10716,
+    stdout: '',
+    stderr: 'Error response from daemon: container 72544d0abad38f8ac635fb5ab50bbf35940aea6722a916a261f0a4bd33ee1a6b is not running\n'
+  }

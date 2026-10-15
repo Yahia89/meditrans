@@ -1,0 +1,25 @@
+[WebServer] (node:16877) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 14 tests using 2 workers
+
+(node:16879) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16878) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 [firefox] › tests/directories-ui/stability.spec.mjs:54:3 › patients pagination handles later-page search, empty, limits, and both views (5.9s)
+  ✓   1 [firefox] › tests/directories-ui/stability.spec.mjs:154:3 › patients late enrichment preserves page two and open form draft (6.8s)
+  ✓   3 [firefox] › tests/directories-ui/stability.spec.mjs:54:3 › drivers pagination handles later-page search, empty, limits, and both views (3.8s)
+  ✓   4 [firefox] › tests/directories-ui/stability.spec.mjs:154:3 › drivers late enrichment preserves page two and open form draft (3.6s)
+  ✓   6 [firefox] › tests/directories-ui/stability.spec.mjs:154:3 › employees late enrichment preserves page two and open form draft (3.3s)
+  ✓   5 [firefox] › tests/directories-ui/stability.spec.mjs:54:3 › employees pagination handles later-page search, empty, limits, and both views (4.2s)
+  ✓   8 [firefox] › tests/directories-ui/stability.spec.mjs:203:3 › patients saved bento preference survives cold entry, search and session refresh (1.8s)
+  ✓   7 [firefox] › tests/directories-ui/stability.spec.mjs:203:3 › patients saved list preference survives cold entry, search and session refresh (2.4s)
+  ✓   9 [firefox] › tests/directories-ui/stability.spec.mjs:235:1 › delayed organization resolution makes no premature directory read (2.5s)
+  ✓  10 [firefox] › tests/directories-ui/stability.spec.mjs:248:1 › rapid directory navigation and browser history preserve URL without document reloads (3.0s)
+  ✓  11 [firefox] › tests/directories-ui/stability.spec.mjs:345:1 › induced render failure is recoverable by navigating to another directory (1.8s)
+  ✓  12 [firefox] › tests/directories-ui/stability.spec.mjs:414:1 › page boundary user retry recovers with sanitized diagnostic reference (1.0s)
+  ✓  13 [firefox] › tests/directories-ui/stability.spec.mjs:430:1 › authorization failure on refresh removes cached Patients and an open private draft (3.1s)
+  ✓  14 [firefox] › tests/directories-ui/stability.spec.mjs:449:1 › deferred form can close while its module suspends and reopen after fulfillment (3.4s)
+
+  14 passed (28.3s)

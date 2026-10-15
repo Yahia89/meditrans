@@ -1,0 +1,254 @@
+{
+  "synthetic": true,
+  "blockedModules": [
+    "/assets/routes-BdtRnEIg.js"
+  ],
+  "pendingFrames": [
+    {
+      "at": 153,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 169,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 184,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 202,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 217,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 233,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 253,
+      "content": true,
+      "authLoading": true,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 268,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 285,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 301,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 318,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 334,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 352,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 369,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 384,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 401,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 418,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 435,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 451,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    },
+    {
+      "at": 468,
+      "content": true,
+      "authLoading": false,
+      "workspacePending": true,
+      "shell": false
+    }
+  ],
+  "blankFrames": [
+    {
+      "at": 268,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 285,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 301,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 318,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 334,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 352,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 369,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 384,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 401,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    },
+    {
+      "at": 418,
+      "content": false,
+      "authLoading": false,
+      "workspacePending": false,
+      "shell": false
+    }
+  ],
+  "blankSpanMs": 150,
+  "documents": [
+    "http://localhost:5200/?page=patients"
+  ],
+  "chunks": [
+    "/assets/index-DvcQSX6f.js",
+    "/assets/rolldown-runtime-hePW80VL.js",
+    "/assets/workspace-BW16ex4K.js",
+    "/assets/workspace-50JjKmeZ.css",
+    "/assets/index-DKPvP0sP.css",
+    "/assets/patients-page-C0_xKXhO.js",
+    "/assets/dashboard-BfH-ZMY6.js",
+    "/assets/user-access-control-CMjMWfaR.js",
+    "/assets/useMutation-BTC55t0J.js",
+    "/assets/shield-check-Dj8Rjy68.js",
+    "/assets/alert-dialog-CjiKhPd5.js",
+    "/assets/pencil-DLjVIRcx.js",
+    "/assets/CalendarBlank.es-Fj2jK90P.js",
+    "/assets/CaretLeft.es-BJEGqa_P.js",
+    "/assets/useDirectoryPagination-Z4AA-wIZ.js",
+    "/assets/dialog-DXsnIQwg.js",
+    "/assets/DownloadSimple.es-k_oGoKK0.js",
+    "/assets/Envelope.es-D3VP_Lfj.js",
+    "/assets/Funnel.es-BZq3-BkQ.js",
+    "/assets/MagnifyingGlass.es-DcfwsiJA.js",
+    "/assets/MapPin.es-CYUD7BJv.js",
+    "/assets/Phone.es-DkEh2Ywk.js",
+    "/assets/Plus.es-DiqhF6fd.js",
+    "/assets/UsersThree.es-Hzb2u0De.js",
+    "/assets/checkbox-BngdglMW.js",
+    "/assets/directory-trip-totals-status-CR_FWrUG.js",
+    "/assets/routes-BdtRnEIg.js"
+  ],
+  "errors": []
+}

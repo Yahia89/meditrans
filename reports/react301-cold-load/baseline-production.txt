@@ -1,0 +1,408 @@
+[WebServer] (node:10522) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 2 workers
+
+(node:10526) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10525) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 [firefox] › tests/directories-ui/stability.spec.mjs:85:3 › patients cold code and list phases preserve shell/header geometry (5.0s)
+(node:10802) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 [firefox] › tests/directories-ui/directories.spec.mjs:18:1 › all directories render and search, then reuse their collection reads on immediate revisits (6.3s)
+  ✘   4 [firefox] › tests/directories-ui/stability.spec.mjs:85:3 › employees cold code and list phases preserve shell/header geometry (3.8s)
+(node:10863) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 [firefox] › tests/directories-ui/stability.spec.mjs:85:3 › drivers cold code and list phases preserve shell/header geometry (5.6s)
+(node:10880) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 0 safely falls back to supported pagination (13.8s)
+(node:11007) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   6 [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit -1 safely falls back to supported pagination (13.4s)
+(node:11047) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit garbage safely falls back to supported pagination (13.4s)
+(node:11198) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 2.5 safely falls back to supported pagination (13.8s)
+(node:11239) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 999999 safely falls back to supported pagination (13.7s)
+(node:11304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 10oops safely falls back to supported pagination (13.5s)
+(node:11319) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 [firefox] › tests/directories-ui/stability.spec.mjs:186:3 › patients saved list preference survives cold entry, search and session refresh (1.5s)
+  ✓  12 [firefox] › tests/directories-ui/stability.spec.mjs:186:3 › patients saved bento preference survives cold entry, search and session refresh (1.3s)
+
+
+  1) [firefox] › tests/directories-ui/stability.spec.mjs:85:3 › patients cold code and list phases preserve shell/header geometry 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 64
+    Received: 0
+
+      119 |       expect(code.header, 'Route header remains visible during page code import').not.toBeNull();
+      120 |       expect(data.header).not.toBeNull();
+    > 121 |       expect(code.header?.height).toBe(ready.header?.height);
+          |                                   ^
+      122 |       expect(data.header?.height).toBe(ready.header?.height);
+      123 |       expect(baseRows.search?.y).toBe(ready.search?.y);
+      124 |       expect(data.search?.y).toBe(ready.search?.y);
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/stability.spec.mjs:121:35
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-cold-co-99b79-serve-shell-header-geometry-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-cold-co-99b79-serve-shell-header-geometry-firefox/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/baseline-production/stability-patients-cold-co-99b79-serve-shell-header-geometry-firefox/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-cold-co-99b79-serve-shell-header-geometry-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/baseline-production/stability-patients-cold-co-99b79-serve-shell-header-geometry-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [firefox] › tests/directories-ui/stability.spec.mjs:85:3 › drivers cold code and list phases preserve shell/header geometry 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 64
+    Received: 0
+
+      119 |       expect(code.header, 'Route header remains visible during page code import').not.toBeNull();
+      120 |       expect(data.header).not.toBeNull();
+    > 121 |       expect(code.header?.height).toBe(ready.header?.height);
+          |                                   ^
+      122 |       expect(data.header?.height).toBe(ready.header?.height);
+      123 |       expect(baseRows.search?.y).toBe(ready.search?.y);
+      124 |       expect(data.search?.y).toBe(ready.search?.y);
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/stability.spec.mjs:121:35
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-drivers-cold-cod-282d6-serve-shell-header-geometry-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-drivers-cold-cod-282d6-serve-shell-header-geometry-firefox/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/baseline-production/stability-drivers-cold-cod-282d6-serve-shell-header-geometry-firefox/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-drivers-cold-cod-282d6-serve-shell-header-geometry-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/baseline-production/stability-drivers-cold-cod-282d6-serve-shell-header-geometry-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [firefox] › tests/directories-ui/stability.spec.mjs:85:3 › employees cold code and list phases preserve shell/header geometry 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 64
+    Received: 0
+
+      119 |       expect(code.header, 'Route header remains visible during page code import').not.toBeNull();
+      120 |       expect(data.header).not.toBeNull();
+    > 121 |       expect(code.header?.height).toBe(ready.header?.height);
+          |                                   ^
+      122 |       expect(data.header?.height).toBe(ready.header?.height);
+      123 |       expect(baseRows.search?.y).toBe(ready.search?.y);
+      124 |       expect(data.search?.y).toBe(ready.search?.y);
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/stability.spec.mjs:121:35
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-employees-cold-c-c9c76-serve-shell-header-geometry-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-employees-cold-c-c9c76-serve-shell-header-geometry-firefox/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/baseline-production/stability-employees-cold-c-c9c76-serve-shell-header-geometry-firefox/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-employees-cold-c-c9c76-serve-shell-header-geometry-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/baseline-production/stability-employees-cold-c-c9c76-serve-shell-header-geometry-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 0 safely falls back to supported pagination 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Synthetic patients 01', { exact: true }).first()
+    Expected: visible
+    Timeout: 12000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('Synthetic patients 01', { exact: true }).first() with timeout 12000ms
+      - waiting for getByText('Synthetic patients 01', { exact: true }).first()
+
+
+      175 |     const fixture = await installDirectoryFixtures(context, page, baseURL, { rows });
+      176 |     await page.goto(`/?page=patients&limit=${encodeURIComponent(limit)}`);
+    > 177 |     await expect(row(page, rows.patients[0].full_name)).toBeVisible();
+          |                                                         ^
+      178 |     await expect(page.getByRole('combobox')).toContainText('Show 5');
+      179 |     await expect(row(page, rows.patients[5].full_name)).toHaveCount(0);
+      180 |     await expect(page.locator('body')).not.toContainText(/NaN|Infinity|page 1 of 0/i);
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/stability.spec.mjs:177:57
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-a74c6-ack-to-supported-pagination-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-a74c6-ack-to-supported-pagination-firefox/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/baseline-production/stability-patients-malform-a74c6-ack-to-supported-pagination-firefox/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-a74c6-ack-to-supported-pagination-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/baseline-production/stability-patients-malform-a74c6-ack-to-supported-pagination-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit -1 safely falls back to supported pagination 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('combobox')
+    Expected substring: "Show 5"
+    Received string:    ""
+    Timeout: 12000ms
+
+    Call log:
+      - Expect "toContainText" getByRole('combobox') with timeout 12000ms
+      - waiting for getByRole('combobox')
+        28 × locator resolved to <button dir="ltr" type="button" role="combobox" data-state="closed" data-size="default" aria-expanded="false" aria-autocomplete="none" data-slot="select-trigger" aria-controls="radix-_r_f_" class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center ju…>…</button>
+           - unexpected value ""
+
+
+      176 |     await page.goto(`/?page=patients&limit=${encodeURIComponent(limit)}`);
+      177 |     await expect(row(page, rows.patients[0].full_name)).toBeVisible();
+    > 178 |     await expect(page.getByRole('combobox')).toContainText('Show 5');
+          |                                              ^
+      179 |     await expect(row(page, rows.patients[5].full_name)).toHaveCount(0);
+      180 |     await expect(page.locator('body')).not.toContainText(/NaN|Infinity|page 1 of 0/i);
+      181 |     settled(fixture);
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/stability.spec.mjs:178:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-1d9e2-ack-to-supported-pagination-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-1d9e2-ack-to-supported-pagination-firefox/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/baseline-production/stability-patients-malform-1d9e2-ack-to-supported-pagination-firefox/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-1d9e2-ack-to-supported-pagination-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/baseline-production/stability-patients-malform-1d9e2-ack-to-supported-pagination-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit garbage safely falls back to supported pagination 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Synthetic patients 01', { exact: true }).first()
+    Expected: visible
+    Timeout: 12000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('Synthetic patients 01', { exact: true }).first() with timeout 12000ms
+      - waiting for getByText('Synthetic patients 01', { exact: true }).first()
+
+
+      175 |     const fixture = await installDirectoryFixtures(context, page, baseURL, { rows });
+      176 |     await page.goto(`/?page=patients&limit=${encodeURIComponent(limit)}`);
+    > 177 |     await expect(row(page, rows.patients[0].full_name)).toBeVisible();
+          |                                                         ^
+      178 |     await expect(page.getByRole('combobox')).toContainText('Show 5');
+      179 |     await expect(row(page, rows.patients[5].full_name)).toHaveCount(0);
+      180 |     await expect(page.locator('body')).not.toContainText(/NaN|Infinity|page 1 of 0/i);
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/stability.spec.mjs:177:57
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-27da7-ack-to-supported-pagination-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-27da7-ack-to-supported-pagination-firefox/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/baseline-production/stability-patients-malform-27da7-ack-to-supported-pagination-firefox/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-27da7-ack-to-supported-pagination-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/baseline-production/stability-patients-malform-27da7-ack-to-supported-pagination-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 2.5 safely falls back to supported pagination 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('combobox')
+    Expected substring: "Show 5"
+    Received string:    ""
+    Timeout: 12000ms
+
+    Call log:
+      - Expect "toContainText" getByRole('combobox') with timeout 12000ms
+      - waiting for getByRole('combobox')
+        28 × locator resolved to <button dir="ltr" type="button" role="combobox" data-state="closed" data-size="default" aria-expanded="false" aria-autocomplete="none" data-slot="select-trigger" aria-controls="radix-_r_f_" class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center ju…>…</button>
+           - unexpected value ""
+
+
+      176 |     await page.goto(`/?page=patients&limit=${encodeURIComponent(limit)}`);
+      177 |     await expect(row(page, rows.patients[0].full_name)).toBeVisible();
+    > 178 |     await expect(page.getByRole('combobox')).toContainText('Show 5');
+          |                                              ^
+      179 |     await expect(row(page, rows.patients[5].full_name)).toHaveCount(0);
+      180 |     await expect(page.locator('body')).not.toContainText(/NaN|Infinity|page 1 of 0/i);
+      181 |     settled(fixture);
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/stability.spec.mjs:178:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-402c0-ack-to-supported-pagination-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-402c0-ack-to-supported-pagination-firefox/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/baseline-production/stability-patients-malform-402c0-ack-to-supported-pagination-firefox/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-402c0-ack-to-supported-pagination-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/baseline-production/stability-patients-malform-402c0-ack-to-supported-pagination-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 999999 safely falls back to supported pagination 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('combobox')
+    Expected substring: "Show 5"
+    Received string:    ""
+    Timeout: 12000ms
+
+    Call log:
+      - Expect "toContainText" getByRole('combobox') with timeout 12000ms
+      - waiting for getByRole('combobox')
+        27 × locator resolved to <button dir="ltr" type="button" role="combobox" data-state="closed" data-size="default" aria-expanded="false" aria-autocomplete="none" data-slot="select-trigger" aria-controls="radix-_r_f_" class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center ju…>…</button>
+           - unexpected value ""
+
+
+      176 |   test(`patients malformed limit ${limit} safely falls back to supported pagination`, async ({ context, page, baseURL }) => {
+      177 |     const rows = createDirectoryRows();
+    > 178 |     const fixture = await installDirectoryFixtures(context, page, baseURL, { rows });
+          |                                              ^
+      179 |     await page.goto(`/?page=patients&limit=${encodeURIComponent(limit)}`);
+      180 |     await expect(row(page, rows.patients[0].full_name)).toBeVisible();
+      181 |     await expect(page.getByRole('combobox')).toContainText('Show 5');
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/stability.spec.mjs:178:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-43ec1-ack-to-supported-pagination-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-43ec1-ack-to-supported-pagination-firefox/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/baseline-production/stability-patients-malform-43ec1-ack-to-supported-pagination-firefox/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-43ec1-ack-to-supported-pagination-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/baseline-production/stability-patients-malform-43ec1-ack-to-supported-pagination-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 10oops safely falls back to supported pagination 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('combobox')
+    Expected substring: "Show 5"
+    Received string:    ""
+    Timeout: 12000ms
+
+    Call log:
+      - Expect "toContainText" getByRole('combobox') with timeout 12000ms
+      - waiting for getByRole('combobox')
+        28 × locator resolved to <button dir="ltr" type="button" role="combobox" data-state="closed" data-size="default" aria-expanded="false" aria-autocomplete="none" data-slot="select-trigger" aria-controls="radix-_r_f_" class="data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex items-center ju…>…</button>
+           - unexpected value ""
+
+
+      176 |   test(`patients malformed limit ${limit} safely falls back to supported pagination`, async ({ context, page, baseURL }) => {
+      177 |     const rows = createDirectoryRows();
+    > 178 |     const fixture = await installDirectoryFixtures(context, page, baseURL, { rows });
+          |                                              ^
+      179 |     await page.goto(`/?page=patients&limit=${encodeURIComponent(limit)}`);
+      180 |     await expect(row(page, rows.patients[0].full_name)).toBeVisible();
+      181 |     await expect(page.getByRole('combobox')).toContainText('Show 5');
+        at /Users/yahiaalhejoj/meditrans/tests/directories-ui/stability.spec.mjs:178:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-eb5df-ack-to-supported-pagination-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-eb5df-ack-to-supported-pagination-firefox/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/react301-cold-load/baseline-production/stability-patients-malform-eb5df-ack-to-supported-pagination-firefox/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/react301-cold-load/baseline-production/stability-patients-malform-eb5df-ack-to-supported-pagination-firefox/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/react301-cold-load/baseline-production/stability-patients-malform-eb5df-ack-to-supported-pagination-firefox/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9 failed
+    [firefox] › tests/directories-ui/stability.spec.mjs:85:3 › patients cold code and list phases preserve shell/header geometry 
+    [firefox] › tests/directories-ui/stability.spec.mjs:85:3 › drivers cold code and list phases preserve shell/header geometry 
+    [firefox] › tests/directories-ui/stability.spec.mjs:85:3 › employees cold code and list phases preserve shell/header geometry 
+    [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 0 safely falls back to supported pagination 
+    [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit -1 safely falls back to supported pagination 
+    [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit garbage safely falls back to supported pagination 
+    [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 2.5 safely falls back to supported pagination 
+    [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 999999 safely falls back to supported pagination 
+    [firefox] › tests/directories-ui/stability.spec.mjs:173:3 › patients malformed limit 10oops safely falls back to supported pagination 
+  3 passed (1.2m)

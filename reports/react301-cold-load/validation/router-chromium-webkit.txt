@@ -1,0 +1,27 @@
+
+> future-transportation-crm@0.0.0 test:router:ui
+> playwright test --config playwright.router.config.ts --project chromium --project webkit
+
+[WebServer] (node:16271) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 2 workers
+
+(node:16299) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16298) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [chromium] › tests/router-ui/navigation.spec.mjs:29:1 › dashboard, trips, browser history and manual billing navigation preserve the session and query (2.0s)
+  ✓  1 [chromium] › tests/router-ui/navigation.spec.mjs:55:1 › opening and explicitly cancelling a trip dialog preserves scheduler filters and unrelated URL state (2.1s)
+  ✓  3 [chromium] › tests/router-ui/navigation.spec.mjs:86:1 › the nuqs page-size adapter and batched detail route share one history without dropping filters (1.6s)
+(node:16370) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [chromium] › tests/router-ui/navigation.spec.mjs:116:1 › a stale route chunk offers manual refresh without reloading the current document automatically (2.1s)
+(node:16378) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  6 [webkit] › tests/router-ui/navigation.spec.mjs:55:1 › opening and explicitly cancelling a trip dialog preserves scheduler filters and unrelated URL state (1.9s)
+  ✓  5 [webkit] › tests/router-ui/navigation.spec.mjs:29:1 › dashboard, trips, browser history and manual billing navigation preserve the session and query (2.1s)
+  ✓  8 [webkit] › tests/router-ui/navigation.spec.mjs:116:1 › a stale route chunk offers manual refresh without reloading the current document automatically (1.4s)
+  ✓  7 [webkit] › tests/router-ui/navigation.spec.mjs:86:1 › the nuqs page-size adapter and batched detail route share one history without dropping filters (2.2s)
+
+  8 passed (12.2s)

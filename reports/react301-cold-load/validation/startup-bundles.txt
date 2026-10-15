@@ -1,0 +1,99 @@
+
+> future-transportation-crm@0.0.0 measure:startup
+> node scripts/measure-startup-bundles.mjs dist
+
+{
+  "shell": {
+    "decoded": 895288,
+    "gzip": 268737,
+    "chunks": [
+      {
+        "file": "assets/index-D3DXa--B.js",
+        "decoded": 213788,
+        "gzip": 68034
+      },
+      {
+        "file": "assets/rolldown-runtime-hePW80VL.js",
+        "decoded": 716,
+        "gzip": 428
+      },
+      {
+        "file": "assets/workspace-g8To8LzM.js",
+        "decoded": 680709,
+        "gzip": 200188
+      },
+      {
+        "file": "assets/routes-nyisipC1.js",
+        "decoded": 75,
+        "gzip": 87
+      }
+    ]
+  },
+  "dashboard": {
+    "decoded": 1049124,
+    "gzip": 310378,
+    "chunks": [
+      {
+        "file": "assets/index-D3DXa--B.js",
+        "decoded": 213788,
+        "gzip": 68034
+      },
+      {
+        "file": "assets/rolldown-runtime-hePW80VL.js",
+        "decoded": 716,
+        "gzip": 428
+      },
+      {
+        "file": "assets/workspace-g8To8LzM.js",
+        "decoded": 680709,
+        "gzip": 200188
+      },
+      {
+        "file": "assets/routes-nyisipC1.js",
+        "decoded": 75,
+        "gzip": 87
+      },
+      {
+        "file": "assets/dashboard-gAu2-dXQ.js",
+        "decoded": 153836,
+        "gzip": 41641
+      }
+    ]
+  },
+  "chart": {
+    "decoded": 1379183,
+    "gzip": 407302,
+    "chunks": [
+      {
+        "file": "assets/index-D3DXa--B.js",
+        "decoded": 213788,
+        "gzip": 68034
+      },
+      {
+        "file": "assets/rolldown-runtime-hePW80VL.js",
+        "decoded": 716,
+        "gzip": 428
+      },
+      {
+        "file": "assets/workspace-g8To8LzM.js",
+        "decoded": 680709,
+        "gzip": 200188
+      },
+      {
+        "file": "assets/routes-nyisipC1.js",
+        "decoded": 75,
+        "gzip": 87
+      },
+      {
+        "file": "assets/dashboard-gAu2-dXQ.js",
+        "decoded": 153836,
+        "gzip": 41641
+      },
+      {
+        "file": "assets/PerformanceChartPlot-DJsN8XOQ.js",
+        "decoded": 330059,
+        "gzip": 96924
+      }
+    ]
+  }
+}

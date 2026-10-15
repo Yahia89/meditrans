@@ -1,0 +1,133 @@
+{
+  "synthetic": true,
+  "productionIndexSha256": "81f989e293ed11bdb03c2d0dc6e533d48a98c0d6bfc947647c304763ccd16b72",
+  "sourceSha256": {
+    "src/components/patient-details-page.tsx": "5dde4c6cd23d3225bd1a2d0531fca72ea88931e1830f9d7a9c5ab2ffdff39138",
+    "src/router/navigation.ts": "dd1129a38846284e034c22d8854259e3a1b452023d408c7f185cbbf0fe319be6"
+  },
+  "before": {
+    "unchangedDevelopmentStrictMode": {
+      "expectedFailures": 2,
+      "log": "validation/credits-before-development.txt",
+      "artifacts": "../react301-cold-load/credits-before-development"
+    },
+    "unchangedProduction": {
+      "expectedFailures": 2,
+      "log": "validation/credits-before-production.txt",
+      "artifacts": "../react301-cold-load/credits-before-production"
+    },
+    "fixtureTripCount": 1,
+    "setterObservation": {
+      "log": "validation/credits-before-setter-trace-confirmed.txt",
+      "artifact": "reports/react301-cold-load/credits-before-setter-trace-confirmed/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/credits-trip-evidence.json",
+      "totalCalls": 56,
+      "nonnullDateCalls": 54,
+      "freshDateIdentityCalls": 52,
+      "sameDateIdentityCalls": 2,
+      "dateValues": [
+        "2026-10-02T05:00:00.000Z"
+      ],
+      "instrumentation": "Only observation inserted before the unchanged original setTripPage(1). No state/dependency change. The real loop was also reproduced without this transform."
+    }
+  },
+  "after": {
+    "developmentFirefoxStrictMode": {
+      "passed": 5,
+      "seconds": 17.4,
+      "log": "validation/credits-after-development-final.txt"
+    },
+    "productionFirefox": {
+      "passed": 5,
+      "seconds": 7.8,
+      "log": "validation/credits-after-production-firefox.txt",
+      "video": "reports/react301-followup/credits-after-production-firefox/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/video.webm",
+      "trace": "reports/react301-followup/credits-after-production-firefox/credits-trip-Patient-credi-25ba2-ation-credit-calendar-click-firefox/trace.zip"
+    },
+    "productionChromium": {
+      "passed": 5,
+      "log": "validation/credits-after-production-cross-browser.txt"
+    },
+    "productionWebkit": {
+      "passed": 5,
+      "seconds": 6.1,
+      "log": "validation/credits-after-production-webkit-verified.txt",
+      "fixturePresenceRequests": [
+        {
+          "entry": "direct dated trip bookmark",
+          "calls": [
+            {
+              "status": "online",
+              "keepalive": false
+            },
+            {
+              "status": "offline",
+              "keepalive": true
+            },
+            {
+              "status": "away",
+              "keepalive": false
+            },
+            {
+              "status": "online",
+              "keepalive": false
+            }
+          ]
+        },
+        {
+          "entry": "credit calendar click",
+          "calls": [
+            {
+              "status": "online",
+              "keepalive": false
+            },
+            {
+              "status": "offline",
+              "keepalive": true
+            },
+            {
+              "status": "away",
+              "keepalive": false
+            },
+            {
+              "status": "online",
+              "keepalive": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "coverage": [
+    "Patients list -> patient details -> Credits -> spending day -> filtered trip history -> actual Trip Details -> Back",
+    "Dated direct bookmark, browser Back/Forward, reload, and clearing date",
+    "13 trips total, 7 on selected day, 6-row pagination; page two preserved on async refresh",
+    "Date clear, status, previous/next/current month reset pagination",
+    "No-results display and async final-page list shrink",
+    "Malformed date bookmarks not-a-date and Infinity"
+  ],
+  "fixtureLimitations": [
+    "All records, sessions, and backend responses are synthetic; no production writes or hosted authorization/performance claims.",
+    "Before reproduction used one completed trip; the after pagination case uses 13 trips including seven on selected day.",
+    "WebKit native route interception cancels presence RPCs around document unload. Explicit CORS and keepalive-only fulfillment still failed. Final WebKit fixture fulfills only the already-synthetic update_user_presence endpoint in browser, records status/count, and preserves all other fetches plus native-error/render-diagnostic assertions. Presence unload transport is not validated."
+  ],
+  "preliminaryFixtureFailures": [
+    {
+      "artifacts": "credits-after-development",
+      "reason": "Two full flows passed; pagination assertion matched nested main elements. Corrected locator .first(); final five development cases passed."
+    },
+    {
+      "artifacts": [
+        "credits-after-production-cross-browser",
+        "credits-after-production-webkit-cors",
+        "credits-after-production-webkit-final"
+      ],
+      "reason": "Credit navigation completed, but WebKit reported cancelled synthetic presence RPC during reload. Retained evidence; exact endpoint fixture corrected; final five WebKit cases passed."
+    }
+  ],
+  "commands": {
+    "development": "DIRECTORIES_DEV=1 DIRECTORIES_TEST_PORT=5199 DIRECTORIES_OUTPUT=reports/react301-followup/credits-after-development-final node tests/directories-ui/run-firefox.mjs --grep \"Patient credit trip|Patient trip malformed date\"",
+    "productionFirefox": "DIRECTORIES_TEST_PORT=5199 DIRECTORIES_OUTPUT=reports/react301-followup/credits-after-production-firefox DIRECTORIES_VIDEO=1 DIRECTORIES_TRACE=1 node tests/directories-ui/run-firefox.mjs --grep \"Patient credit trip|Patient trip malformed date\"",
+    "productionChromium": "DIRECTORIES_TEST_PORT=5199 DIRECTORIES_OUTPUT=reports/react301-followup/credits-after-production-cross-browser npx playwright test --config playwright.directories.config.ts --project=chromium --project=webkit --grep \"Patient credit trip|Patient trip malformed date\"",
+    "productionWebkit": "DIRECTORIES_TEST_PORT=5199 DIRECTORIES_OUTPUT=reports/react301-followup/credits-after-production-webkit-verified npx playwright test --config playwright.directories.config.ts --project=webkit --grep \"Patient credit trip|Patient trip malformed date\""
+  }
+}

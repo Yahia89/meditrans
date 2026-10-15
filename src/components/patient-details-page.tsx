@@ -177,14 +177,24 @@ export function PatientDetailsPage({
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [tripPage, setTripPage] = useState(1);
+  const [requestedTripPage, setTripPage] = useState(1);
   const [tripStatusFilter, setTripStatusFilter] = useState<TripStatus | "all">(
     "all",
   );
-  const [selectedTripDate, setSelectedTripDate] = useQueryState("date", {
-    parse: (v) => (v ? new Date(v) : null),
-    serialize: (v) => v?.toISOString() ?? "",
-  });
+  const [selectedTripDateValue, setSelectedTripDateValue] = useQueryState("date");
+  const selectedTripDate = useMemo(() => {
+    if (!selectedTripDateValue) return null;
+    const parsed = new Date(selectedTripDateValue);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }, [selectedTripDateValue]);
+  const [tripPageScope, setTripPageScope] = useState({ patientId: id, date: selectedTripDateValue });
+  const tripPageScopeChanged = tripPageScope.patientId !== id || tripPageScope.date !== selectedTripDateValue;
+  // Back/Forward can change the patient or date without a filter event. Compare
+  // URL primitives, not a freshly parsed Date, and reset pagination only once.
+  if (tripPageScopeChanged) {
+    setTripPageScope({ patientId: id, date: selectedTripDateValue });
+    setTripPage(1);
+  }
 
   const canManagePatients = canEditPatients || canDeletePatients;
 
@@ -302,32 +312,32 @@ export function PatientDetailsPage({
     });
   }, [allTrips, tripMonth, tripStatusFilter, selectedTripDate, activeTimezone]);
 
+  // Clamp the visible page when refreshed results shrink.
+  const totalTripPages = Math.max(1, Math.ceil(filteredTrips.length / TRIPS_PER_PAGE));
+  const tripPage = Math.min(totalTripPages, Math.max(1, tripPageScopeChanged ? 1 : requestedTripPage));
+
   // Paginate filtered trips
   const paginatedTrips = useMemo(() => {
     const start = (tripPage - 1) * TRIPS_PER_PAGE;
     return filteredTrips.slice(start, start + TRIPS_PER_PAGE);
   }, [filteredTrips, tripPage]);
 
-  const totalTripPages = Math.ceil(filteredTrips.length / TRIPS_PER_PAGE);
-
-  // Reset to page 1 when filters change
-  useMemo(() => {
-    setTripPage(1);
-  }, [tripMonth, tripStatusFilter, selectedTripDate]);
-
   const goToPrevMonth = () => {
+    setTripPage(1);
     setTripMonth(
       (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
     );
   };
 
   const goToNextMonth = () => {
+    setTripPage(1);
     setTripMonth(
       (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
     );
   };
 
   const goToCurrentMonth = () => {
+    setTripPage(1);
     const now = new Date();
     setTripMonth(new Date(now.getFullYear(), now.getMonth(), 1));
   };
@@ -1113,7 +1123,10 @@ export function PatientDetailsPage({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSelectedTripDate(null)}
+                    onClick={() => {
+                      setTripPage(1);
+                      void setSelectedTripDateValue(null);
+                    }}
                     className="h-8 px-3 text-xs hover:bg-slate-100 text-slate-500"
                   >
                     Show all
@@ -1126,9 +1139,10 @@ export function PatientDetailsPage({
                 <Funnel size={16} className="text-slate-400" />
                 <select
                   value={tripStatusFilter}
-                  onChange={(e) =>
-                    setTripStatusFilter(e.target.value as TripStatus | "all")
-                  }
+                  onChange={(e) => {
+                    setTripPage(1);
+                    setTripStatusFilter(e.target.value as TripStatus | "all");
+                  }}
                   className="h-8 rounded-lg border border-slate-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20"
                 >
                   <option value="all">All Status</option>
@@ -1252,7 +1266,7 @@ export function PatientDetailsPage({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setTripPage((p) => Math.max(1, p - 1))}
+                onClick={() => setTripPage(tripPage - 1)}
                 disabled={tripPage === 1}
                 className="h-8 w-8 p-0"
               >
@@ -1265,7 +1279,7 @@ export function PatientDetailsPage({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  setTripPage((p) => Math.min(totalTripPages, p + 1))
+                  setTripPage(tripPage + 1)
                 }
                 disabled={tripPage === totalTripPages}
                 className="h-8 w-8 p-0"
@@ -1288,8 +1302,9 @@ export function PatientDetailsPage({
           referralExpiration={patient.referral_expiration_date}
           serviceType={patient.service_type}
           onDayClick={(date) => {
-            setSelectedTripDate(date);
-            setActiveTab("trips");
+            setTripPage(1);
+            void setSelectedTripDateValue(date.toISOString());
+            void setActiveTab("trips");
           }}
         />
       )}

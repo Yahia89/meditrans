@@ -1,0 +1,53 @@
+[WebServer] (node:17633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 38 tests using 2 workers
+
+(node:17661) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17662) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › tests/directories-ui/initial-workspace.spec.mjs:6:1 › initial workspace code keeps a visible status after identity resolves (1.4s)
+  ✓   2 [chromium] › tests/directories-ui/directories.spec.mjs:18:1 › all directories render and search, then reuse their collection reads on immediate revisits (2.7s)
+  ✓   3 [chromium] › tests/directories-ui/stability.spec.mjs:54:3 › patients pagination handles later-page search, empty, limits, and both views (2.0s)
+  ✓   4 [chromium] › tests/directories-ui/stability.spec.mjs:86:3 › patients cold code and list phases preserve shell/header geometry (1.8s)
+  ✓   5 [chromium] › tests/directories-ui/stability.spec.mjs:154:3 › patients late enrichment preserves page two and open form draft (2.7s)
+  ✓   6 [chromium] › tests/directories-ui/stability.spec.mjs:54:3 › drivers pagination handles later-page search, empty, limits, and both views (2.7s)
+  ✓   7 [chromium] › tests/directories-ui/stability.spec.mjs:86:3 › drivers cold code and list phases preserve shell/header geometry (2.0s)
+  ✓   8 [chromium] › tests/directories-ui/stability.spec.mjs:154:3 › drivers late enrichment preserves page two and open form draft (2.4s)
+  ✓   9 [chromium] › tests/directories-ui/stability.spec.mjs:54:3 › employees pagination handles later-page search, empty, limits, and both views (2.2s)
+  ✓  10 [chromium] › tests/directories-ui/stability.spec.mjs:86:3 › employees cold code and list phases preserve shell/header geometry (1.5s)
+  ✓  12 [chromium] › tests/directories-ui/stability.spec.mjs:203:3 › patients saved list preference survives cold entry, search and session refresh (656ms)
+  ✓  11 [chromium] › tests/directories-ui/stability.spec.mjs:154:3 › employees late enrichment preserves page two and open form draft (1.8s)
+  ✓  13 [chromium] › tests/directories-ui/stability.spec.mjs:203:3 › patients saved bento preference survives cold entry, search and session refresh (658ms)
+  ✓  14 [chromium] › tests/directories-ui/stability.spec.mjs:248:1 › rapid directory navigation and browser history preserve URL without document reloads (1.2s)
+  ✓  15 [chromium] › tests/directories-ui/stability.spec.mjs:345:1 › induced render failure is recoverable by navigating to another directory (959ms)
+  ✓  17 [chromium] › tests/directories-ui/stability.spec.mjs:414:1 › page boundary user retry recovers with sanitized diagnostic reference (576ms)
+  ✓  16 [chromium] › tests/directories-ui/stability.spec.mjs:361:1 › induced chunk failure stays distinct and allows navigation without reload loop (1.3s)
+  ✓  18 [chromium] › tests/directories-ui/stability.spec.mjs:430:1 › authorization failure on refresh removes cached Patients and an open private draft (1.0s)
+  ✓  19 [chromium] › tests/directories-ui/stability.spec.mjs:449:1 › deferred form can close while its module suspends and reopen after fulfillment (1.1s)
+(node:17853) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17865) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  21 [webkit] › tests/directories-ui/initial-workspace.spec.mjs:6:1 › initial workspace code keeps a visible status after identity resolves (1.6s)
+  ✓  20 [webkit] › tests/directories-ui/directories.spec.mjs:18:1 › all directories render and search, then reuse their collection reads on immediate revisits (2.9s)
+  ✓  22 [webkit] › tests/directories-ui/stability.spec.mjs:54:3 › patients pagination handles later-page search, empty, limits, and both views (1.8s)
+  ✓  23 [webkit] › tests/directories-ui/stability.spec.mjs:86:3 › patients cold code and list phases preserve shell/header geometry (1.4s)
+  ✓  25 [webkit] › tests/directories-ui/stability.spec.mjs:54:3 › drivers pagination handles later-page search, empty, limits, and both views (1.6s)
+  ✓  24 [webkit] › tests/directories-ui/stability.spec.mjs:154:3 › patients late enrichment preserves page two and open form draft (2.7s)
+  ✓  26 [webkit] › tests/directories-ui/stability.spec.mjs:86:3 › drivers cold code and list phases preserve shell/header geometry (1.3s)
+  ✓  27 [webkit] › tests/directories-ui/stability.spec.mjs:154:3 › drivers late enrichment preserves page two and open form draft (1.7s)
+  ✓  28 [webkit] › tests/directories-ui/stability.spec.mjs:54:3 › employees pagination handles later-page search, empty, limits, and both views (2.0s)
+  ✓  29 [webkit] › tests/directories-ui/stability.spec.mjs:86:3 › employees cold code and list phases preserve shell/header geometry (1.4s)
+  ✓  31 [webkit] › tests/directories-ui/stability.spec.mjs:203:3 › patients saved list preference survives cold entry, search and session refresh (660ms)
+  ✓  30 [webkit] › tests/directories-ui/stability.spec.mjs:154:3 › employees late enrichment preserves page two and open form draft (1.8s)
+  ✓  32 [webkit] › tests/directories-ui/stability.spec.mjs:203:3 › patients saved bento preference survives cold entry, search and session refresh (1.4s)
+  ✓  34 [webkit] › tests/directories-ui/stability.spec.mjs:345:1 › induced render failure is recoverable by navigating to another directory (950ms)
+  ✓  33 [webkit] › tests/directories-ui/stability.spec.mjs:248:1 › rapid directory navigation and browser history preserve URL without document reloads (1.7s)
+  ✓  36 [webkit] › tests/directories-ui/stability.spec.mjs:414:1 › page boundary user retry recovers with sanitized diagnostic reference (580ms)
+  ✓  35 [webkit] › tests/directories-ui/stability.spec.mjs:361:1 › induced chunk failure stays distinct and allows navigation without reload loop (1.9s)
+  ✓  37 [webkit] › tests/directories-ui/stability.spec.mjs:430:1 › authorization failure on refresh removes cached Patients and an open private draft (1.0s)
+  ✓  38 [webkit] › tests/directories-ui/stability.spec.mjs:449:1 › deferred form can close while its module suspends and reopen after fulfillment (1.2s)
+
+  38 passed (35.0s)

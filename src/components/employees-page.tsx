@@ -22,7 +22,7 @@ import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DeferredForm } from "@/components/ui/deferred-form";
-import { Loader2, Pencil, Trash, Check, LockKeyhole, ShieldCheck } from "lucide-react";
+import { Pencil, Trash, Check, LockKeyhole, ShieldCheck } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -46,6 +46,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQueryState } from "nuqs";
+import { parseDirectoryPageSize, parseDirectoryPresenceFilter, directoryPresence, isDirectoryAuthorizationError, shouldRetryDirectoryRead, type DirectoryPresence, type DirectoryPresenceFilter } from "@/lib/directory-state";
+import { useDirectoryPagination } from "@/hooks/useDirectoryPagination";
+import { DirectoryListStatus, DirectoryPresenceStatus, DirectoryRowsSkeleton } from "@/components/directory-loading";
 import {
   Select as CustomSelect,
   SelectContent,
@@ -157,6 +160,14 @@ const demoEmployees: Employee[] = [
     status: "inactive",
   },
 ];
+const EMPTY_EMPLOYEES: Employee[] = [];
+
+function EmployeePresence({ status }: { status: DirectoryPresence }) {
+  if (status === "online" || status === "away" || status === "offline") {
+    return <PresenceIndicator status={status} size="md" showLabel />;
+  }
+  return <span className="text-xs text-slate-500">{status === "unlinked" ? "No linked account" : status === "loading" ? "Loading presence…" : "Presence unknown"}</span>;
+}
 
 // Inline stat component matching reference design
 function InlineStat({
@@ -173,23 +184,11 @@ function InlineStat({
       <span className="text-sm text-slate-500">{label}</span>
       <div className="flex items-center gap-1">
         <span
-          className={cn("text-2xl font-semibold tracking-tight", valueColor)}
+          className={cn("text-2xl font-semibold tracking-tight tabular-nums min-w-10", valueColor)}
         >
           {value}
         </span>
       </div>
-    </div>
-  );
-}
-
-// Zero stat for empty state
-function ZeroStat({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm text-slate-500">{label}</span>
-      <span className="text-2xl font-semibold tracking-tight text-slate-300">
-        0
-      </span>
     </div>
   );
 }
@@ -262,9 +261,27 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const formInitialData = useMemo(() => (
+    editingEmployee
+      ? {
+          id: editingEmployee.id,
+          full_name: editingEmployee.name,
+          email: editingEmployee.email,
+          phone: editingEmployee.phone,
+          role: editingEmployee.position,
+          department: editingEmployee.department,
+          hire_date: editingEmployee.hireDate,
+          notes: editingEmployee.notes || "",
+          custom_fields: editingEmployee.custom_fields,
+          system_role: "none",
+        }
+      : undefined
+  ), [editingEmployee]);
   const { isDemoMode, navigateTo } = useOnboarding();
   const { currentOrganization } = useOrganization();
-  const { isAdmin } = usePermissions();
+  const { isAdmin, can } = usePermissions();
+  // Existing employee bookmarks allow reads; the separate sidebar flag is admin-only.
+  const canViewEmployees = can("view_employees");
   const canManageUserAccess = useCanManageUserAccess();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -275,12 +292,12 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   const queryClient = useQueryClient();
 
   // Presence status filter state
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "online" | "away" | "offline"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<DirectoryPresenceFilter>("all");
 
   // Fetch organization members with real-time presence status
-  const { members: orgMembers } = useOrganizationMembers();
+  const presence = useOrganizationMembers();
+  const orgMembers = presence.members;
+  const presencePending = !presence.hasData && !presence.error;
 
   // Match presence to the linked account; email and invitation roles are not unique IDs.
   const memberPresenceMap = useMemo(() => {
@@ -293,13 +310,11 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
 
   // View and pagination state
   const [viewMode, setViewMode] = useState<"bento" | "list">("bento");
-  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useQueryState("limit", {
     defaultValue: "5",
-    parse: (v) => v || "5",
+    parse: parseDirectoryPageSize,
   });
 
-  const limit = itemsPerPage === "all" ? 9999 : parseInt(itemsPerPage, 10);
 
   // Multi-select state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -345,16 +360,18 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
     setSelectedIds(new Set());
   };
 
-  const { data: realEmployees, isLoading } = useQuery({
+  const listQuery = useQuery({
+    retry: shouldRetryDirectoryRead,
     queryKey: ["employees", currentOrganization?.id],
-    queryFn: async () => {
-      if (!currentOrganization) return [];
+    queryFn: async ({ signal }) => {
+      if (!currentOrganization) throw new Error("An organization is required.");
 
       const { data, error } = await supabase
         .from("employees")
         .select("*")
         .eq("org_id", currentOrganization.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .abortSignal(signal);
 
       if (error) throw error;
 
@@ -381,9 +398,15 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
           }) as Employee,
       );
     },
-    enabled: !!currentOrganization,
+    enabled: !!currentOrganization && canViewEmployees,
     staleTime: 30_000,
   });
+  const authorizationFailed = isDirectoryAuthorizationError(listQuery.error);
+  const realEmployees = canViewEmployees && !authorizationFailed ? listQuery.data : undefined;
+  const listPending = !isDemoMode && !realEmployees && !listQuery.isError;
+  const listFailed = !isDemoMode && !realEmployees && listQuery.isError;
+  const listReady = isDemoMode || realEmployees !== undefined;
+
 
   const handleExport = async () => {
     if (!employees.length) return;
@@ -425,14 +448,14 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
   };
 
   const hasRealData = realEmployees && realEmployees.length > 0;
-  const showData = hasRealData || isDemoMode;
+  const hasRealDataOrDemo = hasRealData || isDemoMode;
   const employees = hasRealData
     ? realEmployees
     : isDemoMode
       ? demoEmployees
-      : [];
+      : EMPTY_EMPLOYEES;
 
-  const filteredEmployees = employees.filter((employee) => {
+  const filteredEmployees = useMemo(() => employees.filter((employee) => {
     // Search filter
     const nameMatch = (employee.name || "")
       .toLowerCase()
@@ -453,14 +476,14 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
     // Presence status filter
     if (statusFilter !== "all") {
       const member = memberPresenceMap.get(employee.user_id || "");
-      const presenceStatus = member?.presence_status || "offline";
+      const presenceStatus = directoryPresence(employee.user_id, member?.presence_status, presencePending);
       if (presenceStatus !== statusFilter) {
         return false;
       }
     }
 
     return searchMatch;
-  });
+  }), [employees, searchQuery, statusFilter, memberPresenceMap, presencePending]);
 
   // Calculate presence counts from filtered employees (not all org members)
   const { onlineCount, awayCount, offlineCount } = useMemo(() => {
@@ -470,27 +493,31 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
 
     employees.forEach((employee) => {
       const member = memberPresenceMap.get(employee.user_id || "");
-      const status = member?.presence_status || "offline";
+      const status = directoryPresence(employee.user_id, member?.presence_status, presencePending);
 
       if (status === "online") online++;
       else if (status === "away") away++;
-      else offline++;
+      else if (status === "offline") offline++;
     });
 
     return { onlineCount: online, awayCount: away, offlineCount: offline };
-  }, [employees, memberPresenceMap]);
+  }, [employees, memberPresenceMap, presencePending]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredEmployees.length / limit);
-  const paginatedEmployees = useMemo(() => {
-    const start = (currentPage - 1) * limit;
-    return filteredEmployees.slice(start, start + limit);
-  }, [filteredEmployees, currentPage, limit]);
+  const { currentPage, totalPages, startIndex, endIndex, setCurrentPage } =
+    useDirectoryPagination(itemsPerPage, filteredEmployees.length);
+  const paginatedEmployees = useMemo(
+    () => filteredEmployees.slice(startIndex, endIndex),
+    [filteredEmployees, startIndex, endIndex],
+  );
 
-  // Reset to page 1 when search or filter changes
-  useMemo(() => {
+  const handleSearchChange = (nextSearch: string) => {
+    setSearchQuery(nextSearch);
     setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
+  };
+  const handlePresenceFilterChange = (nextFilter: string) => {
+    setStatusFilter(parseDirectoryPresenceFilter(nextFilter));
+    setCurrentPage(1);
+  };
 
   const selectAll = () => {
     setSelectedIds(new Set(paginatedEmployees.map((e) => e.id)));
@@ -506,96 +533,21 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
     return formatInUserTimezone(dateString, activeTimezone, "MMM d, yyyy");
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-      </div>
-    );
-  }
-
-  // Show empty state if no real data and not in demo mode
-  if (!showData) {
+  if (authorizationFailed || (!canViewEmployees && !isDemoMode)) {
     return (
       <div className="space-y-6">
-        {/* Employee Form (Add/Edit) */}
-        <DeferredForm
-          open={showAddForm || !!editingEmployee}
-          onOpenChange={(open) => {
-            if (!open) {
-              setShowAddForm(false);
-              setEditingEmployee(null);
-            }
-          }}
-        >
-          <EmployeeForm
-            open={showAddForm || !!editingEmployee}
-            onOpenChange={(open) => {
-              if (!open) {
-                setShowAddForm(false);
-                setEditingEmployee(null);
-              }
-            }}
-            initialData={
-              editingEmployee
-                ? {
-                    id: editingEmployee.id,
-                    full_name: editingEmployee.name,
-                    email: editingEmployee.email,
-                    phone: editingEmployee.phone,
-                    role: editingEmployee.position,
-                    department: editingEmployee.department,
-                    hire_date: editingEmployee.hireDate,
-                    notes: editingEmployee.notes || "",
-                    custom_fields: editingEmployee.custom_fields,
-                    system_role: "none",
-                  }
-                : undefined
-            }
-          />
-        </DeferredForm>
-
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-slate-900">Employees</h1>
-            <p className="text-sm text-slate-500">
-              Manage staff members and departments
-            </p>
-          </div>
-        </div>
-
-        {/* Stats Row with zeros */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4 divide-x divide-slate-100">
-            <div className="pl-0">
-              <ZeroStat label="Total Employees" />
-            </div>
-            <div className="pl-8">
-              <ZeroStat label="Active" />
-            </div>
-            <div className="pl-8">
-              <ZeroStat label="On Leave" />
-            </div>
-            <div className="pl-8">
-              <ZeroStat label="Departments" />
-            </div>
-          </div>
-        </div>
-
-        {/* Empty State */}
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <EmployeesEmptyState
-            onAddEmployee={isAdmin ? () => setShowAddForm(true) : () => {}}
-            onUpload={isAdmin ? () => navigateTo("upload") : () => {}}
-          />
+        <h1 className="text-2xl font-semibold text-slate-900">Employees</h1>
+        <div role="alert" className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-600">
+          Access to employees could not be verified.
+          {authorizationFailed && <Button variant="outline" className="ml-3" onClick={() => void listQuery.refetch()}>Retry list</Button>}
         </div>
       </div>
     );
   }
 
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy={listPending}>
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
@@ -636,22 +588,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
               setEditingEmployee(null);
             }
           }}
-          initialData={
-            editingEmployee
-              ? {
-                  id: editingEmployee.id,
-                  full_name: editingEmployee.name,
-                  email: editingEmployee.email,
-                  phone: editingEmployee.phone,
-                  role: editingEmployee.position,
-                  department: editingEmployee.department,
-                  hire_date: editingEmployee.hireDate,
-                  notes: editingEmployee.notes || "",
-                  custom_fields: editingEmployee.custom_fields,
-                  system_role: "none",
-                }
-              : undefined
-          }
+          initialData={formInitialData}
         />
       </DeferredForm>
 
@@ -686,11 +623,23 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
         </div>
       )}
 
+      <div className="flex min-h-8 flex-wrap items-center gap-x-4 gap-y-1">
+        <DirectoryListStatus
+          label="employees"
+          pending={listPending}
+          failed={listFailed}
+          refreshing={listReady && listQuery.isFetching}
+          stale={listReady && listQuery.isError}
+          retry={() => { void listQuery.refetch(); }}
+        />
+        <DirectoryPresenceStatus pending={presencePending} failed={!!presence.error} ready={presence.hasData} refreshing={presence.isFetching} retry={presence.refetch} />
+      </div>
+
       {/* Stats Row - With Real-time Presence */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-5 divide-x divide-slate-100">
           <div className="pl-0">
-            <InlineStat label="Total Employees" value={employees.length} />
+            <InlineStat label="Total Employees" value={listReady ? employees.length : listFailed ? "—" : "…"} />
           </div>
           <div className="pl-8">
             <div className="flex flex-col gap-1">
@@ -698,8 +647,8 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                 <Circle size={8} weight="fill" className="text-emerald-500" />
                 Online Now
               </span>
-              <span className="text-2xl font-semibold tracking-tight text-emerald-600">
-                {onlineCount}
+              <span className="text-2xl font-semibold tracking-tight tabular-nums min-w-10 text-emerald-600">
+                {!listReady ? listFailed ? "—" : "…" : presence.hasData ? onlineCount : presencePending ? "…" : "—"}
               </span>
             </div>
           </div>
@@ -709,8 +658,8 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                 <Circle size={8} weight="fill" className="text-amber-500" />
                 Away
               </span>
-              <span className="text-2xl font-semibold tracking-tight text-amber-600">
-                {awayCount}
+              <span className="text-2xl font-semibold tracking-tight tabular-nums min-w-10 text-amber-600">
+                {!listReady ? listFailed ? "—" : "…" : presence.hasData ? awayCount : presencePending ? "…" : "—"}
               </span>
             </div>
           </div>
@@ -720,15 +669,15 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                 <Circle size={8} weight="fill" className="text-slate-400" />
                 Offline
               </span>
-              <span className="text-2xl font-semibold tracking-tight text-slate-500">
-                {offlineCount}
+              <span className="text-2xl font-semibold tracking-tight tabular-nums min-w-10 text-slate-500">
+                {!listReady ? listFailed ? "—" : "…" : presence.hasData ? offlineCount : presencePending ? "…" : "—"}
               </span>
             </div>
           </div>
           <div className="pl-8">
             <InlineStat
               label="Departments"
-              value={departments}
+              value={listReady ? departments : listFailed ? "—" : "…"}
               valueColor="text-indigo-600"
             />
           </div>
@@ -744,9 +693,10 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
           />
           <input
             type="text"
+            aria-label="Search employees"
             placeholder="Search employees by name, email, department or position..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3D5A3D]/20 focus:border-[#3D5A3D]"
           />
         </div>
@@ -754,9 +704,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
         {/* Status Filter */}
         <CustomSelect
           value={statusFilter}
-          onValueChange={(val) =>
-            setStatusFilter(val as "all" | "online" | "away" | "offline")
-          }
+          onValueChange={handlePresenceFilterChange}
         >
           <SelectTrigger className="w-[160px] rounded-lg border-slate-200 bg-white hover:bg-slate-50 h-10">
             <div className="flex items-center gap-2 text-sm text-slate-900">
@@ -776,7 +724,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
         <CustomSelect
           value={itemsPerPage}
           onValueChange={(val) => {
-            setItemsPerPage(val);
+            void setItemsPerPage(parseDirectoryPageSize(val));
             setCurrentPage(1);
           }}
         >
@@ -798,6 +746,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
         <Button
           variant="outline"
           onClick={handleExport}
+          disabled={!listReady}
           className="h-10 inline-flex items-center gap-2 rounded-lg border-slate-200 bg-white hover:bg-slate-50"
         >
           <DownloadSimple size={16} />
@@ -807,6 +756,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
         {/* View Toggle */}
         <div className="flex rounded-lg border border-slate-200 bg-white p-1">
           <button
+            aria-label="Grid view"
             onClick={() => setViewMode("bento")}
             className={cn(
               "flex items-center justify-center p-2 rounded-md transition-colors",
@@ -821,6 +771,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
             />
           </button>
           <button
+            aria-label="List view"
             onClick={() => setViewMode("list")}
             className={cn(
               "flex items-center justify-center p-2 rounded-md transition-colors",
@@ -910,8 +861,26 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
         </div>
       </div>
 
+      {listPending && <DirectoryRowsSkeleton viewMode={viewMode} />}
+      {listFailed && (
+        <div role="alert" className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-600">
+          Employees could not be loaded. Use Retry list above to try again.
+        </div>
+      )}
+      {listReady && !hasRealDataOrDemo && (
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+          <EmployeesEmptyState onAddEmployee={() => { if (isAdmin) setShowAddForm(true); }} onUpload={() => { if (isAdmin) navigateTo("upload"); }} />
+        </div>
+      )}
+
+      {listReady && hasRealDataOrDemo && filteredEmployees.length === 0 && (
+        <div role="status" className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+          No employees found matching your search or status filter.
+        </div>
+      )}
+
       {/* Bento Cards View */}
-      {viewMode === "bento" && (
+      {listReady && hasRealDataOrDemo && filteredEmployees.length > 0 && viewMode === "bento" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {paginatedEmployees.map((employee) => (
             <div
@@ -953,19 +922,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                   </div>
                 </div>
                 {/* Real-time presence indicator */}
-                {(() => {
-                  const member = memberPresenceMap.get(
-                    employee.user_id || "",
-                  );
-                  const presenceStatus = member?.presence_status || "offline";
-                  return (
-                    <PresenceIndicator
-                      status={presenceStatus}
-                      size="md"
-                      showLabel
-                    />
-                  );
-                })()}
+                <EmployeePresence status={directoryPresence(employee.user_id, memberPresenceMap.get(employee.user_id || "")?.presence_status, presencePending)} />
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -1098,7 +1055,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
       )}
 
       {/* List View */}
-      {viewMode === "list" && (
+      {listReady && hasRealDataOrDemo && filteredEmployees.length > 0 && viewMode === "list" && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1203,20 +1160,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {(() => {
-                          const member = memberPresenceMap.get(
-                            employee.user_id || "",
-                          );
-                          const presenceStatus =
-                            member?.presence_status || "offline";
-                          return (
-                            <PresenceIndicator
-                              status={presenceStatus}
-                              size="md"
-                              showLabel
-                            />
-                          );
-                        })()}
+                        <EmployeePresence status={directoryPresence(employee.user_id, memberPresenceMap.get(employee.user_id || "")?.presence_status, presencePending)} />
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div
@@ -1309,15 +1253,15 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
       )}
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      {listReady && <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">
           Showing{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min((currentPage - 1) * limit + 1, filteredEmployees.length)}
+            {filteredEmployees.length === 0 ? 0 : startIndex + 1}
           </span>{" "}
           -{" "}
           <span className="font-semibold text-slate-900">
-            {Math.min(currentPage * limit, filteredEmployees.length)}
+            {endIndex}
           </span>{" "}
           of{" "}
           <span className="font-semibold text-slate-900">
@@ -1330,7 +1274,7 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
             variant="outline"
             size="sm"
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            onClick={() => setCurrentPage(currentPage - 1)}
             className="rounded-lg border-slate-200 gap-1"
           >
             <CaretLeft size={16} />
@@ -1361,14 +1305,14 @@ export function EmployeesPage({ onEmployeeClick }: EmployeesPageProps) {
             variant="outline"
             size="sm"
             disabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => setCurrentPage(currentPage + 1)}
             className="rounded-lg border-slate-200 gap-1"
           >
             Next
             <CaretRight size={16} />
           </Button>
         </div>
-      </div>
+      </div>}
 
       <DeleteConfirmationDialog
         open={!!deleteId}

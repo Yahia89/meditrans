@@ -1,0 +1,41 @@
+
+> future-transportation-crm@0.0.0 test:startup:ui
+> playwright test --config playwright.startup.config.ts --project chromium --project webkit
+
+[WebServer] (node:16027) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 22 tests using 2 workers
+
+(node:16080) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16079) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 [chromium] › tests/startup-ui/startup.spec.mjs:30:1 › a slow membership response keeps audit deep links and private data blocked until access resolves (1.3s)
+  ✓   1 [chromium] › tests/startup-ui/startup.spec.mjs:17:1 › signed-out startup performs no private bootstrap; successful sign-in resolves one shared identity (1.4s)
+  ✓   4 [chromium] › tests/startup-ui/startup.spec.mjs:58:1 › confirmed no-driver identity survives token refresh and navigation without duplicate reads or GPS (811ms)
+  ✓   5 [chromium] › tests/startup-ui/startup.spec.mjs:72:1 › expired returning session refreshes once before the shared bootstrap (482ms)
+  ✓   6 [chromium] › tests/startup-ui/startup.spec.mjs:81:1 › driver access rejects a billing deep link and disabled driver records do not start GPS (601ms)
+  ✓   3 [chromium] › tests/startup-ui/startup.spec.mjs:45:1 › membership errors stay distinct from an empty company and the retry restores the requested route (2.1s)
+  ✓   7 [chromium] › tests/startup-ui/startup.spec.mjs:90:1 › membership removal on revalidation unmounts private details and falls back to the account (1.8s)
+  ✓   8 [chromium] › tests/startup-ui/startup.spec.mjs:103:1 › a multi-tab account switch clears previous-user detail data while the next identity is pending (1.9s)
+  ✓   9 [chromium] › tests/startup-ui/startup.spec.mjs:121:1 › changing the default company on revalidation replaces tenant queries and visible context (880ms)
+  ✓  11 [chromium] › tests/startup-ui/startup.spec.mjs:150:1 › a self-membership whose organization is hidden by RLS cannot mount an audit route (800ms)
+  ✓  10 [chromium] › tests/startup-ui/startup.spec.mjs:133:1 › sign-out in one tab removes protected UI from both tabs (1.7s)
+(node:16143) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16145) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  13 [webkit] › tests/startup-ui/startup.spec.mjs:30:1 › a slow membership response keeps audit deep links and private data blocked until access resolves (1.4s)
+  ✓  12 [webkit] › tests/startup-ui/startup.spec.mjs:17:1 › signed-out startup performs no private bootstrap; successful sign-in resolves one shared identity (1.6s)
+  ✓  15 [webkit] › tests/startup-ui/startup.spec.mjs:58:1 › confirmed no-driver identity survives token refresh and navigation without duplicate reads or GPS (875ms)
+  ✓  16 [webkit] › tests/startup-ui/startup.spec.mjs:72:1 › expired returning session refreshes once before the shared bootstrap (489ms)
+  ✓  14 [webkit] › tests/startup-ui/startup.spec.mjs:45:1 › membership errors stay distinct from an empty company and the retry restores the requested route (2.1s)
+  ✓  17 [webkit] › tests/startup-ui/startup.spec.mjs:81:1 › driver access rejects a billing deep link and disabled driver records do not start GPS (621ms)
+  ✓  18 [webkit] › tests/startup-ui/startup.spec.mjs:90:1 › membership removal on revalidation unmounts private details and falls back to the account (1.2s)
+  ✓  19 [webkit] › tests/startup-ui/startup.spec.mjs:103:1 › a multi-tab account switch clears previous-user detail data while the next identity is pending (1.4s)
+  ✓  20 [webkit] › tests/startup-ui/startup.spec.mjs:121:1 › changing the default company on revalidation replaces tenant queries and visible context (901ms)
+  ✓  21 [webkit] › tests/startup-ui/startup.spec.mjs:133:1 › sign-out in one tab removes protected UI from both tabs (1.5s)
+  ✓  22 [webkit] › tests/startup-ui/startup.spec.mjs:150:1 › a self-membership whose organization is hidden by RLS cannot mount an audit route (905ms)
+
+  22 passed (17.4s)

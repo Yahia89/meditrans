@@ -1,0 +1,14 @@
+{
+  "synthetic": true,
+  "variant": {
+    "name": "encoded infinity limit",
+    "query": "page=patients&limit=Infinity&view=%7B%7D"
+  },
+  "url": "http://localhost:5199/?page=patients&limit=Infinity&view=%7B%7D",
+  "errors": [],
+  "consoleErrors": [],
+  "diagnostics": [],
+  "collectionReads": 1,
+  "totalRequests": 13,
+  "body": "Toggle Sidebar\nPatients\nClients\n\nManage and view all client records\n\nAdd Client\nTotal Clients\n2\nApproved\n1\nNew This Month\n0\nTotal Trips\n12\nShow 5\nExport\n0 clients selected\nDelete\nClear Selection\nDAC\nDirectory Alpha Client\nAge: 56\nApproved\n(555) 123-4567\nalpha-client@example.invalid\n123 Fixture Street\nTrips: 12\nView Details\nDBC\nDirectory Beta Client\nAge: 46\nPending\n(555) 123-4567\nbeta-client@example.invalid\n—\nTrips: 0\nView Details\n\nShowing 1 - 2 of 2 clients\n\nPrevious\n1\nNext"
+}

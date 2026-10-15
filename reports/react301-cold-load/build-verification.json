@@ -1,0 +1,8 @@
+{
+  "builtAt": "2026-10-14T23:23:16.313Z",
+  "indexSha256": "766cabbe70d80c956e6c0b4ba8bcd52d395333ea6fd25c6d91c4ef120828d3aa",
+  "lockfileSha256": "1ca3344bedae82306a412628c49d67aa024c77518975852a95b4f4011654e608",
+  "entry": "assets/index-D3DXa--B.js",
+  "productionDeploymentPerformed": false,
+  "changesSinceVisualCapture": "Restore original admin guard on Employees empty-state Upload callback only"
+}

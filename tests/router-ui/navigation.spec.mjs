@@ -1,10 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { broadcastSession, createStartupState, installStartupFixtures, syntheticSession, users } from '../startup-ui/fixtures.mjs';
 
+const localOrigin = `http://localhost:${process.env.ROUTER_TEST_PORT ?? '5187'}`;
+
 async function setup(context, page) {
   const state = createStartupState();
   await installStartupFixtures(context, state);
-  await page.route('http://localhost:5187/**', route => route.continue());
+  await page.route(`${localOrigin}/**`, route => route.continue());
   const presence = [];
   const documents = [];
   const chunks = [];
@@ -115,7 +117,7 @@ test('a stale route chunk offers manual refresh without reloading the current do
   const { documents } = await setup(context, page);
   await page.clock.install();
   let nextDeployment = false;
-  await page.route('http://localhost:5187/**', async route => {
+  await page.route(`${localOrigin}/**`, async route => {
     if (!nextDeployment) return route.fallback();
     const path = new URL(route.request().url()).pathname;
     if (path !== '/' && !path.endsWith('.js')) return route.fallback();
@@ -133,8 +135,8 @@ test('a stale route chunk offers manual refresh without reloading the current do
   await page.goto('/?page=dashboard&filter=open&filter=closed&limit=20#retained-fragment');
   await expect(page.getByRole('heading', { name: 'Fleet Performance' })).toBeVisible();
   await page.getByRole('button', { name: 'Billing & Payments', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'A newer version is available' })).toBeVisible();
-  await expect(page.getByText('Save or copy any unfinished work before refreshing to load the current version.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This page could not load' })).toBeVisible();
+  await expect(page.getByText('Check your connection and try again. If this continues, save any unfinished work and refresh to load the current version.')).toBeVisible();
   await page.clock.fastForward(10_000);
   expect(documents).toHaveLength(1);
   retainedQuery(page, 'medicaid-billing');
