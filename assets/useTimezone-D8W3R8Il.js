@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-hePW80VL.js";import{Tr as t,cn as n,un as r}from"./workspace-LPr1-Q_k.js";import{y as i}from"./dashboard-CHfMeVEz.js";var a=e(t(),1);function o(){let{profile:e}=r(),{currentOrganization:t}=n();return(0,a.useMemo)(()=>i(e,t),[e,t])}export{o as t};
