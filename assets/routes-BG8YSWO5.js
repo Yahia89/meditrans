@@ -1,1 +1,0 @@
-import{t as e}from"./workspace-LPr1-Q_k.js";var t=e;export{t as component};
