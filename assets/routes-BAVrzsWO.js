@@ -1,1 +1,0 @@
-import{t as e}from"./workspace-_dP5SWCf.js";var t=e;export{t as component};
