@@ -1,0 +1,1 @@
+import{t as e}from"./workspace-DMk1rNbc.js";var t=e;export{t as component};
