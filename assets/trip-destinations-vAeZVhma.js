@@ -1,0 +1,1 @@
+function e(e){let t=e.place_id?.trim();return t&&!/[\s\u0000-\u001f\u007f]/.test(t)?t:null}function t(e,t){return e.pickup_location===t.pickup_location&&e.dropoff_location===t.dropoff_location&&e.pickup_place_id===t.pickup_place_id&&e.dropoff_place_id===t.dropoff_place_id}export{e as n,t};
